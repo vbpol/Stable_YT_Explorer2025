@@ -32,6 +32,8 @@ class DownloadManager:
         # Status
         self.status_label = ttk.Label(self.window, text="Preparing...")
         self.status_label.pack(pady=10)
+        self.speed_eta_label = ttk.Label(self.window, text="")
+        self.speed_eta_label.pack(pady=5)
         
         # Cancel button
         self.cancel_btn = ttk.Button(self.window, text="Cancel", command=self.cancel_download)
@@ -51,39 +53,55 @@ class DownloadManager:
             'format': self.options['quality'],
             'outtmpl': os.path.join(self.download_folder, '%(title)s.%(ext)s'),
             'progress_hooks': [self.progress_hook],
+            'concurrent_fragment_downloads': 4,
+            'merge_output_format': 'mp4',
         }
         
         for i, video in enumerate(self.videos, 1):
             if self.cancelled:
                 break
                 
-            self.current_label["text"] = f"Downloading: {video['title']}"
-            self.status_label["text"] = f"Video {i} of {total_videos}"
+            self.window.after(0, lambda t=video['title']: self.current_label.configure(text=f"Downloading: {t}"))
+            self.window.after(0, lambda x=i: self.status_label.configure(text=f"Video {x} of {total_videos}"))
             
             try:
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     ydl.download([f"https://www.youtube.com/watch?v={video['videoId']}"])
-                self.total_progress["value"] = i
+                self.window.after(0, lambda v=i: self.total_progress.configure(value=v))
             except Exception as e:
-                self.status_label["text"] = f"Error: {str(e)}"
+                self.window.after(0, lambda msg=str(e): self.status_label.configure(text=f"Error: {msg}"))
                 continue
         
         if not self.cancelled:
-            self.status_label["text"] = "Download complete!"
-        self.cancel_btn["text"] = "Close"
+            self.window.after(0, lambda: self.status_label.configure(text="Download complete!"))
+        self.window.after(0, lambda: self.cancel_btn.configure(text="Close"))
 
     def progress_hook(self, d):
-        if d['status'] == 'downloading':
-            # Update video progress
-            total = d.get('total_bytes')
-            downloaded = d.get('downloaded_bytes')
+        status = d.get('status')
+        if status == 'downloading':
+            total = d.get('total_bytes') or d.get('total_bytes_estimate') or 0
+            downloaded = d.get('downloaded_bytes') or 0
             if total:
-                percentage = (downloaded / total) * 100
-                self.video_progress["value"] = percentage
+                percentage = downloaded / total * 100
+                if percentage < 0:
+                    percentage = 0
+                elif percentage > 100:
+                    percentage = 100
+                self.window.after(0, lambda v=percentage: self.video_progress.configure(value=v))
+            speed = d.get('speed')
+            eta = d.get('eta')
+            def _fmt():
+                s = f"{speed/1024/1024:.2f} MB/s" if speed else ""
+                e = f"ETA {eta}s" if eta else ""
+                txt = f"{s} {e}".strip()
+                self.speed_eta_label.configure(text=txt)
+            self.window.after(0, _fmt)
+        elif status == 'finished':
+            self.window.after(0, lambda: self.video_progress.configure(value=100))
 
     def cancel_download(self):
         if self.cancel_btn["text"] == "Close":
             self.window.destroy()
         else:
             self.cancelled = True
-            self.status_label["text"] = "Cancelling..." 
+            self.status_label["text"] = "Cancelling..."

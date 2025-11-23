@@ -390,6 +390,16 @@ class MainPage(tk.Frame):
         video_url = f"https://www.youtube.com/watch?v={video['videoId']}"
         webbrowser.open(video_url)
 
+    def set_preferred_quality(self, value: str):
+        try:
+            ConfigManager.set_preferred_quality(value)
+            try:
+                self.status_bar.configure(text=f"Preferred quality set: {value}")
+            except Exception:
+                pass
+        except Exception:
+            pass
+
     def save_playlist(self):
         """Save the selected playlist details to a file."""
         if not self.current_playlist_info or not self.current_videos:

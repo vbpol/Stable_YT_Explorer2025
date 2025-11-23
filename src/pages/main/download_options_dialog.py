@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from src.config_manager import ConfigManager
 
 class DownloadOptionsDialog:
     def __init__(self, parent):
@@ -12,7 +13,7 @@ class DownloadOptionsDialog:
         print("Setting up dialog components")  # Debug print
         # Quality selection
         ttk.Label(self.window, text="Video Quality:").pack(pady=5)
-        self.quality_var = tk.StringVar(value="best")
+        self.quality_var = tk.StringVar(value=ConfigManager.get_preferred_quality())
         quality_frame = ttk.Frame(self.window)
         quality_frame.pack(pady=5)
         
@@ -49,8 +50,12 @@ class DownloadOptionsDialog:
             'quality': self.quality_var.get()
         }
         print(f"Selected quality: {self.result}")  # Debug print
+        try:
+            ConfigManager.set_preferred_quality(self.quality_var.get())
+        except Exception:
+            pass
         self.window.destroy()
 
     def cancel(self):
         print("Download cancelled")  # Debug print
-        self.window.destroy() 
+        self.window.destroy()

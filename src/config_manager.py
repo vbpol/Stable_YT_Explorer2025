@@ -111,3 +111,31 @@ class ConfigManager:
                 return json.load(f)
         except Exception:
             return None
+
+    @staticmethod
+    def get_preferred_quality() -> str:
+        try:
+            data = {}
+            try:
+                with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+            except Exception:
+                data = {}
+            return data.get("preferred_quality", "best")
+        except Exception:
+            return "best"
+
+    @staticmethod
+    def set_preferred_quality(quality: str):
+        try:
+            data = {}
+            try:
+                with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+            except Exception:
+                data = {}
+            data["preferred_quality"] = quality or "best"
+            with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=4)
+        except Exception:
+            pass

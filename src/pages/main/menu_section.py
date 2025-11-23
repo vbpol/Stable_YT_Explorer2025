@@ -25,3 +25,12 @@ class MenuSection(BaseSection):
         view_menu.add_command(label="Sort by Channel", command=lambda: self.main_page._sort_playlists("Channel"))
         view_menu.add_command(label="Sort by Videos", command=lambda: self.main_page._sort_playlists("Videos"))
         menubar.add_cascade(label="View", menu=view_menu)
+
+        download_menu = tk.Menu(menubar, tearoff=0)
+        quality_menu = tk.Menu(download_menu, tearoff=0)
+        quality_menu.add_command(label="Best", command=lambda: self.main_page.set_preferred_quality("best"))
+        quality_menu.add_command(label="720p", command=lambda: self.main_page.set_preferred_quality("best[height<=720]"))
+        quality_menu.add_command(label="480p", command=lambda: self.main_page.set_preferred_quality("best[height<=480]"))
+        quality_menu.add_command(label="360p", command=lambda: self.main_page.set_preferred_quality("best[height<=360]"))
+        download_menu.add_cascade(label="Preferred Quality", menu=quality_menu)
+        menubar.add_cascade(label="Download", menu=download_menu)
