@@ -6,6 +6,8 @@ import csv
 import sys
 import subprocess
 import threading  # Add this for download threading
+import json
+from src.config_manager import ConfigManager
 from .menu_section import MenuSection
 from .search_section import SearchSection
 from .playlist_section import PlaylistSection
@@ -36,6 +38,11 @@ class MainPage(tk.Frame):
         self.playlist = PlaylistSection(self)
         self.video = VideoSection(self)
         self.status_bar = StatusBar(self)
+        self.search_mode = 'playlists'
+        self.current_videos = []
+        self.current_playlist_info = None
+        self.prev_page_token = None
+        self.current_page_token = None
 
     def _pack_sections(self):
         """Pack sections into the main page."""
@@ -43,6 +50,99 @@ class MainPage(tk.Frame):
         self.playlist.pack(fill="both", expand=True, padx=10, pady=5)
         self.video.pack(fill="both", expand=True, padx=10, pady=5)
         self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+
+    def clear_panels(self):
+        try:
+            self.playlist.playlist_tree.delete(*self.playlist.playlist_tree.get_children())
+        except Exception:
+            pass
+        try:
+            self.video.video_tree.delete(*self.video.video_tree.get_children())
+        except Exception:
+            pass
+        self.current_videos = []
+        self.current_playlist_info = None
+        self.prev_page_token = None
+        self.current_page_token = None
+
+    def set_search_mode(self, mode_display):
+        mode = (mode_display or '').strip().lower()
+        if mode not in ('playlists', 'videos'):
+            mode = 'playlists'
+        if mode != self.search_mode:
+            self.search_mode = mode
+            self.clear_panels()
+            try:
+                if mode == 'playlists':
+                    path = ConfigManager.get_last_search_path('playlists')
+                    data = ConfigManager.load_json(path) or []
+                    for pl in data:
+                        self.playlist.update_playlist(pl)
+                else:
+                    path = ConfigManager.get_last_search_path('videos')
+                    data = ConfigManager.load_json(path) or {}
+                    videos = data.get('videos', [])
+                    playlists = data.get('playlists', [])
+                    for v in videos:
+                        self.video.video_tree.insert('', 'end', values=(v.get('title', ''), v.get('duration', 'N/A')))
+                    for pl in playlists:
+                        self.playlist.update_playlist(pl)
+                    self.current_videos = videos
+            except Exception:
+                pass
+
+    def execute_search(self, query, mode_display):
+        query = (query or '').strip()
+        if not query:
+            messagebox.showerror("Error", "Please enter a keyword.")
+            return
+        mode = (mode_display or '').strip().lower()
+        if mode not in ('playlists', 'videos'):
+            mode = 'playlists'
+        self.search_mode = mode
+        self.clear_panels()
+        if mode == 'playlists':
+            try:
+                playlists = self.controller.playlist_handler.search_playlists(query)
+                enriched = []
+                for playlist in playlists:
+                    try:
+                        video_count = self.controller.playlist_handler.get_details(playlist["playlistId"])
+                        playlist["video_count"] = video_count
+                    except Exception:
+                        playlist["video_count"] = "N/A"
+                    self.playlist.update_playlist(playlist)
+                    enriched.append(playlist)
+                ConfigManager.save_json(ConfigManager.get_last_search_path('playlists'), enriched)
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to fetch playlists: {e}")
+        else:
+            try:
+                videos = self.controller.playlist_handler.search_videos(query)
+                self.current_videos = videos
+                for v in videos:
+                    self.video.video_tree.insert('', 'end', values=(v.get('title', ''), v.get('duration', 'N/A')))
+
+                seen_channels = set()
+                collected_playlists = []
+                for v in videos:
+                    cid = v.get('channelId')
+                    if cid and cid not in seen_channels:
+                        seen_channels.add(cid)
+                        try:
+                            ch_playlists = self.controller.playlist_handler.get_channel_playlists(cid)
+                            for pl in ch_playlists:
+                                if not any(p['playlistId'] == pl['playlistId'] for p in collected_playlists):
+                                    self.playlist.update_playlist(pl)
+                                    collected_playlists.append(pl)
+                        except Exception:
+                            continue
+                ConfigManager.save_json(ConfigManager.get_last_search_path('videos'), {
+                    'videos': videos,
+                    'playlists': collected_playlists
+                })
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to fetch videos: {e}")
 
     # Core functionality methods
     def search_playlists(self):

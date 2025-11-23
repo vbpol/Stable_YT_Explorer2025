@@ -28,6 +28,62 @@ class Playlist:
             playlists.append(playlist)
         return playlists
 
+    def search_videos(self, query, max_results=10):
+        request = self.youtube.search().list(
+            part="snippet",
+            maxResults=max_results,
+            q=query,
+            type="video"
+        )
+        try:
+            response = request.execute()
+        except HttpError as err:
+            try:
+                data = json.loads(err.content.decode())
+                reason = data.get("error", {}).get("errors", [{}])[0].get("reason", "unknown")
+                message = data.get("error", {}).get("message", "")
+                raise Exception(f"API error: {reason}: {message}")
+            except Exception:
+                raise Exception("API error while searching videos")
+
+        videos = []
+        for item in response['items']:
+            videos.append({
+                'videoId': item['id']['videoId'],
+                'title': item['snippet']['title'],
+                'channelTitle': item['snippet']['channelTitle'],
+                'channelId': item['snippet']['channelId'],
+                'duration': 'N/A'
+            })
+        return videos
+
+    def get_channel_playlists(self, channel_id, max_results=10):
+        request = self.youtube.playlists().list(
+            part="snippet,contentDetails",
+            channelId=channel_id,
+            maxResults=max_results
+        )
+        try:
+            response = request.execute()
+        except HttpError as err:
+            try:
+                data = json.loads(err.content.decode())
+                reason = data.get("error", {}).get("errors", [{}])[0].get("reason", "unknown")
+                message = data.get("error", {}).get("message", "")
+                raise Exception(f"API error: {reason}: {message}")
+            except Exception:
+                raise Exception("API error while getting channel playlists")
+
+        playlists = []
+        for item in response.get('items', []):
+            playlists.append({
+                'playlistId': item['id'],
+                'title': item['snippet']['title'],
+                'channelTitle': item['snippet']['channelTitle'],
+                'thumbnail': item['snippet']['thumbnails'].get('default', {}).get('url', '')
+            })
+        return playlists
+
     def get_details(self, playlist_id):
         """Get the number of videos in a playlist."""
         request = self.youtube.playlists().list(
@@ -86,4 +142,4 @@ class Playlist:
                 formatted = formatted[2:]
             durations[item['id']] = formatted
 
-        return durations 
+        return durations
