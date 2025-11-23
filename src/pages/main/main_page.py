@@ -45,6 +45,9 @@ class MainPage(tk.Frame):
         self.current_page_token = None
         self.video_playlist_cache = {}
         self.collected_playlists = []
+        self.video_search_query = ''
+        self.video_next_page_token = None
+        self.video_prev_page_token = None
 
     def _pack_sections(self):
         """Pack sections into the main page."""
@@ -87,12 +90,23 @@ class MainPage(tk.Frame):
                     videos = data.get('videos', [])
                     playlists = data.get('playlists', [])
                     for v in videos:
-                        self.video.video_tree.insert('', 'end', values=(v.get('title', ''), v.get('duration', 'N/A')))
+                        self.video.video_tree.insert('', 'end', values=(
+                            v.get('title', ''),
+                            v.get('channelTitle', ''),
+                            v.get('duration', 'N/A'),
+                            v.get('published', ''),
+                            v.get('views', '0')
+                        ))
                     for pl in playlists:
                         self.playlist.update_playlist(pl)
                     self.current_videos = videos
                     self.collected_playlists = playlists
                     self.video.update_back_button_state(True)
+                    try:
+                        self.video.prev_page_btn.configure(command=lambda: self.show_videos_search_page(self.video_prev_page_token))
+                        self.video.next_page_btn.configure(command=lambda: self.show_videos_search_page(self.video_next_page_token))
+                    except Exception:
+                        pass
             except Exception:
                 pass
 
@@ -124,10 +138,22 @@ class MainPage(tk.Frame):
                 messagebox.showerror("Error", f"Failed to fetch playlists: {e}")
         else:
             try:
-                videos = self.controller.playlist_handler.search_videos(query)
+                self.video_search_query = query
+                max_results = int(self.video.page_size_var.get())
+                resp = self.controller.playlist_handler.search_videos(query, max_results=max_results)
+                videos = resp.get('videos', [])
                 self.current_videos = videos
+                self.video_next_page_token = resp.get('nextPageToken')
+                self.video_prev_page_token = resp.get('prevPageToken')
+                self.video.video_tree.delete(*self.video.video_tree.get_children())
                 for v in videos:
-                    self.video.video_tree.insert('', 'end', values=(v.get('title', ''), v.get('duration', 'N/A')))
+                    self.video.video_tree.insert('', 'end', values=(
+                        v.get('title', ''),
+                        v.get('channelTitle', ''),
+                        v.get('duration', 'N/A'),
+                        v.get('published', ''),
+                        v.get('views', '0')
+                    ))
 
                 seen_channels = set()
                 collected_playlists = []
@@ -149,6 +175,13 @@ class MainPage(tk.Frame):
                 })
                 self.collected_playlists = collected_playlists
                 self.video.update_back_button_state(True)
+                try:
+                    self.video.prev_page_btn.configure(command=lambda: self.show_videos_search_page(self.video_prev_page_token))
+                    self.video.next_page_btn.configure(command=lambda: self.show_videos_search_page(self.video_next_page_token))
+                    self.video.prev_page_btn["state"] = "normal" if self.video_prev_page_token else "disabled"
+                    self.video.next_page_btn["state"] = "normal" if self.video_next_page_token else "disabled"
+                except Exception:
+                    pass
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to fetch videos: {e}")
 
@@ -161,7 +194,13 @@ class MainPage(tk.Frame):
         videos = data.get('videos', [])
         playlists = data.get('playlists', [])
         for v in videos:
-            self.video.video_tree.insert('', 'end', values=(v.get('title', ''), v.get('duration', 'N/A')))
+            self.video.video_tree.insert('', 'end', values=(
+                v.get('title', ''),
+                v.get('channelTitle', ''),
+                v.get('duration', 'N/A'),
+                v.get('published', ''),
+                v.get('views', '0')
+            ))
         for pl in playlists:
             self.playlist.update_playlist(pl)
         self.current_videos = videos
@@ -203,6 +242,33 @@ class MainPage(tk.Frame):
                     return
             except Exception:
                 continue
+
+    def show_videos_search_page(self, page_token=None):
+        if self.search_mode != 'videos' or not self.video_search_query:
+            return
+        try:
+            max_results = int(self.video.page_size_var.get())
+            resp = self.controller.playlist_handler.search_videos(self.video_search_query, max_results=max_results, page_token=page_token)
+            videos = resp.get('videos', [])
+            self.current_videos = videos
+            self.video_next_page_token = resp.get('nextPageToken')
+            self.video_prev_page_token = resp.get('prevPageToken')
+            self.video.video_tree.delete(*self.video.video_tree.get_children())
+            for v in videos:
+                self.video.video_tree.insert('', 'end', values=(
+                    v.get('title', ''),
+                    v.get('channelTitle', ''),
+                    v.get('duration', 'N/A'),
+                    v.get('published', ''),
+                    v.get('views', '0')
+                ))
+            try:
+                self.video.prev_page_btn["state"] = "normal" if self.video_prev_page_token else "disabled"
+                self.video.next_page_btn["state"] = "normal" if self.video_next_page_token else "disabled"
+            except Exception:
+                pass
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to fetch videos: {e}")
 
     # Core functionality methods
     def search_playlists(self):
@@ -291,7 +357,13 @@ class MainPage(tk.Frame):
             for video in self.current_videos:
                 self.video.video_tree.insert(
                     "", "end",
-                    values=(video["title"], video["duration"])
+                    values=(
+                        video.get("title", ""),
+                        "",
+                        video.get("duration", "N/A"),
+                        "",
+                        ""
+                    )
                 )
 
             # Update pagination info

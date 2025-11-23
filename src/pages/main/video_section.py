@@ -18,11 +18,17 @@ class VideoSection(BaseSection):
         self._create_action_buttons()
 
     def _create_video_tree(self):
-        columns = ("Title", "Duration")
+        columns = ("Title", "Channel", "Duration", "Published", "Views")
         self.video_tree = ttk.Treeview(self, columns=columns, show="headings", height=15)
         self.video_tree.heading("Title", text="Title")
+        self.video_tree.heading("Channel", text="Channel")
         self.video_tree.heading("Duration", text="Duration")
+        self.video_tree.heading("Published", text="Published")
+        self.video_tree.heading("Views", text="Views")
+        self.video_tree.column("Channel", width=160, anchor="w")
         self.video_tree.column("Duration", width=100, anchor="center")
+        self.video_tree.column("Published", width=150, anchor="center")
+        self.video_tree.column("Views", width=100, anchor="center")
         
         # Add scrollbar
         scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.video_tree.yview)

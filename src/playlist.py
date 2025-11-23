@@ -1,7 +1,9 @@
 import requests
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from datetime import timedelta
 import isodate
+import json
 
 class Playlist:
     def __init__(self, api_key):
@@ -28,12 +30,13 @@ class Playlist:
             playlists.append(playlist)
         return playlists
 
-    def search_videos(self, query, max_results=10):
+    def search_videos(self, query, max_results=10, page_token=None):
         request = self.youtube.search().list(
             part="snippet",
             maxResults=max_results,
             q=query,
-            type="video"
+            type="video",
+            pageToken=page_token
         )
         try:
             response = request.execute()
@@ -46,16 +49,27 @@ class Playlist:
             except Exception:
                 raise Exception("API error while searching videos")
 
+        video_ids = [item['id']['videoId'] for item in response.get('items', [])]
+        details = self._get_video_details(video_ids)
+
         videos = []
-        for item in response['items']:
+        for item in response.get('items', []):
+            vid = item['id']['videoId']
+            d = details.get(vid, {})
             videos.append({
-                'videoId': item['id']['videoId'],
+                'videoId': vid,
                 'title': item['snippet']['title'],
                 'channelTitle': item['snippet']['channelTitle'],
                 'channelId': item['snippet']['channelId'],
-                'duration': 'N/A'
+                'duration': d.get('duration', 'N/A'),
+                'published': d.get('published', ''),
+                'views': d.get('views', '0')
             })
-        return videos
+        return {
+            'videos': videos,
+            'nextPageToken': response.get('nextPageToken'),
+            'prevPageToken': response.get('prevPageToken')
+        }
 
     def get_channel_playlists(self, channel_id, max_results=10):
         request = self.youtube.playlists().list(
@@ -143,3 +157,38 @@ class Playlist:
             durations[item['id']] = formatted
 
         return durations
+
+    def _get_video_details(self, video_ids):
+        if not video_ids:
+            return {}
+        request = self.youtube.videos().list(
+            part="contentDetails,snippet,statistics",
+            id=','.join(video_ids)
+        )
+        try:
+            response = request.execute()
+        except HttpError as err:
+            try:
+                data = json.loads(err.content.decode())
+                reason = data.get("error", {}).get("errors", [{}])[0].get("reason", "unknown")
+                message = data.get("error", {}).get("message", "")
+                raise Exception(f"API error: {reason}: {message}")
+            except Exception:
+                raise Exception("API error while getting video details")
+        result = {}
+        for item in response.get('items', []):
+            try:
+                dur = isodate.parse_duration(item['contentDetails']['duration'])
+                duration = str(timedelta(seconds=int(dur.total_seconds())))
+                if duration.startswith('0:'):
+                    duration = duration[2:]
+            except Exception:
+                duration = 'N/A'
+            published = item.get('snippet', {}).get('publishedAt', '')
+            views = item.get('statistics', {}).get('viewCount', '0')
+            result[item['id']] = {
+                'duration': duration,
+                'published': published,
+                'views': views
+            }
+        return result
