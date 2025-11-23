@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import ttk
 from .config_manager import ConfigManager
 from .pages.setup_page import SetupPage
 from .pages.main.main_page import MainPage
@@ -85,7 +86,7 @@ class YouTubeApp:
         self.progress_window.title("Downloading Video")
         self.progress_window.geometry("300x100")
 
-        self.progress_bar = tk.ttk.Progressbar(self.progress_window, orient="horizontal", length=280, mode="determinate")
+        self.progress_bar = ttk.Progressbar(self.progress_window, orient="horizontal", length=280, mode="determinate")
         self.progress_bar.pack(pady=20)
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -97,7 +98,15 @@ class YouTubeApp:
                 self.progress_window.destroy()  # Close the progress window after download
 
     def progress_hook(self, d):
-        """Hook to update the progress bar."""
-        if d['status'] == 'downloading':
-            self.progress_bar['value'] = d['downloaded_bytes'] / d['total_bytes'] * 100
-            self.progress_window.update_idletasks()  # Update the GUI
+        status = d.get('status')
+        if status == 'downloading':
+            total = d.get('total_bytes') or d.get('total_bytes_estimate') or 0
+            downloaded = d.get('downloaded_bytes', 0)
+            if total:
+                percent = downloaded / total * 100
+                if percent < 0:
+                    percent = 0
+                elif percent > 100:
+                    percent = 100
+                self.progress_bar['value'] = percent
+                self.progress_window.update_idletasks()

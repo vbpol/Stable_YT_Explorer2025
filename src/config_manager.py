@@ -80,3 +80,34 @@ class ConfigManager:
                 f.write(content)
         except Exception:
             pass
+
+    @staticmethod
+    def get_data_dir():
+        try:
+            base = os.getcwd()
+            data_dir = os.path.join(base, "data")
+            os.makedirs(data_dir, exist_ok=True)
+            return data_dir
+        except Exception:
+            return os.getcwd()
+
+    @staticmethod
+    def get_last_search_path(kind: str):
+        name = "last_" + (kind or "playlists") + "_search.json"
+        return os.path.join(ConfigManager.get_data_dir(), name)
+
+    @staticmethod
+    def save_json(path: str, data):
+        try:
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+        except Exception:
+            pass
+
+    @staticmethod
+    def load_json(path: str):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return None
