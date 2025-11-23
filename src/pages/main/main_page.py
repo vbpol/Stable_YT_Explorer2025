@@ -43,6 +43,8 @@ class MainPage(tk.Frame):
         self.current_playlist_info = None
         self.prev_page_token = None
         self.current_page_token = None
+        self.video_playlist_cache = {}
+        self.collected_playlists = []
 
     def _pack_sections(self):
         """Pack sections into the main page."""
@@ -78,6 +80,7 @@ class MainPage(tk.Frame):
                     data = ConfigManager.load_json(path) or []
                     for pl in data:
                         self.playlist.update_playlist(pl)
+                    self.video.update_back_button_state(False)
                 else:
                     path = ConfigManager.get_last_search_path('videos')
                     data = ConfigManager.load_json(path) or {}
@@ -88,6 +91,8 @@ class MainPage(tk.Frame):
                     for pl in playlists:
                         self.playlist.update_playlist(pl)
                     self.current_videos = videos
+                    self.collected_playlists = playlists
+                    self.video.update_back_button_state(True)
             except Exception:
                 pass
 
@@ -114,6 +119,7 @@ class MainPage(tk.Frame):
                     self.playlist.update_playlist(playlist)
                     enriched.append(playlist)
                 ConfigManager.save_json(ConfigManager.get_last_search_path('playlists'), enriched)
+                self.video.update_back_button_state(False)
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to fetch playlists: {e}")
         else:
@@ -141,8 +147,62 @@ class MainPage(tk.Frame):
                     'videos': videos,
                     'playlists': collected_playlists
                 })
+                self.collected_playlists = collected_playlists
+                self.video.update_back_button_state(True)
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to fetch videos: {e}")
+
+    def back_to_video_results(self):
+        if self.search_mode != 'videos':
+            return
+        path = ConfigManager.get_last_search_path('videos')
+        data = ConfigManager.load_json(path) or {}
+        self.clear_panels()
+        videos = data.get('videos', [])
+        playlists = data.get('playlists', [])
+        for v in videos:
+            self.video.video_tree.insert('', 'end', values=(v.get('title', ''), v.get('duration', 'N/A')))
+        for pl in playlists:
+            self.playlist.update_playlist(pl)
+        self.current_videos = videos
+        self.collected_playlists = playlists
+        self.video.update_back_button_state(True)
+
+    def on_video_select(self, event=None):
+        if self.search_mode != 'videos':
+            return
+        sel = self.video.video_tree.selection()
+        if not sel:
+            return
+        idx = self.video.video_tree.index(sel[0])
+        if idx < 0 or idx >= len(self.current_videos):
+            return
+        video = self.current_videos[idx]
+        vid = video.get('videoId')
+        if not vid:
+            return
+        if vid in self.video_playlist_cache:
+            plid = self.video_playlist_cache[vid]
+            try:
+                self.playlist.playlist_tree.selection_set(plid)
+                self.playlist.playlist_tree.see(plid)
+            except Exception:
+                pass
+            return
+        for pl in self.collected_playlists:
+            try:
+                resp = self.controller.playlist_handler.get_videos(pl['playlistId'], max_results=50)
+                vids = [it['videoId'] for it in resp.get('videos', [])]
+                if vid in vids:
+                    self.video_playlist_cache[vid] = pl['playlistId']
+                    try:
+                        self.playlist.playlist_tree.selection_set(pl['playlistId'])
+                        self.playlist.playlist_tree.see(pl['playlistId'])
+                    except Exception:
+                        pass
+                    return
+            except Exception:
+                continue
 
     # Core functionality methods
     def search_playlists(self):

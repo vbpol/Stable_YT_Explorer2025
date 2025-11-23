@@ -5,7 +5,7 @@ from .base_section import BaseSection
 class VideoSection(BaseSection):
     def setup_gui(self):
         """Create the video section with pagination."""
-        self.configure(text="Videos in Playlist")
+        self.configure(text="Videos")
         self.pack(fill="both", expand=True, padx=10, pady=10)
         
         # Create video tree
@@ -33,6 +33,7 @@ class VideoSection(BaseSection):
         scrollbar.pack(side="right", fill="y", padx=(0, 10))
         
         self.video_tree.bind("<Double-1>", self.main_page.open_video)
+        self.video_tree.bind("<<TreeviewSelect>>", self.main_page.on_video_select)
 
     def _create_page_controls(self):
         # Page size and total info
@@ -98,4 +99,13 @@ class VideoSection(BaseSection):
         self.download_btn.pack(side="left", padx=5)
         
         ttk.Button(button_frame, text="View Downloaded", 
-                  command=self.main_page.view_downloaded_videos).pack(side="left", padx=5) 
+                  command=self.main_page.view_downloaded_videos).pack(side="left", padx=5)
+
+        self.back_btn = ttk.Button(button_frame, text="Back to Results", command=self.main_page.back_to_video_results)
+        self.back_btn.pack(side="left", padx=5)
+
+    def update_back_button_state(self, enabled: bool):
+        try:
+            self.back_btn["state"] = "normal" if enabled else "disabled"
+        except Exception:
+            pass
