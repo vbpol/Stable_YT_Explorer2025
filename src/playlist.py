@@ -120,6 +120,7 @@ class Playlist:
         # Get video durations
         video_ids = [item['contentDetails']['videoId'] for item in response['items']]
         durations = self._get_video_durations(video_ids)
+        details = self._get_video_details(video_ids)
 
         videos = []
         for item in response['items']:
@@ -127,7 +128,10 @@ class Playlist:
             video = {
                 'videoId': video_id,
                 'title': item['snippet']['title'],
-                'duration': durations.get(video_id, 'N/A')
+                'channelTitle': item['snippet'].get('channelTitle', ''),
+                'duration': durations.get(video_id, 'N/A'),
+                'published': details.get(video_id, {}).get('published', ''),
+                'views': details.get(video_id, {}).get('views', '0')
             }
             videos.append(video)
 

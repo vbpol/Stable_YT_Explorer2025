@@ -48,6 +48,13 @@ class MainPage(tk.Frame):
         self.video_search_query = ''
         self.video_next_page_token = None
         self.video_prev_page_token = None
+        self._video_row = lambda v: (
+            v.get('title', ''),
+            v.get('channelTitle', ''),
+            v.get('duration', 'N/A'),
+            (v.get('published', '') or '')[:10],
+            (f"{int(v.get('views', '0')):,}" if str(v.get('views', '0')).isdigit() else v.get('views', '0'))
+        )
 
     def _pack_sections(self):
         """Pack sections into the main page."""
@@ -90,13 +97,7 @@ class MainPage(tk.Frame):
                     videos = data.get('videos', [])
                     playlists = data.get('playlists', [])
                     for v in videos:
-                        self.video.video_tree.insert('', 'end', values=(
-                            v.get('title', ''),
-                            v.get('channelTitle', ''),
-                            v.get('duration', 'N/A'),
-                            v.get('published', ''),
-                            v.get('views', '0')
-                        ))
+                        self.video.video_tree.insert('', 'end', values=self._video_row(v))
                     for pl in playlists:
                         self.playlist.update_playlist(pl)
                     self.current_videos = videos
@@ -147,13 +148,7 @@ class MainPage(tk.Frame):
                 self.video_prev_page_token = resp.get('prevPageToken')
                 self.video.video_tree.delete(*self.video.video_tree.get_children())
                 for v in videos:
-                    self.video.video_tree.insert('', 'end', values=(
-                        v.get('title', ''),
-                        v.get('channelTitle', ''),
-                        v.get('duration', 'N/A'),
-                        v.get('published', ''),
-                        v.get('views', '0')
-                    ))
+                    self.video.video_tree.insert('', 'end', values=self._video_row(v))
 
                 seen_channels = set()
                 collected_playlists = []
@@ -194,13 +189,7 @@ class MainPage(tk.Frame):
         videos = data.get('videos', [])
         playlists = data.get('playlists', [])
         for v in videos:
-            self.video.video_tree.insert('', 'end', values=(
-                v.get('title', ''),
-                v.get('channelTitle', ''),
-                v.get('duration', 'N/A'),
-                v.get('published', ''),
-                v.get('views', '0')
-            ))
+            self.video.video_tree.insert('', 'end', values=self._video_row(v))
         for pl in playlists:
             self.playlist.update_playlist(pl)
         self.current_videos = videos
@@ -255,13 +244,7 @@ class MainPage(tk.Frame):
             self.video_prev_page_token = resp.get('prevPageToken')
             self.video.video_tree.delete(*self.video.video_tree.get_children())
             for v in videos:
-                self.video.video_tree.insert('', 'end', values=(
-                    v.get('title', ''),
-                    v.get('channelTitle', ''),
-                    v.get('duration', 'N/A'),
-                    v.get('published', ''),
-                    v.get('views', '0')
-                ))
+                self.video.video_tree.insert('', 'end', values=self._video_row(v))
             try:
                 self.video.prev_page_btn["state"] = "normal" if self.video_prev_page_token else "disabled"
                 self.video.next_page_btn["state"] = "normal" if self.video_next_page_token else "disabled"
@@ -359,10 +342,10 @@ class MainPage(tk.Frame):
                     "", "end",
                     values=(
                         video.get("title", ""),
-                        "",
+                        video.get("channelTitle", ""),
                         video.get("duration", "N/A"),
-                        "",
-                        ""
+                        video.get("published", ""),
+                        video.get("views", "0")
                     )
                 )
 
