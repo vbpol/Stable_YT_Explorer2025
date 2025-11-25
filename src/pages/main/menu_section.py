@@ -33,4 +33,13 @@ class MenuSection(BaseSection):
         quality_menu.add_command(label="480p", command=lambda: self.main_page.set_preferred_quality("best[height<=480]"))
         quality_menu.add_command(label="360p", command=lambda: self.main_page.set_preferred_quality("best[height<=360]"))
         download_menu.add_cascade(label="Preferred Quality", menu=quality_menu)
+
+        fragments_menu = tk.Menu(download_menu, tearoff=0)
+        fragments_menu.add_command(label="1", command=lambda: self.main_page.set_concurrent_fragments(1))
+        fragments_menu.add_command(label="2", command=lambda: self.main_page.set_concurrent_fragments(2))
+        fragments_menu.add_command(label="4", command=lambda: self.main_page.set_concurrent_fragments(4))
+        fragments_menu.add_command(label="8", command=lambda: self.main_page.set_concurrent_fragments(8))
+        download_menu.add_cascade(label="Concurrent Fragments", menu=fragments_menu)
+
+        download_menu.add_checkbutton(label="Post-Processing (merge to mp4)", onvalue=1, offvalue=0, command=self.main_page.toggle_post_processing)
         menubar.add_cascade(label="Download", menu=download_menu)

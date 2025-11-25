@@ -17,12 +17,13 @@ class PlaylistSection(BaseSection):
         # Create and configure the treeview
         self.playlist_tree = ttk.Treeview(
             self.tree_frame,
-            columns=("Title", "Channel", "Videos", "Status", "Actions"),
+            columns=("No", "Title", "Channel", "Videos", "Status", "Actions"),
             show="headings",
             selectmode="browse"
         )
 
         # Configure column headings
+        self.playlist_tree.heading("No", text="No")
         self.playlist_tree.heading("Title", text="Title")
         self.playlist_tree.heading("Channel", text="Channel")
         self.playlist_tree.heading("Videos", text="Videos")
@@ -30,10 +31,11 @@ class PlaylistSection(BaseSection):
         self.playlist_tree.heading("Actions", text="Actions")
 
         # Configure column widths and alignments
+        self.playlist_tree.column("No", width=50, anchor="center")
         self.playlist_tree.column("Title", width=300, anchor="w")
         self.playlist_tree.column("Channel", width=150, anchor="w")
         self.playlist_tree.column("Videos", width=70, anchor="center")
-        self.playlist_tree.column("Status", width=120, anchor="center")
+        self.playlist_tree.column("Status", width=140, anchor="center")
         self.playlist_tree.column("Actions", width=80, anchor="center")
 
         # Add scrollbar
@@ -55,28 +57,39 @@ class PlaylistSection(BaseSection):
         # Bind events
         self.playlist_tree.bind("<Double-1>", self.on_playlist_select)
         self.playlist_tree.bind("<Button-1>", self.handle_click)
+        
+        def _on_header_click(e):
+            region = self.playlist_tree.identify_region(e.x, e.y)
+            if region == "heading":
+                col_id = self.playlist_tree.identify_column(e.x)
+                cols = self.playlist_tree["columns"]
+                try:
+                    idx = int(col_id.replace('#', '')) - 1
+                    if 0 <= idx < len(cols):
+                        self.main_page.sort_playlists_by(cols[idx])
+                        return
+                except Exception:
+                    pass
+        self.playlist_tree.bind("<Button-1>", _on_header_click, add=True)
 
     def on_playlist_select(self, event):
-        """Handle playlist selection."""
         region = self.playlist_tree.identify_region(event.x, event.y)
-        print(f"Click region: {region}")  # Debug print
-        
+        if region == "heading":
+            col_id = self.playlist_tree.identify_column(event.x)
+            cols = self.playlist_tree["columns"]
+            try:
+                idx = int(col_id.replace('#', '')) - 1
+                if 0 <= idx < len(cols):
+                    self.main_page.on_playlist_header_double_click(cols[idx])
+                    return
+            except Exception:
+                pass
         if region == "cell":
             column = self.playlist_tree.identify_column(event.x)
             item = self.playlist_tree.identify_row(event.y)
-            print(f"Clicked column: {column}, item: {item}")  # Debug print
-            
-            if str(column) != "#5":  # If not clicking the Actions column
-                # Select the item first
+            if str(column) != "#6" and item:
                 self.playlist_tree.selection_set(item)
                 selected_playlist = self.get_selected_playlist()
-                print(f"Selected playlist ID: {selected_playlist}")  # Debug print
-                
-                # Get the playlist details from the tree
-                playlist_info = self.playlist_tree.item(selected_playlist)
-                print(f"Playlist info: {playlist_info}")  # Debug print
-                
-                # Then show videos
                 self.main_page.show_playlist_videos(selected_playlist)
 
     def get_selected_playlist(self):
@@ -93,7 +106,7 @@ class PlaylistSection(BaseSection):
             column = self.playlist_tree.identify_column(event.x)
             item = self.playlist_tree.identify_row(event.y)
             
-            if str(column) == "#5" and item:  # Actions column
+            if str(column) == "#6" and item:  # Actions column
                 self.remove_playlist(item)
             else:
                 # Select the row when clicking anywhere except the remove button
@@ -143,11 +156,18 @@ class PlaylistSection(BaseSection):
             )
         except Exception:
             status = "Unknown"
+        try:
+            if getattr(self.main_page, 'pinned_playlist_id', None) == playlist_id and ' • Pinned' not in status:
+                status = f"{status} • Pinned"
+        except Exception:
+            pass
         
+        order_no = self.main_page.assign_playlist_index(playlist_id)
         values = (
+            order_no,
             playlist_data["title"],
             playlist_data["channelTitle"],
-            playlist_data.get("video_count", "N/A"),  # Use N/A if count not available
+            playlist_data.get("video_count", "N/A"),
             status,
             "❌"
         )
@@ -159,16 +179,33 @@ class PlaylistSection(BaseSection):
 
     def refresh_all_statuses(self):
         """Refresh download status for all playlists in the tree."""
-        for playlist_id in self.playlist_tree.get_children():
+        items = list(self.playlist_tree.get_children())
+        total = len(items)
+        done = 0
+        for playlist_id in items:
             current_values = self.playlist_tree.item(playlist_id)["values"]
-            status = self.check_download_status(playlist_id, int(current_values[2]))
+            try:
+                vc = int(current_values[3])
+            except Exception:
+                vc = 0
+            status = self.check_download_status(playlist_id, vc)
             
             new_values = (
-                current_values[0],  # Title
-                current_values[1],  # Channel
-                current_values[2],  # Videos count
-                status,            # Updated status
-                current_values[4]  # Actions
+                current_values[0],  # No
+                current_values[1],  # Title
+                current_values[2],  # Channel
+                current_values[3],  # Videos count
+                status,             # Updated status
+                current_values[5]   # Actions
             )
             
-            self.playlist_tree.item(playlist_id, values=new_values) 
+            self.playlist_tree.item(playlist_id, values=new_values)
+            done += 1
+            try:
+                self.main_page.status_bar.configure(text=f"Refreshing statuses... {done}/{total}")
+            except Exception:
+                pass
+        try:
+            self.main_page.status_bar.configure(text="Statuses refreshed")
+        except Exception:
+            pass

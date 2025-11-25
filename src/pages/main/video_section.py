@@ -18,13 +18,15 @@ class VideoSection(BaseSection):
         self._create_action_buttons()
 
     def _create_video_tree(self):
-        columns = ("Title", "Channel", "Duration", "Published", "Views")
+        columns = ("Title", "Playlist", "Channel", "Duration", "Published", "Views")
         self.video_tree = ttk.Treeview(self, columns=columns, show="headings", height=15)
         self.video_tree.heading("Title", text="Title")
+        self.video_tree.heading("Playlist", text="Playlist")
         self.video_tree.heading("Channel", text="Channel")
         self.video_tree.heading("Duration", text="Duration")
         self.video_tree.heading("Published", text="Published")
         self.video_tree.heading("Views", text="Views")
+        self.video_tree.column("Playlist", width=70, anchor="center")
         self.video_tree.column("Channel", width=160, anchor="w")
         self.video_tree.column("Duration", width=100, anchor="center")
         self.video_tree.column("Published", width=150, anchor="center")
@@ -38,8 +40,39 @@ class VideoSection(BaseSection):
         self.video_tree.pack(side="left", fill="both", expand=True, padx=(10, 0))
         scrollbar.pack(side="right", fill="y", padx=(0, 10))
         
-        self.video_tree.bind("<Double-1>", self.main_page.open_video)
+        def _on_double(e):
+            region = self.video_tree.identify_region(e.x, e.y)
+            if region == "heading":
+                col_id = self.video_tree.identify_column(e.x)
+                cols = self.video_tree["columns"]
+                try:
+                    idx = int(col_id.replace('#', '')) - 1
+                    if 0 <= idx < len(cols):
+                        self.main_page.on_video_header_double_click(cols[idx])
+                        return
+                except Exception:
+                    pass
+            self.main_page.open_video(e)
+        self.video_tree.bind("<Double-1>", _on_double)
+        
+        def _on_click(e):
+            region = self.video_tree.identify_region(e.x, e.y)
+            if region == "heading":
+                col_id = self.video_tree.identify_column(e.x)
+                cols = self.video_tree["columns"]
+                try:
+                    idx = int(col_id.replace('#', '')) - 1
+                    if 0 <= idx < len(cols):
+                        self.main_page.sort_videos_by(cols[idx])
+                        return
+                except Exception:
+                    pass
+        self.video_tree.bind("<Button-1>", _on_click)
         self.video_tree.bind("<<TreeviewSelect>>", self.main_page.on_video_select)
+        try:
+            self.video_tree.tag_configure("search_hit", background="#fff3a0", foreground="#8a6d3b")
+        except Exception:
+            pass
 
     def _create_page_controls(self):
         # Page size and total info
@@ -89,6 +122,14 @@ class VideoSection(BaseSection):
         )
         self.next_page_btn.pack(side="left", padx=5)
 
+        self.back_page_btn = ttk.Button(
+            pagination_frame,
+            text="Back to Results",
+            command=self.main_page.back_to_video_results,
+            state="disabled"
+        )
+        self.back_page_btn.pack(side="right", padx=5)
+
     def _create_action_buttons(self):
         button_frame = ttk.Frame(self)
         button_frame.pack(pady=5)
@@ -109,9 +150,14 @@ class VideoSection(BaseSection):
 
         self.back_btn = ttk.Button(button_frame, text="Back to Results", command=self.main_page.back_to_video_results)
         self.back_btn.pack(side="left", padx=5)
+        try:
+            self.back_btn["state"] = "disabled"
+        except Exception:
+            pass
 
     def update_back_button_state(self, enabled: bool):
         try:
             self.back_btn["state"] = "normal" if enabled else "disabled"
+            self.back_page_btn["state"] = "normal" if enabled else "disabled"
         except Exception:
             pass

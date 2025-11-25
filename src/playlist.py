@@ -141,6 +141,24 @@ class Playlist:
             'prevPageToken': response.get('prevPageToken')
         }
 
+    def get_playlists_by_video(self, video_id, max_results=50):
+        """Return playlists that contain the specified video."""
+        # Not supported directly by API; use helper on channel playlists externally
+        return []
+
+    def playlist_contains_video(self, playlist_id, video_id):
+        """Return True if a playlist includes the given video (fast check)."""
+        try:
+            resp = self.youtube.playlistItems().list(
+                part="id",
+                playlistId=playlist_id,
+                videoId=video_id,
+                maxResults=1
+            ).execute()
+            return len(resp.get('items', [])) > 0
+        except HttpError:
+            return False
+
     def _get_video_durations(self, video_ids):
         """Get durations for a list of videos."""
         if not video_ids:

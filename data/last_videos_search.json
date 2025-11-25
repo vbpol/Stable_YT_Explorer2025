@@ -1,22 +1,13 @@
 {
   "videos": [
     {
-      "videoId": "6b8DWEpVo74",
-      "title": "Simplified Accurate Probing With Piezoelectric Sensors (E3D PZ Probe)",
-      "channelTitle": "ModBot",
-      "channelId": "UCCS6ZRelvETSbA53xFEsa6w",
-      "duration": "12:58",
-      "published": "2025-03-22T15:00:08Z",
-      "views": "51740"
-    },
-    {
-      "videoId": "wXlzKjEbypc",
-      "title": "Create Piping in 3D Model (E3D)",
-      "channelTitle": "Synergy Engineering. PT",
-      "channelId": "UC0dAmlls1hyU_OcoQCmFzRg",
-      "duration": "01:42",
-      "published": "2016-08-05T08:19:05Z",
-      "views": "60201"
+      "videoId": "45evU9EBjec",
+      "title": "AVEVA InTouch HMI | Real-Time Operations Control for Modern Industrial &amp; Manufacturing Plants",
+      "channelTitle": "AVEVA Group",
+      "channelId": "UCEtWIysVwp6s7spxA7uTD2g",
+      "duration": "01:47",
+      "published": "2025-04-29T12:14:14Z",
+      "views": "6089"
     },
     {
       "videoId": "-kxy94WCY7M",
@@ -25,7 +16,36 @@
       "channelId": "UCEtWIysVwp6s7spxA7uTD2g",
       "duration": "02:05",
       "published": "2022-06-30T09:55:25Z",
-      "views": "50066"
+      "views": "50077"
+    },
+    {
+      "videoId": "IEWcjCX0veM",
+      "title": "Empowering Industry: How AVEVA Connects People, Processes, and Data",
+      "channelTitle": "AVEVA Group",
+      "channelId": "UCEtWIysVwp6s7spxA7uTD2g",
+      "duration": "03:20",
+      "published": "2023-08-31T14:58:17Z",
+      "views": "36028"
+    },
+    {
+      "videoId": "Nb4aLbNIxQ0",
+      "title": "AvevA - I Wanna Go",
+      "channelTitle": "AvevA",
+      "channelId": "UChL5nqNPdtzJUsLgCN7mLgg",
+      "duration": "04:11",
+      "published": "2016-10-25T09:40:52Z",
+      "views": "264383",
+      "playlistIndex": 1
+    },
+    {
+      "videoId": "HoHnW6lB9hY",
+      "title": "AVEVA E3D - Design Ep01 - Introduction à E3D",
+      "channelTitle": "S.A.-E3D in French",
+      "channelId": "UCQpPaxp8-EFHktL4yoKsWAw",
+      "duration": "13:42",
+      "published": "2024-04-14T16:00:18Z",
+      "views": "1994",
+      "playlistIndex": 2
     },
     {
       "videoId": "COjMOM6xo6M",
@@ -34,123 +54,59 @@
       "channelId": "UCgJ--Jf41qf62AS5wmqSZWQ",
       "duration": "01:00",
       "published": "2024-11-08T06:43:20Z",
-      "views": "7350"
+      "views": "7373"
     },
     {
-      "videoId": "h3pLiXQAmiM",
-      "title": "How to perform a cold pull on a 3D printer Hotend #Shorts",
-      "channelTitle": "E3D",
-      "channelId": "UCI2HDanVxEp54l5AQqZor3g",
-      "duration": "00:42",
-      "published": "2022-02-22T10:04:33Z",
-      "views": "60548"
+      "videoId": "6ZidI551YvQ",
+      "title": "What is AVEVA Unified Engineering, And What Can It Do for You? | AVEVA",
+      "channelTitle": "AVEVA Group",
+      "channelId": "UCEtWIysVwp6s7spxA7uTD2g",
+      "duration": "02:02",
+      "published": "2025-02-24T09:54:16Z",
+      "views": "1570",
+      "playlistIndex": 3
     },
     {
-      "videoId": "y7FQ6V77PX4",
-      "title": "Aveva E3D Piping Modeling Tutorial for Beginners",
-      "channelTitle": "Aveva E3D Tutorials",
-      "channelId": "UC0QptDLfta_RC5ELsWhyTFQ",
-      "duration": "18:25",
-      "published": "2024-11-17T04:59:31Z",
-      "views": "12891"
+      "videoId": "Nd5lV_tZkO8",
+      "title": "AVEVA System Platform | Unified SCADA, MES &amp; IIoT for Modern Industrial Operations",
+      "channelTitle": "AVEVA Group",
+      "channelId": "UCEtWIysVwp6s7spxA7uTD2g",
+      "duration": "02:15",
+      "published": "2025-07-22T08:41:45Z",
+      "views": "1430"
     },
     {
-      "videoId": "iBV5NGrLvPo",
-      "title": "E3D Lite6: A Low Cost HotEnd for Everyone",
-      "channelTitle": "E3D",
-      "channelId": "UCI2HDanVxEp54l5AQqZor3g",
-      "duration": "05:07",
-      "published": "2015-04-02T15:43:41Z",
-      "views": "22136"
+      "videoId": "MWVIAMPU9yA",
+      "title": "[Témoignage utilisateur] SULO intègre la solution AVEVA Teamwork au sein de son usine",
+      "channelTitle": "Factory Software - AVEVA Select France",
+      "channelId": "UCVRH2VNqpc_bkzaVqSULtlA",
+      "duration": "04:10",
+      "published": "2023-06-08T15:57:33Z",
+      "views": "647"
     },
     {
-      "videoId": "0GZnXjfCZGI",
-      "title": "Hotend evolution for FDM 3D printing",
-      "channelTitle": "MihaiDesigns",
-      "channelId": "UCMvNnP9oAQl5IApL8XBQIkQ",
-      "duration": "00:32",
-      "published": "2023-03-04T19:48:16Z",
-      "views": "42051"
-    },
-    {
-      "videoId": "5T1wr_Bgwgg",
-      "title": "BMG E3D V6 &quot;SpeedDrive&quot; for Ender 3",
-      "channelTitle": "YouMakeTech",
-      "channelId": "UCmCW2lJ6Q0-xc1VtKxdK9MQ",
-      "duration": "00:16",
-      "published": "2021-11-08T17:49:45Z",
-      "views": "21020"
-    },
-    {
-      "videoId": "DdZlBiFajWE",
-      "title": "E3D Revo™ is great BUT has a dirty secret! (REVIEW)",
-      "channelTitle": "CNC Kitchen",
-      "channelId": "UCiczXOhGpvoQGhOL16EZiTg",
-      "duration": "22:22",
-      "published": "2022-03-19T16:36:52Z",
-      "views": "307271"
+      "videoId": "OVJmcTxKwgk",
+      "title": "What is AVEVA™ System Platform?",
+      "channelTitle": "AVEVA Operations Control",
+      "channelId": "UCvcNjR7hhflsI52p7P1diiQ",
+      "duration": "03:12",
+      "published": "2024-09-04T15:04:34Z",
+      "views": "5022",
+      "playlistIndex": 4
     }
   ],
   "playlists": [
     {
-      "playlistId": "PL56Wce4Lilx6nIh_rwVMcDCztZDwaIp25",
-      "title": "Orca Slicer Calibration Tools",
-      "channelTitle": "ModBot",
-      "thumbnail": "https://i.ytimg.com/vi/W901s6zTwiw/default.jpg"
+      "playlistId": "PLfOQ7P-c0e5Kgz5B0dYRPVI1ZK609FwUp",
+      "title": "aveva.music",
+      "channelTitle": "AvevA",
+      "thumbnail": "https://i.ytimg.com/vi/AP9LYvFpNMc/default.jpg"
     },
     {
-      "playlistId": "PL56Wce4Lilx6OgfGZWfVIIyKoedpptIkX",
-      "title": "Resins",
-      "channelTitle": "ModBot",
-      "thumbnail": "https://i.ytimg.com/vi/HZWur0ilVsA/default.jpg"
-    },
-    {
-      "playlistId": "PL56Wce4Lilx7pnSvXf1qQ9Zry37T29lpp",
-      "title": "Filament Tutorials",
-      "channelTitle": "ModBot",
-      "thumbnail": "https://i.ytimg.com/vi/A6Df4I4SXJE/default.jpg"
-    },
-    {
-      "playlistId": "PL56Wce4Lilx4KpCouAaEjOoJk5wbUNhx4",
-      "title": "Makers Minute",
-      "channelTitle": "ModBot",
-      "thumbnail": "https://i.ytimg.com/vi/nzcNPJYcwew/default.jpg"
-    },
-    {
-      "playlistId": "PL56Wce4Lilx4Aw8IszD1U_BJLyWQqDiXy",
-      "title": "3D Printer Reviews",
-      "channelTitle": "ModBot",
-      "thumbnail": "https://i.ytimg.com/vi/qI5kpvc1dEA/default.jpg"
-    },
-    {
-      "playlistId": "PL56Wce4Lilx4OjdENSO32kVl0yI755WCm",
-      "title": "Live Streams",
-      "channelTitle": "ModBot",
-      "thumbnail": "https://i.ytimg.com/vi/m0iLkbAFK_I/default.jpg"
-    },
-    {
-      "playlistId": "PL56Wce4Lilx5WOst14rX12CZuCKWFKUTg",
-      "title": "Video Game Hacking, Modding, Customizing",
-      "channelTitle": "ModBot",
-      "thumbnail": "https://i.ytimg.com/vi/GdowZXBre_k/default.jpg"
-    },
-    {
-      "playlistId": "PLMNq4CGnXT36adOULcYBgZJjAz_i1HNoV",
-      "title": "Industrial Challenges: Learn Fast, Solve Smart",
-      "channelTitle": "AVEVA Group",
-      "thumbnail": "https://i.ytimg.com/vi/JwuQn33yFd8/default.jpg"
-    },
-    {
-      "playlistId": "PLMNq4CGnXT36bKPgfYAkLA8Hi4qSwiKpR",
-      "title": "Generation i",
-      "channelTitle": "AVEVA Group",
-      "thumbnail": "https://i.ytimg.com/vi/WG4ajgjIO8U/default.jpg"
-    },
-    {
-      "playlistId": "PLMNq4CGnXT36Rkyj4Br1v4ZmhWmD0v7es",
-      "title": "PartnerTalk Podcast Series",
-      "channelTitle": "AVEVA Group",
-      "thumbnail": "https://i.ytimg.com/vi/yek8XK_UZvs/default.jpg"
+      "playlistId": "PL2Ro_ailitcWL4nIHBGNFCnfQccN2SDng",
+      "title": "Module Design E3D",
+      "channelTitle": "S.A.-E3D in French",
+      "thumbnail": "https://i.ytimg.com/vi/3Ss9H6xkN2o/default.jpg"
     },
     {
       "playlistId": "PLMNq4CGnXT34PzfK_ofCiv522XQmiK7nk",
@@ -159,322 +115,18 @@
       "thumbnail": "https://i.ytimg.com/vi/mkGSDSUZ6wo/default.jpg"
     },
     {
-      "playlistId": "PLMNq4CGnXT35_kcbS2E-ea1klcyju7C6q",
-      "title": "AVEVA World 2024",
-      "channelTitle": "AVEVA Group",
-      "thumbnail": "https://i.ytimg.com/vi/kIOeBIwfTp4/default.jpg"
+      "playlistId": "PLJq4rR8tWINzxSUwJ59RvpwjYekjj22GG",
+      "title": "AVEVA™ System Platform Learning Bytes 📗💡",
+      "channelTitle": "AVEVA Operations Control",
+      "thumbnail": "https://i.ytimg.com/vi/VbKD7PqkfL4/default.jpg"
     },
     {
-      "playlistId": "PLMNq4CGnXT37_t_7h6BKZZczgDlJU2S3R",
-      "title": "Action for Good",
-      "channelTitle": "AVEVA Group",
-      "thumbnail": "https://i.ytimg.com/img/no_thumbnail.jpg"
-    },
-    {
-      "playlistId": "PLMNq4CGnXT378EcogPp0uCTf4YDktONuY",
-      "title": "AVEVA Days",
-      "channelTitle": "AVEVA Group",
-      "thumbnail": "https://i.ytimg.com/vi/_-6_ogb28aw/default.jpg"
-    },
-    {
-      "playlistId": "PLMNq4CGnXT36WeVOzovSZZ4PegLyJ3xHc",
-      "title": "AVEVA Learning Academy",
-      "channelTitle": "AVEVA Group",
-      "thumbnail": "https://i.ytimg.com/vi/lwrFhSgrMEY/default.jpg"
-    },
-    {
-      "playlistId": "PLMNq4CGnXT37zVbEtlWjIGYA6MGCVW4LT",
-      "title": "CONNECT",
-      "channelTitle": "AVEVA Group",
-      "thumbnail": "https://i.ytimg.com/vi/zDFvpjwgPKo/default.jpg"
-    },
-    {
-      "playlistId": "PLMNq4CGnXT35mLeKFulnIeLJYnJFahFPm",
-      "title": "AVEVA E3D Design Features",
-      "channelTitle": "AVEVA Group",
-      "thumbnail": "https://i.ytimg.com/vi/LrtFKS2mY0w/default.jpg"
-    },
-    {
-      "playlistId": "PLFzp67K2qiUsr5d6BQJroIIUQ-W1vBzLI",
-      "title": "Everything ToolChanging",
-      "channelTitle": "E3D",
-      "thumbnail": "https://i.ytimg.com/vi/3y3uMEw5ecU/default.jpg"
-    },
-    {
-      "playlistId": "PLFzp67K2qiUvrBue10B_SJSF5MitdQLX_",
-      "title": "E3D Officially Approved Bambu Lab HotEnds",
-      "channelTitle": "E3D",
-      "thumbnail": "https://i.ytimg.com/vi/8-_f43xIY28/default.jpg"
-    },
-    {
-      "playlistId": "PLFzp67K2qiUtMFdNEd69K7wdGVK6lA4eq",
-      "title": "ERRF 2022 Lives",
-      "channelTitle": "E3D",
-      "thumbnail": "https://i.ytimg.com/vi/Rkx_EN5K9rg/default.jpg"
-    },
-    {
-      "playlistId": "PLFzp67K2qiUvupkz470vVY1Z3IglMRO2Y",
-      "title": "E3D Revo™ Upgrade Guides",
-      "channelTitle": "E3D",
-      "thumbnail": "https://i.ytimg.com/vi/htcarBS84CM/default.jpg"
-    },
-    {
-      "playlistId": "PLFzp67K2qiUv30Du9SSdy7Vj29Aina5Fg",
-      "title": "E3D Shorts",
-      "channelTitle": "E3D",
-      "thumbnail": "https://i.ytimg.com/vi/junWm5yGITU/default.jpg"
-    },
-    {
-      "playlistId": "PLFzp67K2qiUvDTRb5h3si3bX2oCqkaiwi",
-      "title": "RapidChange Revo™",
-      "channelTitle": "E3D",
-      "thumbnail": "https://i.ytimg.com/vi/PbrpfWRpiZc/default.jpg"
-    },
-    {
-      "playlistId": "PLFzp67K2qiUuRR6r8nyeEXXhs3cf6p1JE",
-      "title": "Hemera Video Guides",
-      "channelTitle": "E3D",
-      "thumbnail": "https://i.ytimg.com/vi/axBlXVRwt_s/default.jpg"
-    },
-    {
-      "playlistId": "PLFzp67K2qiUv-zpXLYNvxQ-fCQLCwRNHS",
-      "title": "Rene's ToolChanger Assembly Series",
-      "channelTitle": "E3D",
-      "thumbnail": "https://i.ytimg.com/vi/alEw2QpBX9s/default.jpg"
-    },
-    {
-      "playlistId": "PLFzp67K2qiUtz9URHfo3pD5uivpjZmA8S",
-      "title": "Behind the Scenes at E3D",
-      "channelTitle": "E3D",
-      "thumbnail": "https://i.ytimg.com/vi/xkF5VyCLncY/default.jpg"
-    },
-    {
-      "playlistId": "PLFzp67K2qiUuc1Jcf01-UhF74sipjAZHA",
-      "title": "Seasonal Holidays",
-      "channelTitle": "E3D",
-      "thumbnail": "https://i.ytimg.com/vi/wwDRlY9fcPI/default.jpg"
-    },
-    {
-      "playlistId": "PLLD0AXRDg5kSk_eCoSU9uIVMP2jTMbFFe",
-      "title": "Aveva E3D draft tutorial",
-      "channelTitle": "Aveva E3D Tutorials",
-      "thumbnail": "https://i.ytimg.com/vi/AaH0sJtaX-o/default.jpg"
-    },
-    {
-      "playlistId": "PLLD0AXRDg5kRSQUpRITof9ruCeU4EqDoF",
-      "title": "avisworks Manage Tutorials | Pipes, Equipment & Piping Design",
-      "channelTitle": "Aveva E3D Tutorials",
-      "thumbnail": "https://i.ytimg.com/vi/pMprGdaeVs8/default.jpg"
-    },
-    {
-      "playlistId": "PLLD0AXRDg5kR9E7wS5dz2tPLgYsk0iPau",
-      "title": "Piping design engineering tutorial",
-      "channelTitle": "Aveva E3D Tutorials",
-      "thumbnail": "https://i.ytimg.com/vi/6TaxgE2Gm9U/default.jpg"
-    },
-    {
-      "playlistId": "PLLD0AXRDg5kR9fDag3AqF0Z2sKZk8dPZi",
-      "title": "Navisworks",
-      "channelTitle": "Aveva E3D Tutorials",
-      "thumbnail": "https://i.ytimg.com/vi/5svOFxPsrFg/default.jpg"
-    },
-    {
-      "playlistId": "PLLD0AXRDg5kQGIshUWoKM8UYVNeHIQDTk",
-      "title": "Aveva E3D Pipe Support Modeling",
-      "channelTitle": "Aveva E3D Tutorials",
-      "thumbnail": "https://i.ytimg.com/vi/6DJBY8GI6cc/default.jpg"
-    },
-    {
-      "playlistId": "PLLD0AXRDg5kRCCobJV3h0lrkGOfj6PcyV",
-      "title": "e3d tutorial",
-      "channelTitle": "Aveva E3D Tutorials",
-      "thumbnail": "https://i.ytimg.com/vi/1zbN8b7INC0/default.jpg"
-    },
-    {
-      "playlistId": "PLLD0AXRDg5kSTntmwiBRs9l4PeFsF8qAm",
-      "title": "Aveva E3D report extraction",
-      "channelTitle": "Aveva E3D Tutorials",
-      "thumbnail": "https://i.ytimg.com/vi/NyR1c478JFw/default.jpg"
-    },
-    {
-      "playlistId": "PLLD0AXRDg5kQOLQei-OdgtK_CtNaoVDGn",
-      "title": "Aveva E3d Structure modeling",
-      "channelTitle": "Aveva E3D Tutorials",
-      "thumbnail": "https://i.ytimg.com/vi/wUqiqFa5tOA/default.jpg"
-    },
-    {
-      "playlistId": "PLLD0AXRDg5kRTxg3aQaUmSRvMDxIIEjyM",
-      "title": "e3d piping modeling",
-      "channelTitle": "Aveva E3D Tutorials",
-      "thumbnail": "https://i.ytimg.com/vi/1zbN8b7INC0/default.jpg"
-    },
-    {
-      "playlistId": "PLLD0AXRDg5kSJHa_sKE2rQrQtYHoq9JPT",
-      "title": "Aveva E3d Equipment modelling",
-      "channelTitle": "Aveva E3D Tutorials",
-      "thumbnail": "https://i.ytimg.com/vi/1zbN8b7INC0/default.jpg"
-    },
-    {
-      "playlistId": "PLTqXGUR7SoBXA9QR8x36y95wPDz0ww9TD",
-      "title": "CoreXY toolchanger",
-      "channelTitle": "MihaiDesigns",
-      "thumbnail": "https://i.ytimg.com/vi/UBwfwkuqwyI/default.jpg"
-    },
-    {
-      "playlistId": "PLTqXGUR7SoBW9GT-rOR7BePrGCfzYHqA0",
-      "title": "Bambu",
-      "channelTitle": "MihaiDesigns",
-      "thumbnail": "https://i.ytimg.com/vi/RlnCLSr5oHw/default.jpg"
-    },
-    {
-      "playlistId": "PLTqXGUR7SoBXwLUaLIzmhlyfYHsyp5l8A",
-      "title": "formnext 2022",
-      "channelTitle": "MihaiDesigns",
-      "thumbnail": "https://i.ytimg.com/vi/4QvighxK60U/default.jpg"
-    },
-    {
-      "playlistId": "PLTqXGUR7SoBVsFL3qhT4g4_8bPb8nGwO0",
-      "title": "PitStop 3",
-      "channelTitle": "MihaiDesigns",
-      "thumbnail": "https://i.ytimg.com/vi/WKjv8Fb-QRg/default.jpg"
-    },
-    {
-      "playlistId": "PLTqXGUR7SoBUoX-dTDFhdbyvL51o_a_iY",
-      "title": "SLA adventures",
-      "channelTitle": "MihaiDesigns",
-      "thumbnail": "https://i.ytimg.com/vi/J39HVKvM9KA/default.jpg"
-    },
-    {
-      "playlistId": "PLTqXGUR7SoBXCYrgA9HTIX8_rGfllnDdK",
-      "title": "Camera slider",
-      "channelTitle": "MihaiDesigns",
-      "thumbnail": "https://i.ytimg.com/vi/y7M1ExvMuvI/default.jpg"
-    },
-    {
-      "playlistId": "PLTqXGUR7SoBXV0PzY_6dhtWYpOS3A_w9f",
-      "title": "Printing issues",
-      "channelTitle": "MihaiDesigns",
-      "thumbnail": "https://i.ytimg.com/vi/WJjbNEcab5Q/default.jpg"
-    },
-    {
-      "playlistId": "PLTqXGUR7SoBXn4vW_D8uBJnIzuWDEnPr2",
-      "title": "Q&A",
-      "channelTitle": "MihaiDesigns",
-      "thumbnail": "https://i.ytimg.com/vi/xnwVGPLS0f4/default.jpg"
-    },
-    {
-      "playlistId": "PLTqXGUR7SoBUmJ_0YXdo3bB52d-Anbhtb",
-      "title": "Filament dry box",
-      "channelTitle": "MihaiDesigns",
-      "thumbnail": "https://i.ytimg.com/vi/rsfHs_I52mk/default.jpg"
-    },
-    {
-      "playlistId": "PLTqXGUR7SoBUxGEoz5ruGOa0rZASWMxPU",
-      "title": "PitStop 2 Extruder",
-      "channelTitle": "MihaiDesigns",
-      "thumbnail": "https://i.ytimg.com/vi/h9Lhw_340a0/default.jpg"
-    },
-    {
-      "playlistId": "PLBbKMWuBNXkBq4ArGGKD-p7z5vEFJXxht",
-      "title": "3D Design for 3D Printing",
-      "channelTitle": "YouMakeTech",
-      "thumbnail": "https://i.ytimg.com/vi/F8Y0ljO13Oo/default.jpg"
-    },
-    {
-      "playlistId": "PLBbKMWuBNXkAus3LP-Nn22CFXN8kdKjTW",
-      "title": "3D Printed Robots",
-      "channelTitle": "YouMakeTech",
-      "thumbnail": "https://i.ytimg.com/vi/ZrdnrW7ZXsA/default.jpg"
-    },
-    {
-      "playlistId": "PLBbKMWuBNXkDNfmgBwrJJD3sOehqYsUof",
-      "title": "3D Printed RC",
-      "channelTitle": "YouMakeTech",
-      "thumbnail": "https://i.ytimg.com/vi/6zv2GIMNJM0/default.jpg"
-    },
-    {
-      "playlistId": "PLBbKMWuBNXkBsjkyLOdf-I4Wf2-QZHxXB",
-      "title": "Raspberry Pi Pico RetroGaming Projects 🕹️",
-      "channelTitle": "YouMakeTech",
-      "thumbnail": "https://i.ytimg.com/vi/IP3QVGmd_90/default.jpg"
-    },
-    {
-      "playlistId": "PLBbKMWuBNXkCiIHd_UwI-xm16-I0-AfJQ",
-      "title": "Ender 3 Upgrades",
-      "channelTitle": "YouMakeTech",
-      "thumbnail": "https://i.ytimg.com/vi/Zbk0viFC1ew/default.jpg"
-    },
-    {
-      "playlistId": "PLBbKMWuBNXkCEB3j__p8TM7GlQ-6dKCe_",
-      "title": "Klipper on Ender 3",
-      "channelTitle": "YouMakeTech",
-      "thumbnail": "https://i.ytimg.com/vi/MaUU8stsZPo/default.jpg"
-    },
-    {
-      "playlistId": "PLBbKMWuBNXkB4uoF_kUj2V_J49dzlb8ry",
-      "title": "Ender 3 Tutorials",
-      "channelTitle": "YouMakeTech",
-      "thumbnail": "https://i.ytimg.com/vi/CKMTD0EAcwg/default.jpg"
-    },
-    {
-      "playlistId": "PLEOQTmIWJ_rlrbPWRuwoU8tVj5EGpyzTW",
-      "title": "Events",
-      "channelTitle": "CNC Kitchen",
-      "thumbnail": "https://i.ytimg.com/vi/Oeqvo2c28_c/default.jpg"
-    },
-    {
-      "playlistId": "PLEOQTmIWJ_rmLuSFF7CUjQTWaMWJoNS49",
-      "title": "MRRF2022",
-      "channelTitle": "CNC Kitchen",
-      "thumbnail": "https://i.ytimg.com/vi/T5mJus0-5e0/default.jpg"
-    },
-    {
-      "playlistId": "PLEOQTmIWJ_rn_NbeXgyi5dIsJf2K7KB3S",
-      "title": "Shorts",
-      "channelTitle": "CNC Kitchen",
-      "thumbnail": "https://i.ytimg.com/vi/Xm02onmF6Mo/default.jpg"
-    },
-    {
-      "playlistId": "PLEOQTmIWJ_rn_xDNG8-70YIi5mbruqAYg",
-      "title": "Reviews",
-      "channelTitle": "CNC Kitchen",
-      "thumbnail": "https://i.ytimg.com/vi/Ktzbq6OcWbw/default.jpg"
-    },
-    {
-      "playlistId": "PLEOQTmIWJ_rkG4axEoOXLk4SoYmNo16mx",
-      "title": "Live Streams",
-      "channelTitle": "CNC Kitchen",
-      "thumbnail": "https://i.ytimg.com/vi/w4YIutkJQK0/default.jpg"
-    },
-    {
-      "playlistId": "PLEOQTmIWJ_rmoqdFUCgKrNu_BsMVB7e1V",
-      "title": "3D Printing for Engineers",
-      "channelTitle": "CNC Kitchen",
-      "thumbnail": "https://i.ytimg.com/vi/1nhcKn7Kt8w/default.jpg"
-    },
-    {
-      "playlistId": "PLEOQTmIWJ_rlfo8sV6aG1_nVhtP_nUCjO",
-      "title": "Practical 3D prints",
-      "channelTitle": "CNC Kitchen",
-      "thumbnail": "https://i.ytimg.com/vi/rHim8AVU9qw/default.jpg"
-    },
-    {
-      "playlistId": "PLEOQTmIWJ_rlWH43r4q2liQuYY8UN6FjO",
-      "title": "CNC",
-      "channelTitle": "CNC Kitchen",
-      "thumbnail": "https://i.ytimg.com/vi/pR0q4oT_36s/default.jpg"
-    },
-    {
-      "playlistId": "PLEOQTmIWJ_rnHDVqxPP-GQNJ1UcQ-eF2q",
-      "title": "Projects",
-      "channelTitle": "CNC Kitchen",
-      "thumbnail": "https://i.ytimg.com/vi/pR0q4oT_36s/default.jpg"
-    },
-    {
-      "playlistId": "PLEOQTmIWJ_rncRcWmjQIvMKFAeM071CXM",
-      "title": "Strength Tests",
-      "channelTitle": "CNC Kitchen",
-      "thumbnail": "https://i.ytimg.com/vi/mIv507btE08/default.jpg"
+      "playlistId": "PLJq4rR8tWINyOrvwxbIjRvgTtoyuuEfSz",
+      "title": "AVEVA System Platform - Responsive, standards-driven, and scalable foundation for supervisory, Enterprise SCADA, MES, and IIoT applications.",
+      "channelTitle": "AVEVA Operations Control",
+      "thumbnail": "https://i.ytimg.com/vi/00uP25u7NuM/default.jpg"
     }
-  ]
+  ],
+  "nextPageToken": "CAoQAA",
+  "prevPageToken": null
 }

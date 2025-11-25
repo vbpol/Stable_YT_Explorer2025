@@ -53,9 +53,10 @@ class DownloadManager:
             'format': self.options['quality'],
             'outtmpl': os.path.join(self.download_folder, '%(title)s.%(ext)s'),
             'progress_hooks': [self.progress_hook],
-            'concurrent_fragment_downloads': 4,
-            'merge_output_format': 'mp4',
+            'concurrent_fragment_downloads': getattr(self.parent, 'download_concurrent_fragments', 4),
         }
+        if getattr(self.parent, 'post_processing_enabled', True):
+            ydl_opts['merge_output_format'] = 'mp4'
         
         for i, video in enumerate(self.videos, 1):
             if self.cancelled:

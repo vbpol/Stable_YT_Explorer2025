@@ -5,3 +5,4 @@ v0_basic/
 __pycache__/
 *.pyc
 *.log
+backups/
