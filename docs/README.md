@@ -2,6 +2,12 @@
 
 A desktop app for exploring YouTube videos and playlists, mapping videos to their playlists, and managing downloads. This “basic_final” documentation highlights features and their implementation locations to help you extend or maintain the app.
 
+## Logging and Diagnostics
+
+- File: `logs/app.log` created by `src/logger.py`.
+- Records: datastore selection, mode switches, searches, tokens, saves/loads, pagination events, video open.
+- Usage: inspect after startup/toggles to confirm last-results restore and persistence calls.
+
 ## Quick Start
 
 - Windows run script: `v0_basic\run_app.bat` (activates venv and runs `python -m src.main`)
@@ -105,6 +111,11 @@ A desktop app for exploring YouTube videos and playlists, mapping videos to thei
 - Mapping depth is limited for responsiveness; expanding beyond first page or across non-owner channels increases API calls.
 - UI highlights may vary slightly by OS theme; the `★` prefix guarantees visibility.
 - Export features (CSV/TXT) and the downloaded video player are available; advanced player controls can be added as needed.
+
+## Backups
+
+- Previous stable snapshots live under `backups/`.
+- Compare JSON last results in `backups/basic_final_stable/data/` with current behavior if needed.
 
 ## Extending
 

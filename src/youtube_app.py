@@ -4,11 +4,14 @@ from .config_manager import ConfigManager
 from .pages.setup_page import SetupPage
 from .pages.main.main_page import MainPage
 from .playlist import Playlist
+from .data.factory import get_datastore
+from .logger import get_logger
 import yt_dlp  # Import yt-dlp for downloading videos
 
 class YouTubeApp:
     def __init__(self, root):
         self.root = root
+        self.log = get_logger('app')
         self.config = ConfigManager.load_config()
         self.api_key = self.config.get("api_key", "")
         self.default_folder = self.config.get("default_folder", "")
@@ -19,6 +22,14 @@ class YouTubeApp:
         """Initialize the GUI components and window properties."""
         self.setup_window()
         self.setup_gui()
+        try:
+            self.datastore = get_datastore()
+            try:
+                self.log.info(f"datastore={type(self.datastore).__name__}")
+            except Exception:
+                pass
+        except Exception:
+            self.datastore = None
 
     def setup_window(self):
         """Configure the main window properties."""

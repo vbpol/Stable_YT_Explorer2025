@@ -30,6 +30,10 @@ class MainPage(tk.Frame):
         """Initialize and pack GUI components."""
         self._create_sections()
         self._pack_sections()
+        try:
+            self.set_search_mode('Playlists')
+        except Exception:
+            pass
 
     def _create_sections(self):
         """Create sections for the main page."""
@@ -156,35 +160,31 @@ class MainPage(tk.Frame):
         mode = (mode_display or '').strip().lower()
         if mode not in ('playlists', 'videos'):
             mode = 'playlists'
-        if mode != self.search_mode:
-            self.search_mode = mode
-            self.clear_panels()
-            try:
-                if mode == 'playlists':
-                    path = ConfigManager.get_last_search_path('playlists')
-                    data = ConfigManager.load_json(path) or []
-                    for pl in data:
-                        self.playlist.update_playlist(pl)
-                    self.video.update_back_button_state(False)
-                else:
-                    path = ConfigManager.get_last_search_path('videos')
-                    data = ConfigManager.load_json(path) or {}
-                    videos = data.get('videos', [])
-                    playlists = data.get('playlists', [])
-                    for v in videos:
-                        self.video.video_tree.insert('', 'end', values=self._video_row(v))
-                    for pl in playlists:
-                        self.playlist.update_playlist(pl)
-                    self.current_videos = videos
-                    self.collected_playlists = playlists
-                    self.video.update_back_button_state(False)
-                    try:
-                        self.video.prev_page_btn.configure(command=lambda: self.show_videos_search_page(self.video_prev_page_token))
-                        self.video.next_page_btn.configure(command=lambda: self.show_videos_search_page(self.video_next_page_token))
-                    except Exception:
-                        pass
-            except Exception:
-                pass
+        self.search_mode = mode
+        self.clear_panels()
+        try:
+            if mode == 'playlists':
+                data = {'playlists': [], 'query': ''}
+                try:
+                    if getattr(self.controller, 'datastore', None):
+                        data = self.controller.datastore.load_last_playlists_result() or {'playlists': [], 'query': ''}
+                except Exception:
+                    data = {'playlists': [], 'query': ''}
+                try:
+                    q = (data.get('query') or '').strip()
+                    self.search.search_entry.delete(0, 'end')
+                    if q:
+                        self.search.search_entry.insert(0, q)
+                except Exception:
+                    pass
+                for pl in data.get('playlists', []):
+                    self.playlist.update_playlist(pl)
+                self.video.update_back_button_state(False)
+            else:
+                # For Videos mode, reuse the same restore flow as Back to Results
+                self.back_to_video_results()
+        except Exception:
+            pass
 
     def execute_search(self, query, mode_display):
         query = (query or '').strip()
@@ -213,7 +213,11 @@ class MainPage(tk.Frame):
                         playlist["video_count"] = "N/A"
                     self.playlist.update_playlist(playlist)
                     enriched.append(playlist)
-                ConfigManager.save_json(ConfigManager.get_last_search_path('playlists'), enriched)
+                try:
+                    if getattr(self.controller, 'datastore', None):
+                        self.controller.datastore.save_last_playlists_result(query, enriched)
+                except Exception:
+                    pass
                 self.video.update_back_button_state(False)
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to fetch playlists: {e}")
@@ -226,8 +230,20 @@ class MainPage(tk.Frame):
             try:
                 resp = self.controller.playlist_handler.search_videos(query, max_results=max_results)
             except Exception as e:
-                messagebox.showerror("Error", f"Failed to fetch videos: {e}")
-                return
+                try:
+                    data = {}
+                    if getattr(self.controller, 'datastore', None):
+                        data = self.controller.datastore.load_last_videos_result() or {}
+                    self.video.video_tree.delete(*self.video.video_tree.get_children())
+                    for v in data.get('videos', []):
+                        self.video.video_tree.insert('', 'end', values=self._video_row(v))
+                    for pl in data.get('playlists', []):
+                        self.playlist.update_playlist(pl)
+                    self.status_bar.configure(text="Network error; showing last saved video results")
+                    return
+                except Exception:
+                    messagebox.showerror("Error", f"Failed to fetch videos: {e}")
+                    return
             videos = resp.get('videos', [])
             self.current_videos = videos
             self.video_next_page_token = resp.get('nextPageToken')
@@ -288,19 +304,21 @@ class MainPage(tk.Frame):
                                 self.after(0, lambda v_id=vid, p_id=first_plid: self._update_video_row_by_vid(v_id, p_id))
                             except Exception:
                                 pass
+                        try:
+                            if first_plid and vid and getattr(self.controller, 'datastore', None):
+                                self.controller.datastore.upsert_playlist({'playlistId': first_plid, 'title': pl.get('title'), 'channelTitle': pl.get('channelTitle'), 'video_count': pl.get('video_count')})
+                                self.controller.datastore.upsert_video({'videoId': vid, 'title': v.get('title'), 'channelTitle': v.get('channelTitle'), 'duration': v.get('duration'), 'published': v.get('published'), 'views': v.get('views')})
+                                self.controller.datastore.link_video_to_playlist(first_plid, vid)
+                        except Exception:
+                            pass
                         processed += 1
                         try:
                             self.after(0, lambda x=processed, t=total: self.status_bar.configure(text=f"Collecting playlists from videos... {x}/{t}"))
                         except Exception:
                             pass
                     try:
-                        ConfigManager.save_json(ConfigManager.get_last_search_path('videos'), {
-                            'videos': videos,
-                            'playlists': collected,
-                            'nextPageToken': self.video_next_page_token,
-                            'prevPageToken': self.video_prev_page_token,
-                            'videoIds': list(self.video_search_ids)
-                        })
+                        if getattr(self.controller, 'datastore', None):
+                            self.controller.datastore.save_last_videos_result(self.video_search_query, videos, collected, self.video_next_page_token, self.video_prev_page_token, list(self.video_search_ids))
                         self.collected_playlists = collected
                         try:
                             self.after(0, lambda n=len(collected): self.status_bar.configure(text=f"Collected {n} playlists"))
@@ -312,13 +330,11 @@ class MainPage(tk.Frame):
                 threading.Thread(target=_fetch_playlists, daemon=True).start()
             except Exception:
                 pass
-            ConfigManager.save_json(ConfigManager.get_last_search_path('videos'), {
-                'videos': videos,
-                'playlists': [],
-                'nextPageToken': self.video_next_page_token,
-                'prevPageToken': self.video_prev_page_token,
-                'videoIds': list(self.video_search_ids)
-            })
+            try:
+                if getattr(self.controller, 'datastore', None):
+                    self.controller.datastore.save_last_videos_result(self.video_search_query, videos, [], self.video_next_page_token, self.video_prev_page_token, list(self.video_search_ids))
+            except Exception:
+                pass
             self.video.update_back_button_state(False)
             try:
                 self.video.prev_page_btn.configure(command=lambda: self.show_videos_search_page(self.video_prev_page_token))
@@ -331,11 +347,28 @@ class MainPage(tk.Frame):
     def back_to_video_results(self):
         if self.search_mode != 'videos':
             return
-        path = ConfigManager.get_last_search_path('videos')
-        data = ConfigManager.load_json(path) or {}
+        data = {}
+        try:
+            if getattr(self.controller, 'datastore', None):
+                data = self.controller.datastore.load_last_videos_result() or {}
+        except Exception:
+            data = {}
         self.clear_panels()
         videos = data.get('videos', [])
         playlists = data.get('playlists', [])
+        try:
+            # Restore search query in the input box
+            q = (data.get('query') or '').strip()
+            if q:
+                try:
+                    self.search.search_entry.delete(0, 'end')
+                    self.search.search_entry.insert(0, q)
+                except Exception:
+                    pass
+            # Restore highlight IDs
+            self.video_search_ids = set(data.get('videoIds') or [v.get('videoId') for v in videos if v.get('videoId')])
+        except Exception:
+            self.video_search_ids = set([v.get('videoId') for v in videos if v.get('videoId')])
         for v in videos:
             try:
                 vid = v.get('videoId')
@@ -597,6 +630,15 @@ class MainPage(tk.Frame):
                     self.video.video_tree.insert("", "end", values=row, tags=tags)
                 except Exception:
                     self.video.video_tree.insert("", "end", values=self._video_row(video))
+            # Persist visible playlist videos and links
+            try:
+                if getattr(self.controller, 'datastore', None):
+                    for video in self.current_videos:
+                        self.controller.datastore.upsert_video(video)
+                        if playlist_id and video.get('videoId'):
+                            self.controller.datastore.link_video_to_playlist(playlist_id, video.get('videoId'))
+            except Exception:
+                pass
             try:
                 self.status_bar.configure(text=f"Highlighted {hit_count} matched videos in playlist")
             except Exception:
@@ -779,6 +821,28 @@ class MainPage(tk.Frame):
             ConfigManager.set_preferred_quality(value)
             try:
                 self.status_bar.configure(text=f"Preferred quality set: {value}")
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    def set_persistence_mode(self, mode: str):
+        try:
+            m = (mode or '').strip().lower()
+            if m not in ('json', 'sqlite', 'django'):
+                return
+            ConfigManager.set_persistence_mode(m)
+            try:
+                from src.data.factory import get_datastore
+                self.controller.datastore = get_datastore()
+            except Exception:
+                pass
+            try:
+                self.status_bar.configure(text=f"Persistence set to {m}. Reloading views...")
+            except Exception:
+                pass
+            try:
+                self.set_search_mode(self.search_mode.capitalize())
             except Exception:
                 pass
         except Exception:

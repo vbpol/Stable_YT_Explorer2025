@@ -147,17 +147,10 @@ class VideoSection(BaseSection):
         
         ttk.Button(button_frame, text="View Downloaded", 
                   command=self.main_page.view_downloaded_videos).pack(side="left", padx=5)
-
-        self.back_btn = ttk.Button(button_frame, text="Back to Results", command=self.main_page.back_to_video_results)
-        self.back_btn.pack(side="left", padx=5)
-        try:
-            self.back_btn["state"] = "disabled"
-        except Exception:
-            pass
+        
 
     def update_back_button_state(self, enabled: bool):
         try:
-            self.back_btn["state"] = "normal" if enabled else "disabled"
             self.back_page_btn["state"] = "normal" if enabled else "disabled"
         except Exception:
             pass

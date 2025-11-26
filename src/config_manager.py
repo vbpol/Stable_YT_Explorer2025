@@ -18,24 +18,30 @@ class ConfigManager:
                 with open(CONFIG_FILE, "r") as file:
                     data = json.load(file)
             except FileNotFoundError:
-                data = {"api_key": "", "default_folder": ""}
+                data = {"api_key": "", "default_folder": "", "persistence": ""}
 
             keys = ConfigManager.get_available_api_keys()
             api_key = keys[0] if keys else data.get("api_key", "")
             return {
                 "api_key": api_key,
-                "default_folder": data.get("default_folder", "")
+                "default_folder": data.get("default_folder", ""),
+                "persistence": data.get("persistence", "")
             }
         except Exception:
-            return {"api_key": "", "default_folder": ""}
+            return {"api_key": "", "default_folder": "", "persistence": ""}
 
     @staticmethod
     def save_config(api_key, default_folder):
-        with open(CONFIG_FILE, "w") as file:
-            json.dump({
-                "api_key": "",
-                "default_folder": default_folder
-            }, file, indent=4)
+        existing = {}
+        try:
+            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                existing = json.load(f)
+        except Exception:
+            existing = {}
+        existing["api_key"] = ""
+        existing["default_folder"] = default_folder
+        with open(CONFIG_FILE, "w", encoding="utf-8") as file:
+            json.dump(existing, file, indent=4)
 
     @staticmethod
     def get_available_api_keys() -> List[str]:
@@ -135,6 +141,32 @@ class ConfigManager:
             except Exception:
                 data = {}
             data["preferred_quality"] = quality or "best"
+            with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=4)
+        except Exception:
+            pass
+
+    @staticmethod
+    def get_persistence_mode() -> str:
+        try:
+            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                val = str(data.get("persistence", "")).strip().lower()
+                if val in ("json", "sqlite", "django"):
+                    return val
+                return ""
+        except Exception:
+            return ""
+
+    @staticmethod
+    def set_persistence_mode(mode: str):
+        try:
+            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception:
+            data = {}
+        data["persistence"] = (mode or "").strip().lower()
+        try:
             with open(CONFIG_FILE, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=4)
         except Exception:

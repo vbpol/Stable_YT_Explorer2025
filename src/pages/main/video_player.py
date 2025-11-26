@@ -10,6 +10,11 @@ class VideoPlayer:
         self.window.title("Video Player")
         self.window.geometry("1024x768")
         self.playlist_folder = playlist_folder
+        self._after_id = None
+        try:
+            self.window.protocol("WM_DELETE_WINDOW", self._on_close)
+        except Exception:
+            pass
         
         # Create VLC instance
         self.instance = vlc.Instance()
@@ -161,11 +166,38 @@ class VideoPlayer:
             if total > 0:
                 self.time_var.set(f"{self.format_time(current)} / {self.format_time(total)}")
                 self.time_slider.set((current / total) * 100)
-        self.window.after(1000, self.update_time_label)
+        try:
+            if self.window.winfo_exists():
+                self._after_id = self.window.after(1000, self.update_time_label)
+        except Exception:
+            pass
 
     @staticmethod
     def format_time(milliseconds):
         seconds = milliseconds // 1000
         minutes = seconds // 60
         seconds = seconds % 60
-        return f"{minutes}:{seconds:02d}" 
+        return f"{minutes}:{seconds:02d}"
+
+    def _on_close(self):
+        try:
+            self.stop_video()
+        except Exception:
+            pass
+        try:
+            if self._after_id is not None:
+                self.window.after_cancel(self._after_id)
+        except Exception:
+            pass
+        try:
+            self.player.release()
+        except Exception:
+            pass
+        try:
+            self.instance.release()
+        except Exception:
+            pass
+        try:
+            self.window.destroy()
+        except Exception:
+            pass

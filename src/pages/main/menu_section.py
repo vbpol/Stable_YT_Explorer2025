@@ -43,3 +43,11 @@ class MenuSection(BaseSection):
 
         download_menu.add_checkbutton(label="Post-Processing (merge to mp4)", onvalue=1, offvalue=0, command=self.main_page.toggle_post_processing)
         menubar.add_cascade(label="Download", menu=download_menu)
+
+        # Persistence menu
+        persist_menu = tk.Menu(menubar, tearoff=0)
+        self.persist_var = tk.StringVar(value=(self.controller.config.get("persistence", "") or "json").capitalize())
+        persist_menu.add_radiobutton(label="JSON", variable=self.persist_var, value="Json", command=lambda: self.main_page.set_persistence_mode("json"))
+        persist_menu.add_radiobutton(label="SQLite", variable=self.persist_var, value="Sqlite", command=lambda: self.main_page.set_persistence_mode("sqlite"))
+        persist_menu.add_radiobutton(label="Django", variable=self.persist_var, value="Django", command=lambda: self.main_page.set_persistence_mode("django"))
+        menubar.add_cascade(label="Persistence", menu=persist_menu)
