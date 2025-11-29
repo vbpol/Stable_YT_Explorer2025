@@ -18,11 +18,22 @@ class VideoSection(BaseSection):
         self._create_action_buttons()
 
     def _create_video_tree(self):
-        columns = ("Title", "Duration")
+        columns = ("Title", "Playlist", "Channel", "Duration", "Published", "Views")
         self.video_tree = ttk.Treeview(self, columns=columns, show="headings", height=15)
-        self.video_tree.heading("Title", text="Title")
-        self.video_tree.heading("Duration", text="Duration")
+        for col in columns:
+            self.video_tree.heading(col, text=col)
+        self.video_tree.column("Playlist", width=80, anchor="center")
         self.video_tree.column("Duration", width=100, anchor="center")
+        self.video_tree.column("Published", width=120, anchor="center")
+        self.video_tree.column("Views", width=90, anchor="center")
+        try:
+            self.video_tree.tag_configure('pl_match', background='#d7ffd7')
+        except Exception:
+            pass
+        try:
+            self.video_tree.tag_configure('search_hit', background='#fff6bf')
+        except Exception:
+            pass
         
         # Add scrollbar
         scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.video_tree.yview)
@@ -32,7 +43,12 @@ class VideoSection(BaseSection):
         self.video_tree.pack(side="left", fill="both", expand=True, padx=(10, 0))
         scrollbar.pack(side="right", fill="y", padx=(0, 10))
         
-        self.video_tree.bind("<Double-1>", self.main_page.open_video)
+        self.video_tree.bind('<<TreeviewSelect>>', self.main_page.on_video_select)
+        self.video_tree.bind("<Button-1>", self._on_video_click)
+        self.video_tree.bind("<Double-1>", self._on_video_double)
+        self._tooltip = None
+        self.video_tree.bind("<Motion>", self._on_motion)
+        self.video_tree.bind("<Leave>", self._on_leave)
 
     def _create_page_controls(self):
         # Page size and total info
@@ -85,6 +101,8 @@ class VideoSection(BaseSection):
     def _create_action_buttons(self):
         button_frame = ttk.Frame(self)
         button_frame.pack(pady=5)
+        self.back_btn = ttk.Button(button_frame, text="Back to Results", command=self.main_page.back_to_video_results)
+        self.back_btn.pack(side="left", padx=5)
         
         ttk.Button(button_frame, text="Save Playlist", 
                   command=self.main_page.save_playlist).pack(side="left", padx=5)
@@ -99,3 +117,92 @@ class VideoSection(BaseSection):
         
         ttk.Button(button_frame, text="View Downloaded", 
                   command=self.main_page.view_downloaded_videos).pack(side="left", padx=5) 
+
+    def update_back_button_state(self, enabled: bool):
+        try:
+            if enabled:
+                self.back_btn["state"] = "normal"
+            else:
+                self.back_btn["state"] = "disabled"
+        except Exception:
+            pass
+    def _on_video_click(self, event):
+        r = self.video_tree.identify_region(event.x, event.y)
+        if r == 'heading':
+            col = self.video_tree.identify_column(event.x)
+            name_map = {"#1":"Title","#2":"Playlist","#3":"Channel","#4":"Duration","#5":"Published","#6":"Views"}
+            name = name_map.get(str(col))
+            if name:
+                self.main_page.sort_videos_by(name)
+
+    def _on_video_double(self, event):
+        r = self.video_tree.identify_region(event.x, event.y)
+        if r == 'heading':
+            col = self.video_tree.identify_column(event.x)
+            name_map = {"#1":"Title","#2":"Playlist","#3":"Channel","#4":"Duration","#5":"Published","#6":"Views"}
+            name = name_map.get(str(col))
+            if name:
+                try:
+                    import tkinter.simpledialog as simpledialog
+                    q = simpledialog.askstring("Filter", f"Filter {name} contains:")
+                    if q is not None:
+                        self.main_page.on_video_header_double_click(name, q)
+                except Exception:
+                    pass
+            return
+        self.main_page.open_video(event)
+
+    def _ensure_tooltip(self):
+        if self._tooltip is None:
+            self._tooltip = tk.Toplevel(self)
+            self._tooltip.wm_overrideredirect(True)
+            self._tooltip.withdraw()
+            self._tooltip_label = ttk.Label(self._tooltip, background="#ffffe0", relief="solid", borderwidth=1)
+            self._tooltip_label.pack(ipadx=4, ipady=2)
+
+    def _show_tooltip(self, text, x, y):
+        self._ensure_tooltip()
+        try:
+            self._tooltip_label.configure(text=text)
+            self._tooltip.geometry(f"+{x+12}+{y+12}")
+            self._tooltip.deiconify()
+        except Exception:
+            pass
+
+    def _hide_tooltip(self):
+        try:
+            if self._tooltip:
+                self._tooltip.withdraw()
+        except Exception:
+            pass
+
+    def _on_motion(self, event):
+        try:
+            if self.video_tree.identify_region(event.x, event.y) == 'heading':
+                self._hide_tooltip()
+                return
+            iid = self.video_tree.identify_row(event.y)
+            if not iid:
+                self._hide_tooltip()
+                return
+            idx = self.video_tree.index(iid)
+            v = self.main_page.current_videos[idx] if idx < len(self.main_page.current_videos) else {}
+            vid = v.get('videoId')
+            pid = v.get('playlistId') or self.main_page.video_playlist_cache.get(vid)
+            title = ''
+            if pid and self.main_page.playlist.playlist_tree.exists(pid):
+                try:
+                    vals = self.main_page.playlist.playlist_tree.item(pid).get('values', [])
+                    title = vals[1] if len(vals) > 1 else ''
+                except Exception:
+                    title = ''
+            txt = f"{pid or ''} {title or ''}".strip()
+            if txt:
+                self._show_tooltip(txt, event.x_root, event.y_root)
+            else:
+                self._hide_tooltip()
+        except Exception:
+            pass
+
+    def _on_leave(self, event):
+        self._hide_tooltip()

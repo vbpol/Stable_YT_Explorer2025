@@ -1,0 +1,84 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v1.0.0)'
+        required: false
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install build tools
+        run: pip install pyinstaller
+
+      - name: Pre-release checks
+        run: python scripts/pre_release_check.py
+
+      - name: Unit tests
+        run: python -m unittest -v
+
+      - name: Build executable
+        run: pyinstaller --clean -y pyinstaller.spec
+
+      - name: Add distribution README
+        shell: pwsh
+        run: |
+          Copy-Item packaging/README_DIST.txt dist/YouTubePlaylistExplorer/README.txt -Force
+          Copy-Item .env.example dist/YouTubePlaylistExplorer/.env.example -Force
+
+      - name: Zip executable folder
+        shell: pwsh
+        run: |
+          $version = if ($env:GITHUB_REF_NAME) { $env:GITHUB_REF_NAME } elseif ('${{ inputs.version }}') { '${{ inputs.version }}' } else { 'build' }
+          Compress-Archive -Path "dist/YouTubePlaylistExplorer/*" -DestinationPath "dist/YouTubePlaylistExplorer-$version.zip" -Force
+
+      - name: Create portable-lite zip (reduced size)
+        shell: pwsh
+        run: |
+          $version = if ($env:GITHUB_REF_NAME) { $env:GITHUB_REF_NAME } elseif ('${{ inputs.version }}') { '${{ inputs.version }}' } else { 'build' }
+          $liteRoot = "dist/portable_lite/YouTubePlaylistExplorer"
+          New-Item -ItemType Directory -Force -Path $liteRoot | Out-Null
+          Copy-Item -Recurse -Force dist/YouTubePlaylistExplorer/* $liteRoot
+          # Remove large discovery cache documents to reduce size
+          Remove-Item -Recurse -Force "$liteRoot/_internal/googleapiclient/discovery_cache/documents" -ErrorAction SilentlyContinue
+          Compress-Archive -Path "dist/portable_lite/*" -DestinationPath "dist/YouTubePlaylistExplorer-$version-lite.zip" -Force
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: YouTubePlaylistExplorer-${{ github.ref_name || inputs.version || 'build' }}
+          path: |
+            dist/YouTubePlaylistExplorer/**
+            dist/YouTubePlaylistExplorer-${{ github.ref_name || inputs.version || 'build' }}.zip
+            dist/YouTubePlaylistExplorer-${{ github.ref_name || inputs.version || 'build' }}-lite.zip
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          files: |
+            dist/YouTubePlaylistExplorer-${{ github.ref_name }}.zip
+            dist/YouTubePlaylistExplorer-${{ github.ref_name }}-lite.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

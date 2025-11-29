@@ -17,13 +17,12 @@ class PlaylistSection(BaseSection):
         # Create and configure the treeview
         self.playlist_tree = ttk.Treeview(
             self.tree_frame,
-            columns=("No", "Title", "Channel", "Videos", "Status", "Actions"),
+            columns=("Title", "Channel", "Videos", "Status", "Actions"),
             show="headings",
             selectmode="browse"
         )
 
         # Configure column headings
-        self.playlist_tree.heading("No", text="No")
         self.playlist_tree.heading("Title", text="Title")
         self.playlist_tree.heading("Channel", text="Channel")
         self.playlist_tree.heading("Videos", text="Videos")
@@ -31,7 +30,6 @@ class PlaylistSection(BaseSection):
         self.playlist_tree.heading("Actions", text="Actions")
 
         # Configure column widths and alignments
-        self.playlist_tree.column("No", width=50, anchor="center")
         self.playlist_tree.column("Title", width=300, anchor="w")
         self.playlist_tree.column("Channel", width=150, anchor="w")
         self.playlist_tree.column("Videos", width=70, anchor="center")
@@ -57,37 +55,28 @@ class PlaylistSection(BaseSection):
         # Bind events
         self.playlist_tree.bind("<Double-1>", self.on_playlist_select)
         self.playlist_tree.bind("<Button-1>", self.handle_click)
-        try:
-            import tkinter as tk
-            self._ctx = tk.Menu(self.playlist_tree, tearoff=0)
-            self._ctx.add_command(label="Highlight Related Videos", command=lambda: self.main_page.highlight_videos_for_playlist(getattr(self, "_rc_item", None)))
-            self._ctx.add_command(label="Clear Video Highlights", command=self.main_page.clear_video_playlist_highlights)
-            self.playlist_tree.bind("<Button-3>", self._on_right_click)
-        except Exception:
-            pass
 
     def on_playlist_select(self, event):
+        """Handle playlist selection."""
         region = self.playlist_tree.identify_region(event.x, event.y)
-        if region == "heading":
-            col = self.playlist_tree.identify_column(event.x)
-            name_map = {"#1":"No","#2":"Title","#3":"Channel","#4":"Videos","#5":"Status","#6":"Actions"}
-            name = name_map.get(str(col))
-            if name:
-                try:
-                    import tkinter.simpledialog as simpledialog
-                    q = simpledialog.askstring("Filter", f"Filter {name} contains:")
-                    if q is not None:
-                        self.main_page.on_playlist_header_double_click(name, q)
-                except Exception:
-                    pass
-            return
+        print(f"Click region: {region}")  # Debug print
+        
         if region == "cell":
             column = self.playlist_tree.identify_column(event.x)
             item = self.playlist_tree.identify_row(event.y)
-            if str(column) != "#6":
+            print(f"Clicked column: {column}, item: {item}")  # Debug print
+            
+            if str(column) != "#5":  # If not clicking the Actions column
+                # Select the item first
                 self.playlist_tree.selection_set(item)
                 selected_playlist = self.get_selected_playlist()
+                print(f"Selected playlist ID: {selected_playlist}")  # Debug print
+                
+                # Get the playlist details from the tree
                 playlist_info = self.playlist_tree.item(selected_playlist)
+                print(f"Playlist info: {playlist_info}")  # Debug print
+                
+                # Then show videos
                 self.main_page.show_playlist_videos(selected_playlist)
 
     def get_selected_playlist(self):
@@ -98,42 +87,17 @@ class PlaylistSection(BaseSection):
         return selected_items[0]  # Return the playlist ID
 
     def handle_click(self, event):
+        """Handle clicks on the playlist tree."""
         region = self.playlist_tree.identify_region(event.x, event.y)
-        if region == "heading":
-            col = self.playlist_tree.identify_column(event.x)
-            name_map = {"#1":"No","#2":"Title","#3":"Channel","#4":"Videos","#5":"Status","#6":"Actions"}
-            name = name_map.get(str(col))
-            if name:
-                self.main_page.sort_playlists_by(name)
-            return
         if region == "cell":
             column = self.playlist_tree.identify_column(event.x)
             item = self.playlist_tree.identify_row(event.y)
-            if str(column) == "#6" and item:
+            
+            if str(column) == "#5" and item:  # Actions column
                 self.remove_playlist(item)
             else:
+                # Select the row when clicking anywhere except the remove button
                 self.playlist_tree.selection_set(item)
-                try:
-                    if self.main_page.search_mode == 'videos' and item:
-                        self.main_page.highlight_videos_for_playlist(item)
-                except Exception:
-                    pass
-
-    def _on_right_click(self, event):
-        try:
-            item = self.playlist_tree.identify_row(event.y)
-            if item:
-                self._rc_item = item
-                try:
-                    self.playlist_tree.selection_set(item)
-                except Exception:
-                    pass
-                try:
-                    self._ctx.tk_popup(event.x_root, event.y_root)
-                except Exception:
-                    pass
-        except Exception:
-            pass
 
     def remove_playlist(self, playlist_id):
         """Remove playlist from the tree."""
@@ -145,7 +109,7 @@ class PlaylistSection(BaseSection):
         """Check if all videos in the playlist are downloaded."""
         # Get the playlist title from the tree
         playlist_values = self.playlist_tree.item(playlist_id)["values"]
-        playlist_title = playlist_values[1] if playlist_values else "Unknown"
+        playlist_title = playlist_values[0] if playlist_values else "Unknown"
         
         playlist_folder = os.path.join(
             self.controller.default_folder,
@@ -173,27 +137,17 @@ class PlaylistSection(BaseSection):
         
         # Use a default status of "Unknown" if we can't get details
         try:
-            # Ensure video_count is enriched when missing
-            vc = playlist_data.get("video_count")
-            if vc in (None, "N/A"):
-                try:
-                    vc = int(self.controller.playlist_handler.get_details(playlist_id))
-                    playlist_data["video_count"] = vc
-                except Exception:
-                    vc = "N/A"
-            status = self.check_download_status(playlist_id, int(vc) if isinstance(vc, int) else 0)
+            status = self.check_download_status(
+                playlist_id, 
+                playlist_data.get("video_count", 0)
+            )
         except Exception:
             status = "Unknown"
         
-        try:
-            pi = self.main_page.assign_playlist_index(playlist_id)
-        except Exception:
-            pi = ""
         values = (
-            pi,
             playlist_data["title"],
             playlist_data["channelTitle"],
-            playlist_data.get("video_count", "N/A"),
+            playlist_data.get("video_count", "N/A"),  # Use N/A if count not available
             status,
             "❌"
         )
@@ -202,43 +156,19 @@ class PlaylistSection(BaseSection):
             self.playlist_tree.item(playlist_id, values=values)
         else:
             self.playlist_tree.insert("", "end", iid=playlist_id, values=values)
-        try:
-            self.playlist_tree.set(playlist_id, "No", str(pi or ""))
-        except Exception:
-            pass
-
-    def normalize_numbers(self):
-        try:
-            for iid in self.playlist_tree.get_children():
-                # Only show numbers for playlists that were matched in this session
-                pi = self.main_page.playlist_index_map.get(iid)
-                try:
-                    vals = self.playlist_tree.item(iid).get('values', [])
-                    new_vals = ((pi or ""),) + tuple(vals[1:]) if vals else ((pi or ""),)
-                    self.playlist_tree.item(iid, values=new_vals)
-                    self.playlist_tree.set(iid, "No", str(pi or ""))
-                except Exception:
-                    pass
-        except Exception:
-            pass
 
     def refresh_all_statuses(self):
         """Refresh download status for all playlists in the tree."""
         for playlist_id in self.playlist_tree.get_children():
             current_values = self.playlist_tree.item(playlist_id)["values"]
-            try:
-                vc = int(current_values[3])
-            except Exception:
-                vc = 0
-            status = self.check_download_status(playlist_id, vc)
+            status = self.check_download_status(playlist_id, int(current_values[2]))
             
             new_values = (
-                current_values[0],  # No
-                current_values[1],  # Title
-                current_values[2],  # Channel
-                current_values[3],  # Videos count
-                status,             # Updated status
-                current_values[5]   # Actions
+                current_values[0],  # Title
+                current_values[1],  # Channel
+                current_values[2],  # Videos count
+                status,            # Updated status
+                current_values[4]  # Actions
             )
             
             self.playlist_tree.item(playlist_id, values=new_values) 

@@ -1,9 +1,11 @@
 import tkinter as tk
-from .config_manager import ConfigManager
-from .pages.setup_page import SetupPage
-from .pages.main.main_page import MainPage
-from .playlist import Playlist
+from src.config_manager import ConfigManager
+from src.pages.setup_page import SetupPage
+from src.pages.main.main_page import MainPage
+from src.playlist import Playlist
 import yt_dlp  # Import yt-dlp for downloading videos
+import sys
+from src.youtube_app import YouTubeApp  # Use absolute import with the package prefix
 
 class YouTubeApp:
     def __init__(self, root):
@@ -25,16 +27,9 @@ class YouTubeApp:
         self.root.geometry("900x600")
         self.root.grid_rowconfigure(0, weight=1)
         self.root.grid_columnconfigure(0, weight=1)
-        try:
-            self.root.deiconify()
-            self.root.lift()
-            self.root.attributes("-topmost", True)
-            self.root.after(600, lambda: self.root.attributes("-topmost", False))
-        except Exception:
-            pass
 
     def setup_gui(self):
-        """Set up the GUI with multipages."""
+        """Set up the GUI with multipages.""" 
         self.frames = {}
         self._create_frames()
         self._show_initial_frame()
@@ -103,8 +98,11 @@ class YouTubeApp:
             finally:
                 self.progress_window.destroy()  # Close the progress window after download
 
-    def progress_hook(self, d):
-        """Hook to update the progress bar."""
-        if d['status'] == 'downloading':
-            self.progress_bar['value'] = d['downloaded_bytes'] / d['total_bytes'] * 100
-            self.progress_window.update_idletasks()  # Update the GUI
+def main():
+    """Initialize and run the YouTube Playlist Explorer application."""
+    root = tk.Tk()
+    app = YouTubeApp(root)
+    root.mainloop()
+
+if __name__ == "__main__":
+    main()

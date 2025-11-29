@@ -25,13 +25,6 @@ class YouTubeApp:
         self.root.geometry("900x600")
         self.root.grid_rowconfigure(0, weight=1)
         self.root.grid_columnconfigure(0, weight=1)
-        try:
-            self.root.deiconify()
-            self.root.lift()
-            self.root.attributes("-topmost", True)
-            self.root.after(600, lambda: self.root.attributes("-topmost", False))
-        except Exception:
-            pass
 
     def setup_gui(self):
         """Set up the GUI with multipages."""

@@ -16,10 +16,6 @@ class VideoPlayer:
         self.player = self.instance.media_player_new()
         
         self.setup_gui()
-        try:
-            self.window.protocol("WM_DELETE_WINDOW", self.on_close)
-        except Exception:
-            pass
         
     def setup_gui(self):
         # Create main container with paned window
@@ -132,24 +128,6 @@ class VideoPlayer:
         self.play_button["text"] = "Play"
         self.time_var.set("0:00 / 0:00")
         self.time_slider.set(0)
-
-    def on_close(self):
-        try:
-            self.stop_video()
-        except Exception:
-            pass
-        try:
-            self.player.release()
-        except Exception:
-            pass
-        try:
-            self.instance.release()
-        except Exception:
-            pass
-        try:
-            self.window.destroy()
-        except Exception:
-            pass
 
     def seek_video(self, event):
         if self.player.get_length() > 0:

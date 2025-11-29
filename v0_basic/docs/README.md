@@ -93,10 +93,6 @@ youtube-playlist-explorer/
 └── config.json           # User configuration
 ```
 
-## Developer Resources
-
-- Dev Workflow and Regression Guards: see `docs/dev_workflow.md` (System Prompt and Developer Checklist).
-
 ## Configuration
 
 The application uses a JSON configuration file (`config.json`):

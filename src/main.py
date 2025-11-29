@@ -6,6 +6,7 @@ from src.playlist import Playlist
 import yt_dlp  # Import yt-dlp for downloading videos
 import sys
 from src.youtube_app import YouTubeApp  # Use absolute import with the package prefix
+from src.data.factory import get_datastore
 
 class YouTubeApp:
     def __init__(self, root):
@@ -20,6 +21,14 @@ class YouTubeApp:
         """Initialize the GUI components and window properties."""
         self.setup_window()
         self.setup_gui()
+        try:
+            self.datastore = get_datastore()
+        except Exception:
+            self.datastore = None
+        try:
+            self._restore_last_state()
+        except Exception:
+            pass
 
     def setup_window(self):
         """Configure the main window properties."""
@@ -47,6 +56,45 @@ class YouTubeApp:
             self.show_frame(MainPage)
         else:
             self.show_frame(SetupPage)
+
+    def _restore_last_state(self):
+        try:
+            mp = self.frames.get(MainPage)
+            if not mp or not getattr(self, 'datastore', None):
+                return
+            last_mode = ConfigManager.load_last_mode() or ''
+            if last_mode == 'videos':
+                try:
+                    mp.search.mode_var.set('Videos')
+                except Exception:
+                    pass
+                mp.set_search_mode('Videos')
+            elif last_mode == 'playlists':
+                try:
+                    mp.search.mode_var.set('Playlists')
+                except Exception:
+                    pass
+                mp.set_search_mode('Playlists')
+            else:
+                # Fallback to queries if mode not stored
+                vids = self.datastore.load_last_videos_result() or {}
+                pls = self.datastore.load_last_playlists_result() or {'playlists': [], 'query': ''}
+                vq = (vids.get('query') or '').strip()
+                pq = (pls.get('query') or '').strip()
+                if vq:
+                    try:
+                        mp.search.mode_var.set('Videos')
+                    except Exception:
+                        pass
+                    mp.set_search_mode('Videos')
+                elif pq:
+                    try:
+                        mp.search.mode_var.set('Playlists')
+                    except Exception:
+                        pass
+                    mp.set_search_mode('Playlists')
+        except Exception:
+            pass
 
     def show_frame(self, page_class):
         """Show the selected frame."""
@@ -102,7 +150,13 @@ def main():
     """Initialize and run the YouTube Playlist Explorer application."""
     root = tk.Tk()
     app = YouTubeApp(root)
-    root.mainloop()
+    try:
+        root.mainloop()
+    except KeyboardInterrupt:
+        try:
+            root.destroy()
+        except Exception:
+            pass
 
 if __name__ == "__main__":
     main()
