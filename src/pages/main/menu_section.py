@@ -1,6 +1,9 @@
 import tkinter as tk
 from .base_section import BaseSection
-from src.pages.setup_page import SetupPage
+try:
+    from src.pages.setup_page import SetupPage
+except ModuleNotFoundError:
+    from pages.setup_page import SetupPage
 
 class MenuSection(BaseSection):
     def setup_gui(self):

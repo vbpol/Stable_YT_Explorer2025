@@ -15,4 +15,4 @@ class SearchSection(BaseSection):
         ttk.Label(row, text="Enter keyword:").pack(side="left", padx=(0, 6))
         self.search_entry = tk.Entry(row, width=40)
         self.search_entry.pack(side="left")
-        ttk.Button(row, text="Search", command=lambda: self.main_page.execute_search(self.search_entry.get(), self.mode_var.get())).pack(side="left", padx=(12, 0))
+        ttk.Button(row, text="Search", command=lambda: self.main_page.execute_search_stable(self.search_entry.get(), self.mode_var.get())).pack(side="left", padx=(12, 0))

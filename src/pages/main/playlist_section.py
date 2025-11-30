@@ -88,7 +88,7 @@ class PlaylistSection(BaseSection):
                 self.playlist_tree.selection_set(item)
                 selected_playlist = self.get_selected_playlist()
                 playlist_info = self.playlist_tree.item(selected_playlist)
-                self.main_page.show_playlist_videos(selected_playlist)
+                self.main_page.show_playlist_videos_stable(selected_playlist)
 
     def get_selected_playlist(self):
         """Get the currently selected playlist ID."""

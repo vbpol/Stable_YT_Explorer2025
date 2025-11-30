@@ -1,6 +1,9 @@
 def get_datastore():
     try:
-        from src.config_manager import ConfigManager
+        try:
+            from src.config_manager import ConfigManager
+        except ModuleNotFoundError:
+            from config_manager import ConfigManager
         mode = ConfigManager.get_persistence_mode()
         if mode == 'json':
             from .json_store import JsonStore
@@ -14,7 +17,10 @@ def get_datastore():
     except Exception:
         pass
     try:
-        from src.config_manager import ConfigManager
+        try:
+            from src.config_manager import ConfigManager
+        except ModuleNotFoundError:
+            from config_manager import ConfigManager
         vp = ConfigManager.get_last_search_path('videos')
         pp = ConfigManager.get_last_search_path('playlists')
         import os

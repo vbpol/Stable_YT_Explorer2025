@@ -1,9 +1,13 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import json
-from src.playlist import Playlist
 from googleapiclient.errors import HttpError
-from src.config_manager import ConfigManager
+try:
+    from src.playlist import Playlist
+    from src.config_manager import ConfigManager
+except ModuleNotFoundError:
+    from playlist import Playlist
+    from config_manager import ConfigManager
 
 class SetupPage(tk.Frame):
     def __init__(self, parent, controller):
@@ -78,7 +82,10 @@ class SetupPage(tk.Frame):
                 messagebox.showwarning("Warning", "Network error during validation. Saving anyway.")
             ConfigManager.save_env_api_keys([api_key])
             self.controller.update_config(api_key, default_folder)
-            from src.pages.main.main_page import MainPage
+            try:
+                from src.pages.main.main_page import MainPage
+            except ModuleNotFoundError:
+                from pages.main.main_page import MainPage
             messagebox.showinfo("Success", "Settings saved successfully.")
             self.controller.show_frame(MainPage)
         except Exception as e:

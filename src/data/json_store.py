@@ -1,5 +1,8 @@
 from typing import List, Dict, Optional
-from src.config_manager import ConfigManager
+try:
+    from src.config_manager import ConfigManager
+except ModuleNotFoundError:
+    from config_manager import ConfigManager
 
 class JsonStore:
     def save_last_videos_result(self, query: str, videos: List[Dict], playlists: List[Dict], next_token: Optional[str], prev_token: Optional[str], video_ids: List[str]) -> None:
