@@ -781,10 +781,12 @@ class MainPage(tk.Frame):
                     vid = v.get('videoId')
                     cached_hit = bool(vid) and (self.video_playlist_cache.get(vid) == playlist_id)
                     ids_hit = bool(vid) and (vid in self.playlist_video_ids.get(playlist_id, set()))
-                    is_hit = cached_hit or ids_hit
+                    in_results = bool(vid) and (vid in getattr(self, 'video_search_ids', set()))
+                    is_hit = (cached_hit or ids_hit) and in_results
                     if is_hit:
                         try:
-                            self.video_playlist_cache[vid] = playlist_id
+                            if in_results:
+                                self.video_playlist_cache[vid] = playlist_id
                             if pi is not None:
                                 v['playlistIndex'] = pi
                         except Exception:
@@ -1665,7 +1667,7 @@ class MainPage(tk.Frame):
                 for v in list(self.current_videos or []):
                     try:
                         vid = v.get('videoId')
-                        if vid:
+                        if vid and (vid in getattr(self, 'video_search_ids', set())):
                             self.video_playlist_cache[vid] = playlist_id
                         if pi is not None:
                             v['playlistIndex'] = pi
