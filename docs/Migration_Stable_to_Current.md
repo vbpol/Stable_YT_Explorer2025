@@ -42,9 +42,11 @@ Restore last stable functionality as the runtime while preserving current code f
 - Implementation:
   - Added `highlight_videos_for_playlist(playlist_id)` and branched `show_playlist_videos` when `search_mode == 'videos'` to call the highlighter instead of replacing the list.
   - The highlighter runs in a background thread, checks membership via `playlist_contains_video`, updates `video_playlist_cache`, sets `playlistIndex`, and re-tags rows with `search_hit`. Status messages communicate the outcome.
+  - Restored star-mark on matched videos in Videos mode by prefixing the Title with `★` during in-place updates; avoids duplication and preserves existing styling.
 - Impact:
   - Addresses cases where a numbered playlist (e.g., No. 5) appears without mapped videos by actively checking membership on selection. If no matches exist, a clear status indicates this is expected for that playlist.
   - Guarded the menu command for changing download folder to avoid startup crashes if `MainPage.change_download_folder` is not yet resolved; a safe fallback prompts for a folder and updates config directly.
+  - Ensures consistent user cues: yellow `search_hit` highlight plus a leading `★` next to matched titles in Videos mode.
 
 ## Rollback/Porting Guidance
 - To port stable fixes into current code:
