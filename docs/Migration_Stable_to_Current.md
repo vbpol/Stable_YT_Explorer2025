@@ -35,6 +35,17 @@ Restore last stable functionality as the runtime while preserving current code f
 - Strategy: unify logic so highlight derives from selected playlist membership and last search query; ensure no exceptions when fields missing.
 - Impact: reliable highlight with clear visual markers and status messages.
 
+## Lesson Learned & Behavioral Alignment
+- Mode-specific behavior for playlist selection:
+  - In Playlists mode, selecting a playlist should navigate to its videos list (replace top panel).
+  - In Videos mode, selecting a playlist should not replace the search results, but highlight videos among the current search results that belong to that playlist and annotate the Playlist column with the proper index.
+- Implementation:
+  - Added `highlight_videos_for_playlist(playlist_id)` and branched `show_playlist_videos` when `search_mode == 'videos'` to call the highlighter instead of replacing the list.
+  - The highlighter runs in a background thread, checks membership via `playlist_contains_video`, updates `video_playlist_cache`, sets `playlistIndex`, and re-tags rows with `search_hit`. Status messages communicate the outcome.
+- Impact:
+  - Addresses cases where a numbered playlist (e.g., No. 5) appears without mapped videos by actively checking membership on selection. If no matches exist, a clear status indicates this is expected for that playlist.
+  - Guarded the menu command for changing download folder to avoid startup crashes if `MainPage.change_download_folder` is not yet resolved; a safe fallback prompts for a folder and updates config directly.
+
 ## Rollback/Porting Guidance
 - To port stable fixes into current code:
   - Copy `save_last_query/load_last_query` helpers into current `src/config_manager.py`.
