@@ -31,8 +31,13 @@
   - `git checkout -b release/vX.Y.Z develop`
   - Update `docs/change_log.md` and `README.md` as needed
 - Verify:
-  - `python scripts/pre_release_check.py`
+- `python scripts/pre_release_check.py`
   - `python -m unittest -v`
+  - Verify UI flows:
+    - Videos search → playlist open (cache-first)
+    - Concurrent opens are queued with status messages
+    - Highlight scanning shows progress and resets
+    - Network errors fall back to highlighting without dialogs
 - Finalize:
   - `git checkout main`
   - `git merge --no-ff release/vX.Y.Z`

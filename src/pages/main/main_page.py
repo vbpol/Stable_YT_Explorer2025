@@ -67,6 +67,8 @@ class MainPage(tk.Frame):
         self._highlighting_video_id = None
         self.playlist_index_map = {}
         self._last_selected_video_idx = None
+        self.playlist_videos_cache = {}
+        self._last_open_playlist_id = None
         def _fmt_date(s):
             try:
                 from datetime import datetime
@@ -92,6 +94,16 @@ class MainPage(tk.Frame):
                 (f"{int(v.get('views', '0')):,}" if str(v.get('views', '0')).isdigit() else v.get('views', '0'))
             )
         self._video_row = _video_row
+        def _log(msg):
+            try:
+                print(f"[MainPage] {msg}")
+            except Exception:
+                pass
+            try:
+                self.status_bar.configure(text=str(msg))
+            except Exception:
+                pass
+        self._log = _log
 
     def _update_video_row_by_vid(self, vid, playlist_id):
         try:
@@ -134,6 +146,29 @@ class MainPage(tk.Frame):
             self._bring_playlist_to_top(playlist_id)
         except Exception:
             pass
+
+    def _cache_playlist_videos(self, playlist_id, page_token, response):
+        try:
+            cache = self.playlist_videos_cache.setdefault(playlist_id, {'pages': {}, 'tokens': {}})
+            key = page_token or '__first__'
+            cache['pages'][key] = list(response.get('videos', []))
+            cache['tokens'][key] = (response.get('prevPageToken'), response.get('nextPageToken'))
+        except Exception:
+            pass
+
+    def _get_cached_playlist_page(self, playlist_id, page_token):
+        try:
+            cache = self.playlist_videos_cache.get(playlist_id)
+            if not cache:
+                return None
+            key = page_token or '__first__'
+            vids = cache.get('pages', {}).get(key)
+            toks = cache.get('tokens', {}).get(key, (None, None))
+            if vids is None:
+                return None
+            return {'videos': vids, 'prevPageToken': toks[0], 'nextPageToken': toks[1]}
+        except Exception:
+            return None
 
     def assign_playlist_index(self, playlist_id):
         if playlist_id in self.playlist_index_map:
@@ -347,6 +382,18 @@ class MainPage(tk.Frame):
                                     self.after(0, lambda d=pl: self.playlist.update_playlist(d))
                                 except Exception:
                                     pass
+                                try:
+                                    def _prefetch(pid):
+                                        try:
+                                            resp_pf = self.controller.playlist_handler.get_videos(pid, None, max_results=10)
+                                            self._cache_playlist_videos(pid, None, resp_pf)
+                                            print(f"[Prefetch] Cached first page for playlist {pid}")
+                                        except Exception as e:
+                                            print(f"[Prefetch] Failed for {pid}: {e}")
+                                    import threading as _t_pf
+                                    _t_pf.Thread(target=_prefetch, args=(plid,), daemon=True).start()
+                                except Exception:
+                                    pass
                         if first_index and first_plid:
                             try:
                                 v['playlistIndex'] = first_index
@@ -445,6 +492,80 @@ class MainPage(tk.Frame):
         self.video.update_back_button_state(True)
         try:
             self.status_bar.configure(text="Back to video results")
+        except Exception:
+            pass
+        try:
+            if not self.collected_playlists and self.current_videos:
+                self._log("Re-triggering playlist collection for restored results")
+                import threading as _t
+                def _collect_again():
+                    collected = []
+                    processed = 0
+                    total = len(self.current_videos or [])
+                    for v in list(self.current_videos or []):
+                        vid = v.get('videoId')
+                        cid = v.get('channelId')
+                        if not vid or not cid:
+                            processed += 1
+                            continue
+                        try:
+                            chpls = self.controller.playlist_handler.get_channel_playlists(cid, max_results=20)
+                        except Exception:
+                            chpls = []
+                        first_index = None
+                        first_plid = None
+                        for pl in chpls:
+                            plid = pl.get('playlistId')
+                            try:
+                                has = self.controller.playlist_handler.playlist_contains_video(plid, vid)
+                            except Exception:
+                                has = False
+                            if not has:
+                                continue
+                            if not any(p.get('playlistId') == plid for p in collected):
+                                collected.append(pl)
+                                try:
+                                    pi = self.assign_playlist_index(plid)
+                                except Exception:
+                                    pi = None
+                                if first_index is None:
+                                    first_index = pi
+                                    first_plid = plid
+                                try:
+                                    self.after(0, lambda d=pl: self.playlist.update_playlist(d))
+                                except Exception:
+                                    pass
+                        if first_index and first_plid:
+                            try:
+                                v['playlistIndex'] = first_index
+                                self.after(0, lambda v_id=vid, p_id=first_plid: self._update_video_row_by_vid(v_id, p_id))
+                            except Exception:
+                                pass
+                        processed += 1
+                        try:
+                            self.after(0, lambda x=processed, t=total: self.status_bar.configure(text=f"Collecting playlists from videos... {x}/{t}"))
+                        except Exception:
+                            pass
+                    try:
+                        ConfigManager.save_json(ConfigManager.get_last_search_path('videos'), {
+                            'query': self.video_search_query,
+                            'videos': self.current_videos,
+                            'playlists': collected,
+                            'nextPageToken': self.video_next_page_token,
+                            'prevPageToken': self.video_prev_page_token,
+                            'videoIds': list(getattr(self, 'video_search_ids', set()))
+                        })
+                        self.collected_playlists = collected
+                        try:
+                            self.after(0, lambda n=len(collected): self.status_bar.configure(text=f"Collected {n} playlists"))
+                        except Exception:
+                            pass
+                    except Exception:
+                        pass
+                try:
+                    _t.Thread(target=_collect_again, daemon=True).start()
+                except Exception:
+                    pass
         except Exception:
             pass
 
@@ -596,6 +717,10 @@ class MainPage(tk.Frame):
                 except Exception:
                     pass
             try:
+                self._set_pinned_playlist(playlist_id)
+            except Exception:
+                pass
+            try:
                 self.status_bar.configure(text="Highlighted videos for playlist")
             except Exception:
                 pass
@@ -667,6 +792,12 @@ class MainPage(tk.Frame):
 
         playlist_id = selected_item
         playlist_values = self.playlist.playlist_tree.item(selected_item)["values"]
+        try:
+            self._set_pinned_playlist(playlist_id)
+            self._log(f"Opening playlist {playlist_id} page_token={page_token}")
+            self._last_open_playlist_id = playlist_id
+        except Exception:
+            pass
         
         playlist_title = playlist_values[0]
         channel_title = playlist_values[1]
@@ -685,19 +816,131 @@ class MainPage(tk.Frame):
         }
 
         try:
-            # Get selected page size
             max_results = int(self.video.page_size_var.get())
-            
-            # Get videos for current page
-            response = self.controller.playlist_handler.get_videos(
-                playlist_id, 
-                page_token,
-                max_results=max_results
-            )
-            
-            self.current_videos = response["videos"]
-            self.current_page_token = response.get("nextPageToken")
-            self.prev_page_token = response.get("prevPageToken")
+            try:
+                cached = self._get_cached_playlist_page(playlist_id, page_token)
+            except Exception:
+                cached = None
+            if cached is not None:
+                try:
+                    print(f"[Cache] Using cached page for playlist {playlist_id}")
+                except Exception:
+                    pass
+                try:
+                    self.current_videos = list(cached.get('videos', []))
+                    self.prev_page_token = cached.get('prevPageToken')
+                    self.current_page_token = cached.get('nextPageToken')
+                except Exception:
+                    pass
+                try:
+                    pi_local = None
+                    try:
+                        pi_local = self.assign_playlist_index(playlist_id)
+                    except Exception:
+                        pass
+                    for v in list(self.current_videos or []):
+                        if pi_local is not None:
+                            v['playlistIndex'] = pi_local
+                        vid = v.get('videoId')
+                        if vid:
+                            self.video_playlist_cache[vid] = playlist_id
+                except Exception:
+                    pass
+                self._render_playlist_videos(total_videos)
+                return
+            try:
+                import threading as _t_wd, time as _t
+                def _watchdog(pid):
+                    try:
+                        _t.sleep(12)
+                        if self._last_open_playlist_id == pid and not self.current_videos:
+                            print(f"[Watchdog] No videos loaded for {pid} within timeout")
+                            try:
+                                self.after(0, lambda p=pid: self.highlight_videos_for_playlist(p))
+                            except Exception:
+                                pass
+                    except Exception:
+                        pass
+                _t_wd.Thread(target=_watchdog, args=(playlist_id,), daemon=True).start()
+            except Exception:
+                pass
+            def _worker_open(mr):
+                try:
+                    import time as _t0
+                    t0 = _t0.time()
+                    print(f"[WorkerOpen] start pid={playlist_id} token={page_token} mr={mr}")
+                except Exception:
+                    pass
+                try:
+                    resp = self.controller.playlist_handler.get_videos(playlist_id, page_token, max_results=mr)
+                except Exception as e1:
+                    try:
+                        print(f"[WorkerOpen] first attempt failed: {e1}")
+                    except Exception:
+                        pass
+                    try:
+                        resp = self.controller.playlist_handler.get_videos(playlist_id, page_token, max_results=max(5, int(mr/2)))
+                    except Exception as e2:
+                        try:
+                            self._log(f"Failed to load playlist {playlist_id}: {e2}")
+                        except Exception:
+                            pass
+                        try:
+                            print(f"[WorkerOpen] fallback to highlight for pid={playlist_id}")
+                            self.after(0, lambda pid=playlist_id: self.highlight_videos_for_playlist(pid))
+                        except Exception:
+                            pass
+                        return
+                try:
+                    self.current_videos = resp.get("videos", [])
+                    self.current_page_token = resp.get("nextPageToken")
+                    self.prev_page_token = resp.get("prevPageToken")
+                    try:
+                        self._cache_playlist_videos(playlist_id, page_token, resp)
+                        print(f"[Cache] Stored page for playlist {playlist_id} token={page_token}")
+                    except Exception:
+                        pass
+                except Exception:
+                    pass
+                try:
+                    pi_local = None
+                    try:
+                        pi_local = self.assign_playlist_index(playlist_id)
+                    except Exception:
+                        pass
+                    for v in list(self.current_videos or []):
+                        if pi_local is not None:
+                            v['playlistIndex'] = pi_local
+                        vid = v.get('videoId')
+                        if vid:
+                            self.video_playlist_cache[vid] = playlist_id
+                except Exception:
+                    pass
+                try:
+                    try:
+                        import time as _t1
+                        dt = 0
+                        try:
+                            dt = _t1.time() - t0
+                        except Exception:
+                            pass
+                        print(f"[WorkerOpen] done pid={playlist_id} count={len(self.current_videos or [])} in {dt:.2f}s")
+                    except Exception:
+                        pass
+                    self.after(0, lambda: self._render_playlist_videos(total_videos))
+                except Exception:
+                    pass
+            try:
+                import threading as _t
+                self.status_bar.configure(text="Loading playlist videos...")
+                _t.Thread(target=_worker_open, args=(max_results,), daemon=True).start()
+                return
+            except Exception:
+                pass
+            resp = self.controller.playlist_handler.get_videos(playlist_id, page_token, max_results=max_results)
+            self.current_videos = resp["videos"]
+            self.current_page_token = resp.get("nextPageToken")
+            self.prev_page_token = resp.get("prevPageToken")
 
             # Assign selected playlist number to all videos shown
             try:
@@ -719,32 +962,7 @@ class MainPage(tk.Frame):
             except Exception:
                 pass
 
-            # Update video tree
-            self.video.video_tree.delete(*self.video.video_tree.get_children())
-            
-            hit_count = 0
-            ql = (self.video_search_query or '').strip().lower()
-            for video in self.current_videos:
-                try:
-                    vid = video.get('videoId')
-                    ttl = str(video.get('title', '')).lower()
-                    chn = str(video.get('channelTitle', '')).lower()
-                    is_hit = (vid in getattr(self, 'video_search_ids', set())) or (ql and (ql in ttl or ql in chn))
-                    tags = ('search_hit',) if is_hit else ()
-                    row = self._video_row(video)
-                    if is_hit:
-                        hit_count += 1
-                        try:
-                            row = (f"★ {row[0]}",) + row[1:]
-                        except Exception:
-                            pass
-                    self.video.video_tree.insert("", "end", values=row, tags=tags)
-                except Exception:
-                    self.video.video_tree.insert("", "end", values=self._video_row(video))
-            try:
-                self.status_bar.configure(text=f"Highlighted {hit_count} matched videos in playlist")
-            except Exception:
-                pass
+            self._render_playlist_videos(total_videos)
 
             # Update pagination info
             total_pages = (total_videos + max_results - 1) // max_results
@@ -765,6 +983,65 @@ class MainPage(tk.Frame):
 
         except Exception as e:
             messagebox.showerror("Error", f"Failed to fetch videos: {e}")
+
+    def _render_playlist_videos(self, total_videos):
+        try:
+            self.video.video_tree.delete(*self.video.video_tree.get_children())
+        except Exception:
+            pass
+        hit_count = 0
+        ql = (self.video_search_query or '').strip().lower()
+        try:
+            print(f"[Playlist] {self.current_playlist_info.get('title','')} ({self.current_playlist_info.get('id','')})")
+        except Exception:
+            pass
+        for video in list(self.current_videos or []):
+            try:
+                vid = video.get('videoId')
+                ttl = str(video.get('title', '')).lower()
+                chn = str(video.get('channelTitle', '')).lower()
+                is_hit = (vid in getattr(self, 'video_search_ids', set())) or (ql and (ql in ttl or ql in chn))
+                tags = ('search_hit',) if is_hit else ()
+                row = self._video_row(video)
+                if is_hit:
+                    hit_count += 1
+                    try:
+                        row = (f"★ {row[0]}",) + row[1:]
+                    except Exception:
+                        pass
+                self.video.video_tree.insert("", "end", values=row, tags=tags)
+                try:
+                    pub = self._fmt_date(video.get('published',''))
+                    vs = video.get('views','')
+                    print(f" - {video.get('title','')} | {video.get('duration','')} | {pub} | {vs}")
+                except Exception:
+                    pass
+            except Exception:
+                try:
+                    self.video.video_tree.insert("", "end", values=self._video_row(video))
+                except Exception:
+                    pass
+        try:
+            self.status_bar.configure(text=f"Highlighted {hit_count} matched videos in playlist")
+        except Exception:
+            pass
+        try:
+            max_results = int(self.video.page_size_var.get())
+        except Exception:
+            max_results = 10
+        total_pages = (total_videos + max_results - 1) // max_results
+        if not hasattr(self, 'current_page') or self.prev_page_token is None and self.current_page_token is None:
+            self.current_page = 1
+        self.video.total_label["text"] = f"Total videos: {total_videos}"
+        self.video.page_indicator["text"] = f"Page {self.current_page} of {total_pages}"
+        try:
+            self.video.next_page_btn["state"] = "normal" if self.current_page_token else "disabled"
+            self.video.prev_page_btn["state"] = "normal" if self.prev_page_token else "disabled"
+            self.video.prev_page_btn.configure(command=lambda: self.show_playlist_videos(page_token=self.prev_page_token))
+            self.video.next_page_btn.configure(command=lambda: self.show_playlist_videos(page_token=self.current_page_token))
+            self.video.update_back_button_state(True)
+        except Exception:
+            pass
 
     def on_video_header_double_click(self, column_name, q=None):
         try:

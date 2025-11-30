@@ -88,6 +88,10 @@ class PlaylistSection(BaseSection):
                 self.playlist_tree.selection_set(item)
                 selected_playlist = self.get_selected_playlist()
                 playlist_info = self.playlist_tree.item(selected_playlist)
+                try:
+                    print(f"[UI] Double-click playlist item={selected_playlist} mode={self.main_page.search_mode}")
+                except Exception:
+                    pass
                 self.main_page.show_playlist_videos_stable(selected_playlist)
 
     def get_selected_playlist(self):
@@ -115,6 +119,10 @@ class PlaylistSection(BaseSection):
                 self.playlist_tree.selection_set(item)
                 try:
                     if self.main_page.search_mode == 'videos' and item:
+                        try:
+                            self.main_page._set_pinned_playlist(item)
+                        except Exception:
+                            pass
                         self.main_page.highlight_videos_for_playlist(item)
                 except Exception:
                     pass
