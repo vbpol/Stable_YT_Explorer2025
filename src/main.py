@@ -12,6 +12,11 @@ def main():
         rc = proc.wait()
         print(f"[Launcher] Stable runtime exited with code {rc}")
         if rc != 0:
+            try:
+                from src.config_manager import ConfigManager
+                ConfigManager.save_last_mode('videos')
+            except Exception:
+                pass
             import tkinter as tk
             from src.youtube_app import YouTubeApp
             print("[Launcher] Fallback to current runtime")
@@ -26,6 +31,11 @@ def main():
                     pass
     except Exception as e:
         print(f"[Launcher] Failed to start stable runtime: {e}. Falling back to current runtime.")
+        try:
+            from src.config_manager import ConfigManager
+            ConfigManager.save_last_mode('videos')
+        except Exception:
+            pass
         import tkinter as tk
         from src.youtube_app import YouTubeApp
         root = tk.Tk()
