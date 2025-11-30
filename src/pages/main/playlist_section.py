@@ -62,6 +62,58 @@ class PlaylistSection(BaseSection):
             self._ctx = tk.Menu(self.playlist_tree, tearoff=0)
             self._ctx.add_command(label="Highlight Related Videos", command=lambda: self.main_page.highlight_videos_for_playlist(getattr(self, "_rc_item", None)))
             self._ctx.add_command(label="Clear Video Highlights", command=self.main_page.clear_video_playlist_highlights)
+            def _popup_show():
+                pid = getattr(self, "_rc_item", None)
+                if not pid:
+                    return
+                try:
+                    cached = self.main_page._get_cached_playlist_page(pid, None)
+                except Exception:
+                    cached = None
+                vids = []
+                if cached is not None:
+                    try:
+                        vids = list(cached.get('videos', []) or [])
+                    except Exception:
+                        vids = []
+                else:
+                    try:
+                        mr = int(self.main_page.video.page_size_var.get())
+                    except Exception:
+                        mr = 10
+                    try:
+                        resp = self.controller.playlist_handler.get_videos(pid, None, max_results=mr)
+                        try:
+                            self.main_page._cache_playlist_videos(pid, None, resp)
+                        except Exception:
+                            pass
+                        vids = list(resp.get('videos', []) or [])
+                    except Exception:
+                        vids = []
+                try:
+                    self.main_page._show_playlist_listing_popup(pid, vids)
+                except Exception:
+                    pass
+            def _print_dataset():
+                pid = getattr(self, "_rc_item", None)
+                if not pid:
+                    return
+                try:
+                    self.main_page.print_playlist_videos_to_terminal(pid)
+                except Exception:
+                    pass
+            def _populate_table():
+                pid = getattr(self, "_rc_item", None)
+                if not pid:
+                    return
+                try:
+                    self.main_page.populate_videos_table_preview(pid)
+                except Exception:
+                    pass
+            self._ctx.add_separator()
+            self._ctx.add_command(label="Show Videos (Popup)", command=_popup_show)
+            self._ctx.add_command(label="Print Videos Dataset", command=_print_dataset)
+            self._ctx.add_command(label="Populate Videos Table", command=_populate_table)
             self.playlist_tree.bind("<Button-3>", self._on_right_click)
         except Exception:
             pass
@@ -87,12 +139,26 @@ class PlaylistSection(BaseSection):
             if str(column) != "#6":
                 self.playlist_tree.selection_set(item)
                 selected_playlist = self.get_selected_playlist()
-                playlist_info = self.playlist_tree.item(selected_playlist)
                 try:
                     print(f"[UI] Double-click playlist item={selected_playlist} mode={self.main_page.search_mode}")
                 except Exception:
                     pass
-                self.main_page.show_playlist_videos_stable(selected_playlist)
+                if self.main_page.search_mode == 'playlists':
+                    self.main_page.show_playlist_videos_stable(selected_playlist)
+                else:
+                    try:
+                        self.main_page._set_pinned_playlist(selected_playlist)
+                    except Exception:
+                        pass
+                    try:
+                        self.main_page.print_playlist_videos_to_terminal(selected_playlist)
+                    except Exception:
+                        pass
+                    self.main_page.highlight_videos_for_playlist(selected_playlist)
+                    try:
+                        return "break"
+                    except Exception:
+                        pass
 
     def get_selected_playlist(self):
         """Get the currently selected playlist ID."""
@@ -128,6 +194,10 @@ class PlaylistSection(BaseSection):
                         except Exception:
                             pass
                         self.main_page.highlight_videos_for_playlist(item)
+                        try:
+                            return "break"
+                        except Exception:
+                            pass
                 except Exception:
                     pass
 
