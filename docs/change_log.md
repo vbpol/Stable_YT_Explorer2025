@@ -24,7 +24,17 @@
   - `src/config_manager.py:116-144` adds `get_last_mode_path`, `save_last_mode`, `load_last_mode`.
 - Persistence mode detection for datastore factory.
   - `src/config_manager.py:147-154`, `src/data/factory.py:1-32`.
- - Documentation expanded with a clear System Prompt and Developer Checklist (`docs/dev_workflow.md`).
+- Documentation expanded with a clear System Prompt and Developer Checklist (`docs/dev_workflow.md`).
+
+## 2025-11-30 Additions
+- Mode-aware double-click/single-click in Playlists table (no navigation in Videos mode)
+- Right-click menu with Popup, Print, Populate (preview)
+- Preview rendering in Videos table without changing mode; Back restores search results
+- Intersection-only star marking in Videos, Popup, Terminal
+- Cache-first mapping via playlist video ID sets and cached pages
+- Persist `playlistPages` and `playlistIds` in last search JSON; restore on load
+- Corrected Title/Channel/Videos column mapping for playlist opens
+- Popup highlights only intersection; terminal lines show star on matches
 
 ## User-Facing Behavior
 - Videos and Playlists modes restore last query and results on startup.

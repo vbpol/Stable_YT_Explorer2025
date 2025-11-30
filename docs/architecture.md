@@ -13,7 +13,8 @@
 - Search:
   - Playlists: `execute_search` in `src/pages/main/main_page.py:114`
   - Videos: same function; adds highlights and background mapping
-- Playlist view: `show_playlist_videos` in `src/pages/main/main_page.py:558`
+ - Playlist view: `show_playlist_videos` in `src/pages/main/main_page.py:558`
+ - Preview into Videos: `populate_videos_table_preview` shows playlist videos without mode switch
 - Back to Results: `back_to_video_results` in `src/pages/main/main_page.py:309`
  - Progress dialog: created and updated in `src/pages/main/main_page.py:389-406` and `src/pages/main/main_page.py:346-364`; closes safely `src/pages/main/main_page.py:373-386`
 
@@ -21,6 +22,10 @@
 - Search videos: `search_videos` in `src/playlist.py:40`
 - Get channel playlists: `get_channel_playlists` in `src/playlist.py:148`
 - Check membership: `playlist_contains_video` in `src/playlist.py:164`
+- Cache-first mapping via:
+  - `playlist_videos_cache` (first pages + tokens)
+  - `playlist_video_ids` (id sets for fast membership checks)
+- Persisted in last videos search JSON as `playlistPages` and `playlistIds`.
 - Enrich playlist rows with counts: `get_details` call inside mapping `src/pages/main/main_page.py:224`
 
 ## Tables & Interactions
@@ -30,6 +35,8 @@
 - Playlists table: created at `src/pages/main/playlist_section.py:18`
   - Sort: `sort_playlists_by` in `src/pages/main/main_page.py:475`
   - Filter: `on_playlist_header_double_click` in `src/pages/main/main_page.py:510`
+  - Right-click context menu: Popup, Print dataset, Populate Videos table
+  - Double-click in Videos mode is consumed; pin/print/highlight only (no navigation)
 
 ## Persistence
 - Last-results snapshots via datastore
@@ -38,6 +45,7 @@
   - Save Playlists: `src/pages/main/main_page.py:167-174`
   - Load Playlists last-results and fallback: `src/pages/main/main_page.py:110-133`
 - Durable relations (future parity): `playlist_videos` in SQLite/Django
+- Intersection-only marking logic enforced by `_preview_only_hits` and `video_search_ids`.
 
 ## Config & Paths
 - JSON helpers: `src/config_manager.py:85-114` provide `get_data_dir`, `get_last_search_path`, `save_json`, `load_json`.

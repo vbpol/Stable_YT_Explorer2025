@@ -1,5 +1,32 @@
 # Validation Checklist
 
+## Interaction
+- Double-click in `Videos` mode does not navigate; pins, prints, highlights
+- Single-click in `Videos` mode pins + prints + highlights; no UI restart
+- Right-click shows context menu: Popup, Print, Populate (preview)
+
+## Marking Logic
+- Stars mark only intersection of selected playlist videos and current search results
+- Popup marks only intersection; non-matching titles have no star
+- Terminal listing includes star prefix only for intersection items
+
+## Persistence
+- `playlistPages` and `playlistIds` saved in last videos search JSON
+- Restore loads pages and ID sets for fast mapping and highlight
+
+## Performance
+- Mapping uses cached ID sets; avoids per-video network membership checks
+- Preview uses cached first page when available; otherwise minimal fetch
+
+## UI Stability
+- No UI restart on playlist interactions in `Videos` mode
+- Back button restores search results after preview
+- Double-click and single-click event handlers return "break" where needed
+
+## Error Handling
+- Timeout/SSL retry in terminal printing; fallback to highlight when fetch fails
+- Missing playlist row is inserted before open
+
 - Videos mode search loads and preserves results
 - Double-click first playlist uses cache and prints to terminal
 - Double-click while busy queues and runs next open

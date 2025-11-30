@@ -1,21 +1,19 @@
 # App Status
 
 ## Current
-- Videos mode restores last query (logged) and loads videos/playlists immediately.
-- Playlists in Videos mode populated from caches/store and refined by background mapping.
-- Numbering is contiguous in Videos table and mirrored in Playlists table.
-- Tooltip on videos shows playlist ID/title.
-- Robust logging added to show_playlist_videos and dataset build.
-- SSL/cipher errors handled without crashing; datastore/search fallbacks used.
+- Mode-aware interactions: double-click in `Videos` mode does not navigate; single-click pins+prints+highlights
+- Intersection-only marking across Videos table, popup, and terminal listing
+- Right-click menu: Popup, Print dataset, Populate Videos table (preview)
+- Preview rendering in Videos mode with Back restore
+- Cached playlist video IDs for fast mapping; cache-first playlist pages
+- Persistence: `playlistPages` and `playlistIds` saved and restored from last videos search JSON
 
 ## Remaining Issues
-- Last keyword restore in some scenarios still intermittent; verify both modes after cold start.
-- Occasional KeyboardInterrupt when showing message dialogs; continue hardening to avoid blocking UI.
-- Speed: add limited parallel membership checks and TTL cache for reuse.
-- Ensure playlists seeding always includes titles/channels (lazy fetch if missing).
-- Add status bar summary on mode switch and mapping completion across all flows.
+- Deep playlists may need additional pages fetched for exhaustive mapping
+- Intersection depends on current keyword; changing query changes markings as expected
+- Launcher may receive KeyboardInterrupt if externally stopped
 
 ## Next Steps
-- Implement parallel checks (small thread pool) with UI-safe updates.
-- Persist membership cache with TTL in datastore.
-- Add more logs for keyword restoration and seeding decisions.
+- Consider bounded multi-page prefetch for selected playlists (first 2–3 pages)
+- Add more UI telemetry for interactions and highlight counts
+- Optional: toggle to mark by playlist membership only (ignoring keyword)

@@ -119,6 +119,9 @@ class PlaylistSection(BaseSection):
             pass
 
     def on_playlist_select(self, event):
+        """Handle double-click on playlist row.
+        In Videos mode: consume event and only pin/print/highlight (no navigation)
+        In Playlists mode: open playlist videos normally"""
         region = self.playlist_tree.identify_region(event.x, event.y)
         if region == "heading":
             col = self.playlist_tree.identify_column(event.x)
@@ -168,6 +171,8 @@ class PlaylistSection(BaseSection):
         return selected_items[0]  # Return the playlist ID
 
     def handle_click(self, event):
+        """Handle single-click in playlists table.
+        In Videos mode: pin + terminal print + highlight; consume event"""
         region = self.playlist_tree.identify_region(event.x, event.y)
         if region == "heading":
             col = self.playlist_tree.identify_column(event.x)
@@ -202,6 +207,7 @@ class PlaylistSection(BaseSection):
                     pass
 
     def _on_right_click(self, event):
+        """Show context menu with popup/print/populate actions on right-click."""
         try:
             item = self.playlist_tree.identify_row(event.y)
             if item:

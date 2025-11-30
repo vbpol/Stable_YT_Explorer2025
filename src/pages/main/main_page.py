@@ -765,6 +765,8 @@ class MainPage(tk.Frame):
             pass
 
     def highlight_videos_for_playlist(self, playlist_id):
+        # Marks only intersection: videos in selected playlist AND present in current search results
+        # Updates row values without changing mode; safe against UI restart
         try:
             if not playlist_id:
                 return
@@ -812,6 +814,7 @@ class MainPage(tk.Frame):
             pass
 
     def clear_video_playlist_highlights(self):
+        # Removes all transient highlight/star tags from Videos table
         try:
             items = self.video.video_tree.get_children()
             for i, item in enumerate(items):
@@ -865,6 +868,7 @@ class MainPage(tk.Frame):
             messagebox.showerror("Error", f"Failed to fetch playlists: {e}")
 
     def show_playlist_videos(self, event=None, page_token=None):
+        # Opens playlist videos in Playlists mode; guarded against wrong column map and missing row
         """Show videos in the selected playlist with pagination."""
         if event:
             selected_item = self.playlist.get_selected_playlist()
@@ -1114,7 +1118,10 @@ class MainPage(tk.Frame):
                 vid = video.get('videoId')
                 ttl = str(video.get('title', '')).lower()
                 chn = str(video.get('channelTitle', '')).lower()
-                is_hit = (vid in getattr(self, 'video_search_ids', set())) or (ql and (ql in ttl or ql in chn))
+                if getattr(self, '_preview_only_hits', False):
+                    is_hit = (vid in getattr(self, 'video_search_ids', set()))
+                else:
+                    is_hit = (vid in getattr(self, 'video_search_ids', set())) or (ql and (ql in ttl or ql in chn))
                 tags = ('search_hit',) if is_hit else ()
                 row = self._video_row(video)
                 if is_hit:
@@ -1127,7 +1134,8 @@ class MainPage(tk.Frame):
                 try:
                     pub = self._fmt_date(video.get('published',''))
                     vs = video.get('views','')
-                    print(f" - {video.get('title','')} | {video.get('duration','')} | {pub} | {vs}")
+                    prefix = '★ ' if is_hit else ''
+                    print(f" - {prefix}{video.get('title','')} | {video.get('duration','')} | {pub} | {vs}")
                 except Exception:
                     pass
             except Exception:
@@ -1609,6 +1617,8 @@ class MainPage(tk.Frame):
             pass
 
     def populate_videos_table_preview(self, playlist_id):
+        # Renders selected playlist videos into Videos table without changing mode
+        # Sets _preview_only_hits so stars/tags apply only to search result intersection
         try:
             vals = self.playlist.playlist_tree.item(playlist_id).get('values', [])
         except Exception:
@@ -1692,6 +1702,8 @@ class MainPage(tk.Frame):
             pass
 
     def _show_playlist_listing_popup(self, playlist_id, videos):
+        # Popup window showing playlist number and each video title
+        # Applies star tag for intersection with current search results
         try:
             import tkinter as _tk
             from tkinter import ttk as _ttk
