@@ -557,11 +557,6 @@ class MainPage(tk.Frame):
         self.video.update_back_button_state(True)
         try:
             self._preview_only_hits = False
-            self._preview_active = False
-            try:
-                self.playlist.playlist_tree.configure(selectmode='browse')
-            except Exception:
-                pass
         except Exception:
             pass
         try:
@@ -898,14 +893,6 @@ class MainPage(tk.Frame):
         except Exception:
             pass
         
-        try:
-            self._preview_active = False
-            try:
-                self.playlist.playlist_tree.configure(selectmode='browse')
-            except Exception:
-                pass
-        except Exception:
-            pass
         playlist_title = playlist_values[1]
         channel_title = playlist_values[2]
         try:
@@ -1700,11 +1687,6 @@ class MainPage(tk.Frame):
                 pass
             try:
                 self._preview_only_hits = True
-                self._preview_active = True
-                try:
-                    self.playlist.playlist_tree.configure(selectmode='none')
-                except Exception:
-                    pass
             except Exception:
                 pass
             try:

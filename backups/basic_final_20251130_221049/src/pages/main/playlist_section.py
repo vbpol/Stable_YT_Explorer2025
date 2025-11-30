@@ -119,15 +119,6 @@ class PlaylistSection(BaseSection):
             pass
 
     def on_playlist_select(self, event):
-        try:
-            if getattr(self.main_page, '_preview_active', False):
-                try:
-                    messagebox.showinfo("Preview Active", "Use Back to Results to change playlist.")
-                except Exception:
-                    pass
-                return "break"
-        except Exception:
-            pass
         """Handle double-click on playlist row.
         In Videos mode: consume event and only pin/print/highlight (no navigation)
         In Playlists mode: open playlist videos normally"""
@@ -180,15 +171,6 @@ class PlaylistSection(BaseSection):
         return selected_items[0]  # Return the playlist ID
 
     def handle_click(self, event):
-        try:
-            if getattr(self.main_page, '_preview_active', False):
-                try:
-                    messagebox.showinfo("Preview Active", "Use Back to Results to change playlist.")
-                except Exception:
-                    pass
-                return "break"
-        except Exception:
-            pass
         """Handle single-click in playlists table.
         In Videos mode: pin + terminal print + highlight; consume event"""
         region = self.playlist_tree.identify_region(event.x, event.y)

@@ -4,7 +4,6 @@
 - Double-click in `Videos` mode does not navigate; pins, prints, highlights
 - Single-click in `Videos` mode pins + prints + highlights; no UI restart
 - Right-click shows context menu: Popup, Print, Populate (preview)
-- During playlist preview, Playlists table selection is disabled and clicks show reminder popup
 
 ## Marking Logic
 - Stars mark only intersection of selected playlist videos and current search results
