@@ -123,6 +123,10 @@ class PlaylistSection(BaseSection):
                             self.main_page._set_pinned_playlist(item)
                         except Exception:
                             pass
+                        try:
+                            self.main_page.print_playlist_videos_to_terminal(item)
+                        except Exception:
+                            pass
                         self.main_page.highlight_videos_for_playlist(item)
                 except Exception:
                     pass

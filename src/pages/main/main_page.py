@@ -34,11 +34,24 @@ class MainPage(tk.Frame):
         self._create_sections()
         self._pack_sections()
         try:
-            md = getattr(self.search, 'mode_var', None)
-            if md is not None:
-                self._load_last_search(md.get())
-            else:
+            lm = (ConfigManager.load_last_mode() or '').strip().lower()
+            if lm == 'videos':
+                try:
+                    self.search.mode_var.set('Videos')
+                except Exception:
+                    pass
+                self.search_mode = 'videos'
+                self._load_last_search('Videos')
+            elif lm == 'playlists':
+                try:
+                    self.search.mode_var.set('Playlists')
+                except Exception:
+                    pass
+                self.search_mode = 'playlists'
                 self._load_last_search('Playlists')
+            else:
+                md = getattr(self.search, 'mode_var', None)
+                self._load_last_search(md.get() if md is not None else 'Playlists')
         except Exception:
             pass
 
@@ -1403,3 +1416,80 @@ class MainPage(tk.Frame):
             messagebox.showerror("Error", f"Download failed: {str(e)}")
 
     # ... (to be continued with more methods)
+    def print_playlist_videos_to_terminal(self, playlist_id):
+        try:
+            vals = self.playlist.playlist_tree.item(playlist_id).get('values', [])
+            ttl = (vals[1] if isinstance(vals, (list, tuple)) and len(vals) > 1 else '') or ''
+        except Exception:
+            ttl = ''
+        def _printer(resp):
+            try:
+                vids = list(resp.get('videos', []) or [])
+                print(f"[Playlist] {ttl or playlist_id} ({playlist_id})")
+                for v in vids:
+                    try:
+                        pub = self._fmt_date(v.get('published',''))
+                        vs = v.get('views','')
+                        print(f" - {v.get('title','')} | {v.get('duration','')} | {pub} | {vs}")
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+        def _worker():
+            try:
+                cached = self._get_cached_playlist_page(playlist_id, None)
+            except Exception:
+                cached = None
+            if cached is not None:
+                _printer(cached)
+                return
+            try:
+                mr = int(self.video.page_size_var.get())
+            except Exception:
+                mr = 10
+            def _fetch(mr2):
+                return self.controller.playlist_handler.get_videos(playlist_id, None, max_results=mr2)
+            try:
+                resp = _fetch(mr)
+                try:
+                    self._cache_playlist_videos(playlist_id, None, resp)
+                except Exception:
+                    pass
+                _printer(resp)
+            except Exception as e:
+                try:
+                    import ssl
+                    is_ssl = isinstance(e, ssl.SSLError) or ('SSL' in str(e))
+                except Exception:
+                    is_ssl = 'SSL' in str(e)
+                if is_ssl:
+                    try:
+                        import time; time.sleep(0.3)
+                    except Exception:
+                        pass
+                    try:
+                        mr2 = max(5, int(mr // 2) or 10)
+                    except Exception:
+                        mr2 = 10
+                    try:
+                        resp = _fetch(mr2)
+                        try:
+                            self._cache_playlist_videos(playlist_id, None, resp)
+                        except Exception:
+                            pass
+                        _printer(resp)
+                    except Exception:
+                        try:
+                            print(f"[Playlist] Unable to list videos for {playlist_id}: network issue")
+                        except Exception:
+                            pass
+                else:
+                    try:
+                        print(f"[Playlist] Unable to list videos for {playlist_id}: {e}")
+                    except Exception:
+                        pass
+        try:
+            import threading as _t
+            _t.Thread(target=_worker, daemon=True).start()
+        except Exception:
+            pass
