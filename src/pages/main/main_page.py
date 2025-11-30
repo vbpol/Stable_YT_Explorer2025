@@ -590,8 +590,32 @@ class MainPage(tk.Frame):
                         first_plid = None
                         for pl in chpls:
                             plid = pl.get('playlistId')
+                            has = False
                             try:
-                                has = self.controller.playlist_handler.playlist_contains_video(plid, vid)
+                                ids_set = self.playlist_video_ids.get(plid)
+                                if ids_set is None:
+                                    cached_page = self._get_cached_playlist_page(plid, None)
+                                    if cached_page:
+                                        try:
+                                            ids_set = {x.get('videoId') for x in cached_page.get('videos', []) if x.get('videoId')}
+                                        except Exception:
+                                            ids_set = set()
+                                        try:
+                                            self.playlist_video_ids[plid] = ids_set
+                                        except Exception:
+                                            pass
+                                if ids_set is None:
+                                    try:
+                                        resp_pf_local = self.controller.playlist_handler.get_videos(plid, None, max_results=10)
+                                        self._cache_playlist_videos(plid, None, resp_pf_local)
+                                        try:
+                                            ids_set = {x.get('videoId') for x in resp_pf_local.get('videos', []) if x.get('videoId')}
+                                            self.playlist_video_ids[plid] = ids_set
+                                        except Exception:
+                                            ids_set = set()
+                                    except Exception:
+                                        ids_set = set()
+                                has = bool(vid) and (vid in (ids_set or set()))
                             except Exception:
                                 has = False
                             if not has:
