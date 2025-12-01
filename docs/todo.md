@@ -6,4 +6,7 @@
 - Cache playlist pages and build `playlist_video_ids`
 - Add numbering for videos in lists
 - Persist last mode and page state across runs
-
+- Add context menu on Videos list: Download Selected
+- Implement `download_selected_videos` using `DownloadManager`
+- Verify playlist download and selected downloads work with progress window
+- Asynchronously scan and fill playlist 'Videos' column when 'N/A'

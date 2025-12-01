@@ -24,6 +24,14 @@
 - Back button restores search results after preview
 - Double-click and single-click event handlers return "break" where needed
 
+## Downloads
+- Playlist download opens options dialog and progress window
+- Right-click on Videos list shows "Download Selected" and downloads chosen items
+- Progress bars update for total and current video; cancel works
+
+## Data Consistency
+- Playlist 'Videos' column auto-fills when 'N/A' via async `get_details`
+
 ## Error Handling
 - Timeout/SSL retry in terminal printing; fallback to highlight when fetch fails
 - Missing playlist row is inserted before open
