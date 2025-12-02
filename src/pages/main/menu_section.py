@@ -28,3 +28,11 @@ class MenuSection(BaseSection):
         view_menu.add_command(label="Sort by Channel", command=lambda: self.main_page._sort_playlists("Channel"))
         view_menu.add_command(label="Sort by Videos", command=lambda: self.main_page._sort_playlists("Videos"))
         menubar.add_cascade(label="View", menu=view_menu)
+
+        # Download menu
+        download_menu = tk.Menu(menubar, tearoff=0)
+        download_menu.add_command(label="Save Playlist", command=self.main_page.save_playlist)
+        download_menu.add_command(label="Download Videos", command=getattr(self.main_page, 'download_playlist_videos', lambda: None))
+        download_menu.add_command(label="Download Selected", command=getattr(self.main_page, 'download_selected_videos', lambda: None))
+        download_menu.add_command(label="View Downloaded", command=self.main_page.view_downloaded_videos)
+        menubar.add_cascade(label="Download", menu=download_menu)

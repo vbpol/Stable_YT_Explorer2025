@@ -6,6 +6,7 @@ import isodate
 class Playlist:
     def __init__(self, api_key):
         self.youtube = build('youtube', 'v3', developerKey=api_key)
+        self._contains_cache = {}
 
     def search_playlists(self, query, max_results=10):
         """Search for playlists matching the query."""
@@ -185,6 +186,15 @@ class Playlist:
         return playlists
 
     def playlist_contains_video(self, playlist_id, video_id):
+        if not playlist_id or not video_id:
+            return False
+        key = (playlist_id, video_id)
+        try:
+            cached = self._contains_cache.get(key)
+            if cached is not None:
+                return cached
+        except Exception:
+            pass
         try:
             resp = self.youtube.playlistItems().list(
                 part="id",
@@ -192,6 +202,13 @@ class Playlist:
                 videoId=video_id,
                 maxResults=1
             ).execute()
-            return len(resp.get('items', [])) > 0
+            has = len(resp.get('items', [])) > 0
         except Exception:
-            return False
+            has = False
+        try:
+            if len(self._contains_cache) > 4000:
+                self._contains_cache.clear()
+            self._contains_cache[key] = has
+        except Exception:
+            pass
+        return has

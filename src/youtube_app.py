@@ -50,6 +50,18 @@ class YouTubeApp:
         """Show the appropriate initial frame based on configuration."""
         if self.api_key and self.default_folder:
             self.show_frame(MainPage)
+            try:
+                mp = self.frames[MainPage]
+                try:
+                    from .config_manager import ConfigManager
+                    m = (ConfigManager.load_last_mode() or '').strip().lower()
+                except Exception:
+                    m = ''
+                if m not in ('videos', 'playlists'):
+                    m = 'videos'
+                mp.set_search_mode('Videos' if m == 'videos' else 'Playlists')
+            except Exception:
+                pass
         else:
             self.show_frame(SetupPage)
 

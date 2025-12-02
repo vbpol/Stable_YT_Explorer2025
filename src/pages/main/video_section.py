@@ -5,7 +5,9 @@ from .base_section import BaseSection
 class VideoSection(BaseSection):
     def setup_gui(self):
         """Create the video section with pagination."""
-        self.configure(text="Videos in Playlist")
+        self._title_videos = "Videos"
+        self._title_playlist = "Videos in Playlist"
+        self.configure(text=self._title_videos)
         self.pack(fill="both", expand=True, padx=10, pady=10)
         
         # Create video tree
@@ -97,6 +99,7 @@ class VideoSection(BaseSection):
             state="disabled"
         )
         self.next_page_btn.pack(side="left", padx=5)
+        self._scan_total = 0
 
     def _create_action_buttons(self):
         button_frame = ttk.Frame(self)
@@ -124,6 +127,27 @@ class VideoSection(BaseSection):
                 self.back_btn["state"] = "normal"
             else:
                 self.back_btn["state"] = "disabled"
+        except Exception:
+            pass
+    def update_mode_ui(self, is_videos_mode: bool):
+        try:
+            self.configure(text=self._title_videos if is_videos_mode else self._title_playlist)
+        except Exception:
+            pass
+    def show_scan(self, total: int):
+        try:
+            self._scan_total = max(int(total or 0), 1)
+            self.main_page.show_mid_scan(self._scan_total)
+        except Exception:
+            pass
+    def update_scan_progress(self, processed: int, total: int = None):
+        try:
+            self.main_page.update_mid_scan_progress(processed, total)
+        except Exception:
+            pass
+    def finish_scan(self):
+        try:
+            self.main_page.finish_mid_scan()
         except Exception:
             pass
     def _on_video_click(self, event):

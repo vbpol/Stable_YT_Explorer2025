@@ -46,13 +46,7 @@ class PlaylistSection(BaseSection):
         self.playlist_tree.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
-        # Add refresh button
-        self.refresh_btn = ttk.Button(
-            self, 
-            text="Refresh Status", 
-            command=self.refresh_all_statuses
-        )
-        self.refresh_btn.pack(pady=5)
+        # Refresh is handled by mid controls in MainPage; no local button here
 
         # Bind events
         self.playlist_tree.bind("<Double-1>", self.on_playlist_select)
@@ -117,6 +111,8 @@ class PlaylistSection(BaseSection):
             self.playlist_tree.bind("<Button-3>", self._on_right_click)
         except Exception:
             pass
+
+    
 
     def on_playlist_select(self, event):
         try:
@@ -329,22 +325,59 @@ class PlaylistSection(BaseSection):
             pass
 
     def refresh_all_statuses(self):
-        """Refresh download status for all playlists in the tree."""
-        for playlist_id in self.playlist_tree.get_children():
-            current_values = self.playlist_tree.item(playlist_id)["values"]
+        """Refresh download status for all playlists with progress in status bar."""
+        try:
+            items = list(self.playlist_tree.get_children())
+            total = len(items)
+            done = 0
             try:
-                vc = int(current_values[3])
+                self.main_page.status_bar.configure(text="Refreshing download statuses")
+                self.main_page.set_mid_job_title('Refreshing statuses')
+                self.main_page.show_mid_scan(total)
             except Exception:
-                vc = 0
-            status = self.check_download_status(playlist_id, vc)
-            
-            new_values = (
-                current_values[0],  # No
-                current_values[1],  # Title
-                current_values[2],  # Channel
-                current_values[3],  # Videos count
-                status,             # Updated status
-                current_values[5]   # Actions
-            )
-            
-            self.playlist_tree.item(playlist_id, values=new_values) 
+                pass
+            for playlist_id in items:
+                try:
+                    current_values = self.playlist_tree.item(playlist_id)["values"]
+                except Exception:
+                    current_values = []
+                try:
+                    vc = int(current_values[3])
+                except Exception:
+                    vc = 0
+                try:
+                    status = self.check_download_status(playlist_id, vc)
+                except Exception:
+                    status = "Unknown"
+                try:
+                    new_values = (
+                        current_values[0] if len(current_values)>0 else "",
+                        current_values[1] if len(current_values)>1 else "",
+                        current_values[2] if len(current_values)>2 else "",
+                        current_values[3] if len(current_values)>3 else "",
+                        status,
+                        current_values[5] if len(current_values)>5 else "❌"
+                    )
+                    self.playlist_tree.item(playlist_id, values=new_values)
+                except Exception:
+                    pass
+                done += 1
+                try:
+                    self.main_page.update_mid_scan_progress(done, total)
+                except Exception:
+                    pass
+            try:
+                self.main_page.status_bar.configure(text="Statuses refreshed")
+                self.main_page.finish_mid_scan()
+            except Exception:
+                pass
+            try:
+                from src.config_manager import ConfigManager
+                ConfigManager.save_last_mode(getattr(self.main_page, 'search_mode', 'playlists'))
+            except Exception:
+                pass
+        except Exception:
+            try:
+                self.main_page.status_bar.configure(text="Failed to refresh statuses")
+            except Exception:
+                pass
