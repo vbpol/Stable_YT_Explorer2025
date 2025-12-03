@@ -557,7 +557,15 @@ class MainPage(tk.Frame):
                 self.video.prev_page_btn["state"] = "normal" if has_prev else "disabled"
                 self.video.next_page_btn["state"] = "normal" if has_next else "disabled"
                 try:
-                    self.video._panel.update_pages(index=int(getattr(self, 'video_search_page_index', 1) or 1), has_prev=has_prev, has_next=has_next, total_items=len(videos))
+                    idx = int(getattr(self, 'video_search_page_index', 1) or 1)
+                except Exception:
+                    idx = 1
+                try:
+                    count_items = len(self.video.video_tree.get_children())
+                except Exception:
+                    count_items = len(videos)
+                try:
+                    self.video._panel.update_pages(index=idx, has_prev=has_prev, has_next=has_next, total_items=count_items)
                 except Exception:
                     pass
             except Exception:
@@ -656,7 +664,15 @@ class MainPage(tk.Frame):
             self.video.prev_page_btn["state"] = "normal" if has_prev else "disabled"
             self.video.next_page_btn["state"] = "normal" if has_next else "disabled"
             try:
-                self.video._panel.update_pages(index=int(getattr(self, 'video_search_page_index', 1) or 1), has_prev=has_prev, has_next=has_next, total_items=len(videos))
+                idx = int(getattr(self, 'video_search_page_index', 1) or 1)
+            except Exception:
+                idx = 1
+            try:
+                count_items = len(self.video.video_tree.get_children())
+            except Exception:
+                count_items = len(videos)
+            try:
+                self.video._panel.update_pages(index=idx, has_prev=has_prev, has_next=has_next, total_items=count_items)
             except Exception:
                 pass
         except Exception:
@@ -928,7 +944,15 @@ class MainPage(tk.Frame):
                 self.video.prev_page_btn["state"] = "normal" if has_prev else "disabled"
                 self.video.next_page_btn["state"] = "normal" if has_next else "disabled"
                 try:
-                    self.video._panel.update_pages(index=int(getattr(self, 'video_search_page_index', 1) or 1), has_prev=has_prev, has_next=has_next, total_items=len(videos))
+                    idx = int(getattr(self, 'video_search_page_index', 1) or 1)
+                except Exception:
+                    idx = 1
+                try:
+                    count_items = len(self.video.video_tree.get_children())
+                except Exception:
+                    count_items = len(videos)
+                try:
+                    self.video._panel.update_pages(index=idx, has_prev=has_prev, has_next=has_next, total_items=count_items)
                 except Exception:
                     pass
             except Exception:
