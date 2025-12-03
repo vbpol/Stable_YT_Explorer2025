@@ -1,6 +1,10 @@
 from .base_section import BaseSection
 import tkinter as tk
 from tkinter import ttk, messagebox
+try:
+    from src.ui.table_panel import TablePanel
+except ModuleNotFoundError:
+    from ui.table_panel import TablePanel
 import os
 
 class PlaylistSection(BaseSection):
@@ -10,41 +14,15 @@ class PlaylistSection(BaseSection):
 
     def setup_gui(self):
         """Initialize playlist section GUI components."""
-        # Create treeview with scrollbar
-        self.tree_frame = ttk.Frame(self)
-        self.tree_frame.pack(fill="both", expand=True)
-
-        # Create and configure the treeview
-        self.playlist_tree = ttk.Treeview(
-            self.tree_frame,
-            columns=("No", "Title", "Channel", "Videos", "Status", "Actions"),
-            show="headings",
-            selectmode="browse"
-        )
-
-        # Configure column headings
-        self.playlist_tree.heading("No", text="No")
-        self.playlist_tree.heading("Title", text="Title")
-        self.playlist_tree.heading("Channel", text="Channel")
-        self.playlist_tree.heading("Videos", text="Videos")
-        self.playlist_tree.heading("Status", text="Download Status")
-        self.playlist_tree.heading("Actions", text="Actions")
-
-        # Configure column widths and alignments
+        panel = TablePanel(self, columns=("No", "Title", "Channel", "Videos", "Status", "Actions"), show_page_size=False, size_label="Rows per page:")
+        self._panel = panel
+        self.playlist_tree = panel.tree
         self.playlist_tree.column("No", width=50, anchor="center")
         self.playlist_tree.column("Title", width=300, anchor="w")
         self.playlist_tree.column("Channel", width=150, anchor="w")
         self.playlist_tree.column("Videos", width=70, anchor="center")
         self.playlist_tree.column("Status", width=120, anchor="center")
         self.playlist_tree.column("Actions", width=80, anchor="center")
-
-        # Add scrollbar
-        scrollbar = ttk.Scrollbar(self.tree_frame, orient="vertical", command=self.playlist_tree.yview)
-        self.playlist_tree.configure(yscrollcommand=scrollbar.set)
-
-        # Pack components
-        self.playlist_tree.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
 
         # Refresh is handled by mid controls in MainPage; no local button here
 
@@ -306,6 +284,12 @@ class PlaylistSection(BaseSection):
             self.playlist_tree.insert("", "end", iid=playlist_id, values=values)
         try:
             self.playlist_tree.set(playlist_id, "No", str(pi or ""))
+        except Exception:
+            pass
+        try:
+            cnt = len(self.playlist_tree.get_children())
+            if hasattr(self, '_panel'):
+                self._panel.update_visibility(cnt)
         except Exception:
             pass
 

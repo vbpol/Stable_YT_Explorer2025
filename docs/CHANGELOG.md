@@ -1,0 +1,46 @@
+# Changelog
+
+## 2025-12-03
+
+### UI
+
+- Window resized and minimum size set via `ui.window_size` (default `1100x720`).
+  - Code: `src/youtube_app.py:21`
+- Single mid-row progress with dynamic labels ("Mapping playlists" / "Refreshing statuses").
+  - Code: `src/pages/main/main_page.py:180`, `src/pages/main/playlist_section.py:335`
+- Status bar summary now reads: `Collected <playlists> playlists for <videos> videos` in Videos mode.
+  - Code: `src/pages/main/main_page.py:515`, `src/pages/main/main_page.py:704`
+
+### Tables & Pagination
+
+- Introduced reusable components:
+  - `PaginationBar` (one-row controls) — `src/ui/pagination_bar.py`
+  - `TablePanel` (vertical stack: PaginationBar above table) — `src/ui/table_panel.py`
+- Integrated components in Videos and Playlists sections.
+  - Videos: `src/pages/main/video_section.py:18`, `src/pages/main/video_section.py:129`
+  - Playlists: `src/pages/main/playlist_section.py:18`
+- Pagination visibility is dynamic per table using threshold `ui.pagination_min_rows` (default 10) or `PAGINATION_MIN_ROWS` env var.
+  - Loader: `src/config_manager.py:158`
+  - Visibility hook: `src/ui/table_panel.py:22`
+  - Videos apply: `src/pages/main/video_section.py:152`
+  - Playlists apply: `src/pages/main/playlist_section.py:308`
+
+### Scanning & Stability
+
+- Refactored videos→playlists scanning into `src/services/video_playlist_scanner.py` (thread pool, per-worker client).
+  - Integration: `src/pages/main/main_page.py:432`
+- Removed duplicate progress bars; mid-row is the single indicator.
+  - Videos progress forwarding: `src/pages/main/video_section.py:141`
+  - StatusBar simplified: `src/pages/main/status_bar.py`
+
+### CI
+
+- Added basic GitHub Actions workflow for compile and tests: `.github/workflows/ci.yml`
+
+### Settings
+
+- New settings in `config.json` (under `ui`):
+  - `window_size`: e.g., `"1100x720"`
+  - `pagination_min_rows`: default `10`
+  - Environment override: `PAGINATION_MIN_ROWS`
+

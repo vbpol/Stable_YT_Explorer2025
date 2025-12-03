@@ -525,7 +525,11 @@ class MainPage(tk.Frame):
                             'playlistIds': {pid: list(self.playlist_video_ids.get(pid, set())) for pid in (self.playlist_video_ids or {}).keys()}
                         })
                         self.collected_playlists = collected_local
-                        self._safe_ui(lambda n=len(collected_local): self.status_bar.configure(text=f"Collected {n} playlists"))
+                        try:
+                            vids_cnt = len(videos or [])
+                        except Exception:
+                            vids_cnt = 0
+                        self._safe_ui(lambda n=len(collected_local), v=vids_cnt: self.status_bar.configure(text=f"Collected {n} playlists for {v} videos"))
                         self._safe_ui(lambda: self.video.finish_scan())
                         self._safe_ui(lambda: self.finish_mid_scan())
                     except Exception:
@@ -632,7 +636,10 @@ class MainPage(tk.Frame):
         try:
             self.video_search_page_index = int(data.get('pageIndex') or 1)
             self.video.page_indicator["text"] = f"Results page {self.video_search_page_index}"
-            self.video.total_label["text"] = f"Items: {len(videos)}"
+            try:
+                self.video.set_total_videos(len(videos))
+            except Exception:
+                self.video.total_label["text"] = f"Items: {len(videos)}"
         except Exception:
             pass
         try:
@@ -759,7 +766,11 @@ class MainPage(tk.Frame):
                         })
                         self.collected_playlists = collected
                         try:
-                            self.after(0, lambda n=len(collected): self.status_bar.configure(text=f"Collected {n} playlists"))
+                            try:
+                                vc = len(self.current_videos or [])
+                            except Exception:
+                                vc = 0
+                            self.after(0, lambda n=len(collected), v=vc: self.status_bar.configure(text=f"Collected {n} playlists for {v} videos"))
                         except Exception:
                             pass
                         try:
@@ -1330,7 +1341,10 @@ class MainPage(tk.Frame):
             elif page_token == self.prev_page_token:
                 self.current_page = max(1, self.current_page - 1)
             
-            self.video.total_label["text"] = f"Total videos: {total_videos}"
+            try:
+                self.video.set_total_videos(total_videos)
+            except Exception:
+                self.video.total_label["text"] = f"Total videos: {total_videos}"
             self.video.page_indicator["text"] = f"Page {self.current_page} of {total_pages}"
             
             # Update pagination buttons
@@ -1393,7 +1407,10 @@ class MainPage(tk.Frame):
         total_pages = (total_videos + max_results - 1) // max_results
         if not hasattr(self, 'current_page') or self.prev_page_token is None and self.current_page_token is None:
             self.current_page = 1
-        self.video.total_label["text"] = f"Total videos: {total_videos}"
+        try:
+            self.video.set_total_videos(total_videos)
+        except Exception:
+            self.video.total_label["text"] = f"Total videos: {total_videos}"
         self.video.page_indicator["text"] = f"Page {self.current_page} of {total_pages}"
         try:
             self.video.next_page_btn["state"] = "normal" if self.current_page_token else "disabled"

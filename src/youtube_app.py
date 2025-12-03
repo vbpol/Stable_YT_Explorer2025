@@ -22,7 +22,21 @@ class YouTubeApp:
     def setup_window(self):
         """Configure the main window properties."""
         self.root.title("YouTube Playlist Explorer")
-        self.root.geometry("900x600")
+        try:
+            from .config_manager import ConfigManager
+            ui_cfg = ConfigManager.load_config().get('ui', {})
+            size = str(ui_cfg.get('window_size', '1100x720'))
+        except Exception:
+            size = '1100x720'
+        self.root.geometry(size)
+        try:
+            w, h = size.split('x')
+            self.root.minsize(int(w), int(h))
+        except Exception:
+            try:
+                self.root.minsize(1100, 720)
+            except Exception:
+                pass
         self.root.grid_rowconfigure(0, weight=1)
         self.root.grid_columnconfigure(0, weight=1)
         try:

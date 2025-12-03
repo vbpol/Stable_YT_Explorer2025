@@ -1,6 +1,10 @@
 import tkinter as tk
 from tkinter import ttk
 from .base_section import BaseSection
+try:
+    from src.ui.table_panel import TablePanel
+except ModuleNotFoundError:
+    from ui.table_panel import TablePanel
 
 class VideoSection(BaseSection):
     def setup_gui(self):
@@ -10,20 +14,21 @@ class VideoSection(BaseSection):
         self.configure(text=self._title_videos)
         self.pack(fill="both", expand=True, padx=10, pady=10)
         
-        # Create video tree
-        self._create_video_tree()
-        
-        # Create page controls
-        self._create_page_controls()
+        cols = ("Title", "Playlist", "Channel", "Duration", "Published", "Views")
+        self._panel = TablePanel(self, columns=cols, show_page_size=True, size_label="Videos per page:")
+        self.video_tree = self._panel.tree
+        self._create_video_tree_styles()
+        self._pagination = self._panel.pagination
+        self.prev_page_btn = self._pagination.prev_btn
+        self.next_page_btn = self._pagination.next_btn
+        self.page_indicator = self._pagination.page_indicator
+        self.total_label = self._pagination.total_label
+        self.page_size_var = self._pagination.page_size_var
         
         # Create action buttons
         self._create_action_buttons()
 
-    def _create_video_tree(self):
-        columns = ("Title", "Playlist", "Channel", "Duration", "Published", "Views")
-        self.video_tree = ttk.Treeview(self, columns=columns, show="headings", height=15)
-        for col in columns:
-            self.video_tree.heading(col, text=col)
+    def _create_video_tree_styles(self):
         self.video_tree.column("Playlist", width=80, anchor="center")
         self.video_tree.column("Duration", width=100, anchor="center")
         self.video_tree.column("Published", width=120, anchor="center")
@@ -36,15 +41,6 @@ class VideoSection(BaseSection):
             self.video_tree.tag_configure('search_hit', background='#fff6bf')
         except Exception:
             pass
-        
-        # Add scrollbar
-        scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.video_tree.yview)
-        self.video_tree.configure(yscrollcommand=scrollbar.set)
-        
-        # Pack components
-        self.video_tree.pack(side="left", fill="both", expand=True, padx=(10, 0))
-        scrollbar.pack(side="right", fill="y", padx=(0, 10))
-        
         self.video_tree.bind('<<TreeviewSelect>>', self.main_page.on_video_select)
         self.video_tree.bind("<Button-1>", self._on_video_click)
         self.video_tree.bind("<Double-1>", self._on_video_double)
@@ -53,53 +49,14 @@ class VideoSection(BaseSection):
         self.video_tree.bind("<Leave>", self._on_leave)
 
     def _create_page_controls(self):
-        # Page size and total info
-        info_frame = ttk.Frame(self)
-        info_frame.pack(fill="x", pady=5)
-        
-        # Left side: page size selector
-        size_frame = ttk.Frame(info_frame)
-        size_frame.pack(side="left")
-        
-        ttk.Label(size_frame, text="Videos per page:").pack(side="left", padx=5)
-        self.page_size_var = tk.StringVar(value="10")
-        page_size_combo = ttk.Combobox(
-            size_frame, 
-            textvariable=self.page_size_var,
-            values=["5", "10", "20", "50"],
-            width=5,
-            state="readonly"
-        )
-        page_size_combo.pack(side="left", padx=5)
-        page_size_combo.bind('<<ComboboxSelected>>', lambda e: self.main_page.show_playlist_videos())
-
-        # Right side: total videos
-        self.total_label = ttk.Label(info_frame, text="Total videos: 0")
-        self.total_label.pack(side="right", padx=10)
-
-        # Pagination frame
-        pagination_frame = ttk.Frame(self)
-        pagination_frame.pack(fill="x", pady=5)
-        
-        self.prev_page_btn = ttk.Button(
-            pagination_frame, 
-            text="Previous", 
-            command=lambda: self.main_page.show_playlist_videos(page_token=self.main_page.prev_page_token),
-            state="disabled"
-        )
-        self.prev_page_btn.pack(side="left", padx=5)
-        
-        self.page_indicator = ttk.Label(pagination_frame, text="Page 0 of 0")
-        self.page_indicator.pack(side="left", padx=10)
-        
-        self.next_page_btn = ttk.Button(
-            pagination_frame, 
-            text="Next", 
-            command=lambda: self.main_page.show_playlist_videos(page_token=self.main_page.current_page_token),
-            state="disabled"
-        )
-        self.next_page_btn.pack(side="left", padx=5)
-        self._scan_total = 0
+        self._pagination.bind_prev(lambda: self.main_page.show_playlist_videos(page_token=self.main_page.prev_page_token))
+        self._pagination.bind_next(lambda: self.main_page.show_playlist_videos(page_token=self.main_page.current_page_token))
+        def _on_size(val):
+            try:
+                self.main_page.show_playlist_videos()
+            except Exception:
+                pass
+        self._pagination.bind_page_size(lambda v: _on_size(v))
 
     def _create_action_buttons(self):
         button_frame = ttk.Frame(self)
@@ -148,6 +105,16 @@ class VideoSection(BaseSection):
     def finish_scan(self):
         try:
             self.main_page.finish_mid_scan()
+        except Exception:
+            pass
+
+    def set_total_videos(self, count: int):
+        try:
+            self.total_label["text"] = f"Total: {int(count or 0)}"
+        except Exception:
+            pass
+        try:
+            self._panel.update_visibility(int(count or 0))
         except Exception:
             pass
     def _on_video_click(self, event):

@@ -18,16 +18,17 @@ class ConfigManager:
                 with open(CONFIG_FILE, "r") as file:
                     data = json.load(file)
             except FileNotFoundError:
-                data = {"api_key": "", "default_folder": ""}
+                data = {"api_key": "", "default_folder": "", "ui": {}}
 
             keys = ConfigManager.get_available_api_keys()
             api_key = keys[0] if keys else data.get("api_key", "")
             return {
                 "api_key": api_key,
-                "default_folder": data.get("default_folder", "")
+                "default_folder": data.get("default_folder", ""),
+                "ui": data.get("ui", {})
             }
         except Exception:
-            return {"api_key": "", "default_folder": ""}
+            return {"api_key": "", "default_folder": "", "ui": {}}
 
     @staticmethod
     def save_config(api_key, default_folder):
@@ -152,3 +153,21 @@ class ConfigManager:
         except Exception:
             pass
         return "json"
+
+    @staticmethod
+    def get_ui_pagination_min_rows() -> int:
+        try:
+            env_val = os.getenv("PAGINATION_MIN_ROWS")
+            if env_val:
+                v = int(env_val)
+                if v > 0:
+                    return v
+        except Exception:
+            pass
+        try:
+            cfg = ConfigManager.load_config() or {}
+            ui = cfg.get("ui", {}) or {}
+            v = int(ui.get("pagination_min_rows", 10))
+            return max(1, v)
+        except Exception:
+            return 10
