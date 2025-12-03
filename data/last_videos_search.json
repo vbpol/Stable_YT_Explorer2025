@@ -27,7 +27,7 @@
       "channelId": "UCEtWIysVwp6s7spxA7uTD2g",
       "duration": "03:20",
       "published": "2023-08-31T14:58:17Z",
-      "views": "36063"
+      "views": "36064"
     },
     {
       "videoId": "Nb4aLbNIxQ0",
@@ -60,16 +60,6 @@
       "playlistIndex": 3
     },
     {
-      "videoId": "6ZidI551YvQ",
-      "title": "What is AVEVA Unified Engineering, And What Can It Do for You? | AVEVA",
-      "channelTitle": "AVEVA Group",
-      "channelId": "UCEtWIysVwp6s7spxA7uTD2g",
-      "duration": "02:02",
-      "published": "2025-02-24T09:54:16Z",
-      "views": "1595",
-      "playlistIndex": 6
-    },
-    {
       "videoId": "COjMOM6xo6M",
       "title": "Aveva E3D Training - Structures #Aveva #training #tending #watercraft #oilandgas #education #e3d",
       "channelTitle": "Watercraft Engineering Solutions",
@@ -77,6 +67,16 @@
       "duration": "01:00",
       "published": "2024-11-08T06:43:20Z",
       "views": "7646"
+    },
+    {
+      "videoId": "6ZidI551YvQ",
+      "title": "What is AVEVA Unified Engineering, And What Can It Do for You? | AVEVA",
+      "channelTitle": "AVEVA Group",
+      "channelId": "UCEtWIysVwp6s7spxA7uTD2g",
+      "duration": "02:02",
+      "published": "2025-02-24T09:54:16Z",
+      "views": "1596",
+      "playlistIndex": 6
     },
     {
       "videoId": "OVJmcTxKwgk",
@@ -89,14 +89,14 @@
       "playlistIndex": 5
     },
     {
-      "videoId": "Nd5lV_tZkO8",
-      "title": "AVEVA System Platform | Unified SCADA, MES &amp; IIoT for Modern Industrial Operations",
-      "channelTitle": "AVEVA Group",
-      "channelId": "UCEtWIysVwp6s7spxA7uTD2g",
-      "duration": "02:15",
-      "published": "2025-07-22T08:41:45Z",
-      "views": "1509",
-      "playlistIndex": 4
+      "videoId": "OOf_EsC4X6Q",
+      "title": "AVEVA PI System presentation (FR)",
+      "channelTitle": "Thibaud de Rouzé",
+      "channelId": "UCyu_Z9JPtwUUe1X1edxVPlg",
+      "duration": "25:32",
+      "published": "2022-01-21T09:20:24Z",
+      "views": "1747",
+      "playlistIndex": 7
     }
   ],
   "playlists": [
@@ -137,31 +137,31 @@
       "video_count": 13
     },
     {
+      "playlistId": "PLcHcI-na3CFLn2YMQJ4iEbbVqk3K--TzF",
+      "title": "AVEVA PI System",
+      "channelTitle": "Thibaud de Rouzé",
+      "video_count": 10
+    },
+    {
       "playlistId": "PLJq4rR8tWINyOrvwxbIjRvgTtoyuuEfSz",
       "title": "AVEVA System Platform - Responsive, standards-driven, and scalable foundation for supervisory, Enterprise SCADA, MES, and IIoT applications.",
       "channelTitle": "AVEVA Operations Control",
       "video_count": 72
-    },
-    {
-      "playlistId": "PLMNq4CGnXT34FduXGPZElG1tMnyXOsyn4",
-      "title": "AVEVA Operations",
-      "channelTitle": "AVEVA Group",
-      "video_count": 13
     }
   ],
   "nextPageToken": "CAoQAA",
   "prevPageToken": null,
   "videoIds": [
     "-kxy94WCY7M",
-    "6ZidI551YvQ",
-    "HoHnW6lB9hY",
     "WG4ajgjIO8U",
+    "6ZidI551YvQ",
     "Nb4aLbNIxQ0",
     "COjMOM6xo6M",
-    "Nd5lV_tZkO8",
-    "45evU9EBjec",
+    "OVJmcTxKwgk",
+    "OOf_EsC4X6Q",
     "IEWcjCX0veM",
-    "OVJmcTxKwgk"
+    "HoHnW6lB9hY",
+    "45evU9EBjec"
   ],
   "playlistPages": {
     "PLfOQ7P-c0e5Kgz5B0dYRPVI1ZK609FwUp": {
@@ -305,7 +305,7 @@
             "channelTitle": "S.A.-E3D in French",
             "duration": "23:13",
             "published": "2024-06-11T17:50:20Z",
-            "views": "1235"
+            "views": "1237"
           },
           {
             "videoId": "HoHnW6lB9hY",
@@ -385,7 +385,7 @@
             "channelTitle": "AVEVA Group",
             "duration": "02:15",
             "published": "2025-07-22T08:41:45Z",
-            "views": "1509"
+            "views": "1511"
           },
           {
             "videoId": "45evU9EBjec",
@@ -417,7 +417,7 @@
             "channelTitle": "AVEVA Group",
             "duration": "01:37",
             "published": "2024-10-08T23:36:21Z",
-            "views": "10505"
+            "views": "10506"
           },
           {
             "videoId": "2pV7wVRVizM",
@@ -553,7 +553,7 @@
             "channelTitle": "AVEVA Group",
             "duration": "02:02",
             "published": "2025-02-24T09:54:16Z",
-            "views": "1595"
+            "views": "1596"
           },
           {
             "videoId": "2r4sb0Wyj7A",
@@ -596,6 +596,98 @@
         ]
       }
     },
+    "PLcHcI-na3CFLn2YMQJ4iEbbVqk3K--TzF": {
+      "pages": {
+        "__first__": [
+          {
+            "videoId": "OOf_EsC4X6Q",
+            "title": "AVEVA PI System presentation (FR)",
+            "channelTitle": "Thibaud de Rouzé",
+            "duration": "25:32",
+            "published": "2022-01-21T09:20:24Z",
+            "views": "1747"
+          },
+          {
+            "videoId": "qr1cCn4qeJI",
+            "title": "Démonstration de PI Vision",
+            "channelTitle": "Thibaud de Rouzé",
+            "duration": "03:04",
+            "published": "2020-03-16T15:59:17Z",
+            "views": "688"
+          },
+          {
+            "videoId": "IOvLC9TB8cs",
+            "title": "PI Datalink demo",
+            "channelTitle": "Thibaud de Rouzé",
+            "duration": "02:48",
+            "published": "2020-03-16T17:08:43Z",
+            "views": "288"
+          },
+          {
+            "videoId": "l8Cpq6hN_ag",
+            "title": "PI Datalink Demo - Top 5 advantages",
+            "channelTitle": "Thibaud de Rouzé",
+            "duration": "03:30",
+            "published": "2023-11-08T14:32:16Z",
+            "views": "158"
+          },
+          {
+            "videoId": "Ih73YO2nilA",
+            "title": "AVEVA PI Asset Framework - The AF 10 Commandments",
+            "channelTitle": "Thibaud de Rouzé",
+            "duration": "06:38",
+            "published": "2023-11-02T13:28:03Z",
+            "views": "750"
+          },
+          {
+            "videoId": "2v24vWroEbM",
+            "title": "PI Datalink Demo - Ses 5 avantages majeurs (FR)",
+            "channelTitle": "Thibaud de Rouzé",
+            "duration": "04:33",
+            "published": "2023-09-22T19:51:23Z",
+            "views": "273"
+          },
+          {
+            "videoId": "gomnWf5U1ec",
+            "title": "OSIsoft Webinar - Condition Based Maintenance",
+            "channelTitle": "Thibaud de Rouzé",
+            "duration": "27:48",
+            "published": "2023-08-24T09:17:45Z",
+            "views": "80"
+          },
+          {
+            "videoId": "Bzmgkf5LWcY",
+            "title": "Présentation de PI DataLink",
+            "channelTitle": "Thibaud de Rouzé",
+            "duration": "03:09",
+            "published": "2019-12-03T15:47:10Z",
+            "views": "1025"
+          },
+          {
+            "videoId": "p-Z9-muCUvk",
+            "title": "AI Podcast - A Discussion on the AVEVA PI System",
+            "channelTitle": "Thibaud de Rouzé",
+            "duration": "18:31",
+            "published": "2024-11-08T14:25:29Z",
+            "views": "118"
+          },
+          {
+            "videoId": "RpHgs4CcyAQ",
+            "title": "PI Vision Demo - Remote Wind Farm",
+            "channelTitle": "Thibaud de Rouzé",
+            "duration": "04:08",
+            "published": "2024-11-20T15:35:32Z",
+            "views": "129"
+          }
+        ]
+      },
+      "tokens": {
+        "__first__": [
+          null,
+          null
+        ]
+      }
+    },
     "PLJq4rR8tWINyOrvwxbIjRvgTtoyuuEfSz": {
       "pages": {
         "__first__": [
@@ -605,7 +697,7 @@
             "channelTitle": "AVEVA Operations Control",
             "duration": "03:47",
             "published": "2025-08-20T14:56:47Z",
-            "views": "1038"
+            "views": "1042"
           },
           {
             "videoId": "VbKD7PqkfL4",
@@ -691,73 +783,85 @@
   },
   "playlistIds": {
     "PLfOQ7P-c0e5Kgz5B0dYRPVI1ZK609FwUp": [
-      "J3QgktiAsc4",
       "AP9LYvFpNMc",
-      "_F1kBkW8naY",
-      "Nb4aLbNIxQ0",
-      "lHiT0B-9RKM",
-      "qfPmL7YHhj4",
-      "QiaGGxhhd-I",
       "cNEuqShGG7Q",
+      "2Ae9GBkvDQY",
+      "J3QgktiAsc4",
+      "QiaGGxhhd-I",
+      "Nb4aLbNIxQ0",
+      "_F1kBkW8naY",
       "KV6vtrH2sPk",
-      "2Ae9GBkvDQY"
+      "qfPmL7YHhj4",
+      "lHiT0B-9RKM"
     ],
     "PL2Ro_ailitcWL4nIHBGNFCnfQccN2SDng": [
-      "TTJGC_Dpy98",
       "e90mbgBokQQ",
-      "HoHnW6lB9hY",
       "ynDHWsmkaEU",
-      "3Ss9H6xkN2o",
+      "ad8COLgT-lY",
       "exObV7jLyEM",
-      "ad8COLgT-lY"
+      "TTJGC_Dpy98",
+      "3Ss9H6xkN2o",
+      "HoHnW6lB9hY"
     ],
     "PLMNq4CGnXT36bKPgfYAkLA8Hi4qSwiKpR": [
       "unRzPubnqKo",
-      "WG4ajgjIO8U",
       "c_PB-VZr4k0",
-      "eqkiqz0pRoY",
-      "ZzDvLtYiGtU"
+      "WG4ajgjIO8U",
+      "ZzDvLtYiGtU",
+      "eqkiqz0pRoY"
     ],
     "PLMNq4CGnXT34FduXGPZElG1tMnyXOsyn4": [
-      "2pV7wVRVizM",
-      "aBUzahPPCEM",
       "Vk2gYmWnxJE",
+      "2pV7wVRVizM",
       "e1NCIKqYVz0",
-      "QGTPSl_wzWE",
-      "Nd5lV_tZkO8",
-      "45evU9EBjec",
       "aGQNSGyrNHM",
+      "aBUzahPPCEM",
+      "QGTPSl_wzWE",
       "N1JzWbKRe5s",
-      "xT25MHDJhw0"
+      "45evU9EBjec",
+      "xT25MHDJhw0",
+      "Nd5lV_tZkO8"
     ],
     "PLJq4rR8tWINzxSUwJ59RvpwjYekjj22GG": [
+      "OVJmcTxKwgk",
       "LQtvNRI3HZw",
-      "VbKD7PqkfL4",
-      "OVJmcTxKwgk"
+      "VbKD7PqkfL4"
     ],
     "PLMNq4CGnXT34PzfK_ofCiv522XQmiK7nk": [
+      "mkGSDSUZ6wo",
       "Uo_VXzGJfhs",
       "6ZidI551YvQ",
+      "mI2Cw65IEnM",
+      "1jQKVfFiavs",
       "2r4sb0Wyj7A",
+      "M6acL2Gt8iU",
       "4JwhXmaL1rs",
       "EwS-x5rJXhU",
-      "1jQKVfFiavs",
-      "mkGSDSUZ6wo",
-      "NhlAwXDQQCI",
-      "M6acL2Gt8iU",
-      "mI2Cw65IEnM"
+      "NhlAwXDQQCI"
+    ],
+    "PLcHcI-na3CFLn2YMQJ4iEbbVqk3K--TzF": [
+      "IOvLC9TB8cs",
+      "2v24vWroEbM",
+      "p-Z9-muCUvk",
+      "l8Cpq6hN_ag",
+      "RpHgs4CcyAQ",
+      "Ih73YO2nilA",
+      "OOf_EsC4X6Q",
+      "Bzmgkf5LWcY",
+      "gomnWf5U1ec",
+      "qr1cCn4qeJI"
     ],
     "PLJq4rR8tWINyOrvwxbIjRvgTtoyuuEfSz": [
-      "9jg7hS6v1pU",
-      "VbKD7PqkfL4",
-      "Xq4NuX5W7v4",
-      "_gGHejI8OtA",
       "G1BV91N0U8s",
+      "9jg7hS6v1pU",
+      "Xq4NuX5W7v4",
+      "TItqvmCSwu8",
+      "VbKD7PqkfL4",
       "lE6D4qHUMRA",
-      "00uP25u7NuM",
-      "LQtvNRI3HZw",
       "OVJmcTxKwgk",
-      "TItqvmCSwu8"
+      "_gGHejI8OtA",
+      "LQtvNRI3HZw",
+      "00uP25u7NuM"
     ]
   }
 }

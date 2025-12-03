@@ -33,19 +33,26 @@ class TablePanel(ttk.Frame):
 
     def update_pages(self, index: int, has_prev: bool, has_next: bool, total_items: int, row_count: int = None):
         try:
-            self.pagination.set_page_info(index, has_prev, has_next, total_items)
+            ps = int(self.pagination.page_size_var.get())
+        except Exception:
+            ps = 10
+        try:
+            total = int(total_items or 0)
+        except Exception:
+            total = 0
+        try:
+            from math import ceil
+            total_pages = max(1, ceil(total / max(ps, 1)))
+        except Exception:
+            total_pages = 1
+        try:
+            self.pagination.set_prev_enabled(bool(has_prev))
+            self.pagination.set_next_enabled(bool(has_next))
+            self.pagination.page_indicator.configure(text=f"Page {max(int(index or 1),1)} of {total_pages}")
+            self.pagination.total_label.configure(text=f"Total: {total}")
         except Exception:
             pass
         try:
-            rc = int(row_count) if row_count is not None else len(self.tree.get_children())
-        except Exception:
-            rc = 0
-        try:
-            thr = int(ConfigManager.get_ui_pagination_min_rows())
-        except Exception:
-            thr = 10
-        try:
-            should_show = (rc > thr) or (has_prev or has_next)
-            self.pagination.set_visible(should_show)
+            self.pagination.set_visible(total_pages > 1)
         except Exception:
             pass

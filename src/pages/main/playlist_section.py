@@ -289,7 +289,7 @@ class PlaylistSection(BaseSection):
         try:
             cnt = len(self.playlist_tree.get_children())
             if hasattr(self, '_panel'):
-                self._panel.update_visibility(cnt)
+                self._panel.update_pages(index=1, has_prev=False, has_next=False, total_items=cnt, row_count=cnt)
         except Exception:
             pass
 
