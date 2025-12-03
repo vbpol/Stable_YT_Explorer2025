@@ -42,17 +42,15 @@ class TablePanel(ttk.Frame):
             total = 0
         try:
             from math import ceil
-            total_pages = max(1, ceil(total / max(ps, 1)))
+            pages_by_count = max(1, ceil(total / max(ps, 1)))
         except Exception:
-            total_pages = 1
+            pages_by_count = 1
         try:
             self.pagination.set_prev_enabled(bool(has_prev))
             self.pagination.set_next_enabled(bool(has_next))
-            self.pagination.page_indicator.configure(text=f"Page {max(int(index or 1),1)} of {total_pages}")
+            idx = max(int(index or 1), 1)
+            self.pagination.page_indicator.configure(text=f"Page {idx} of {pages_by_count}")
             self.pagination.total_label.configure(text=f"Total: {total}")
-        except Exception:
-            pass
-        try:
-            self.pagination.set_visible(total_pages > 1)
+            self.pagination.set_visible(pages_by_count > 1)
         except Exception:
             pass

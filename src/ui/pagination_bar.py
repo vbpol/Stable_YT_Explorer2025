@@ -13,7 +13,7 @@ class PaginationBar(ttk.Frame):
             cb.bind('<<ComboboxSelected>>', self._on_size)
         self.prev_btn = ttk.Button(self, text="Previous", state="disabled")
         self.prev_btn.pack(side="left", padx=5)
-        self.page_indicator = ttk.Label(self, text="Page 0 of 0")
+        self.page_indicator = ttk.Label(self, text="Page 1 of 1")
         self.page_indicator.pack(side="left", padx=10)
         self.next_btn = ttk.Button(self, text="Next", state="disabled")
         self.next_btn.pack(side="left", padx=5)

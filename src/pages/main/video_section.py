@@ -53,7 +53,12 @@ class VideoSection(BaseSection):
         self._pagination.bind_next(lambda: self.main_page.show_playlist_videos(page_token=self.main_page.current_page_token))
         def _on_size(val):
             try:
-                self.main_page.show_playlist_videos()
+                q = getattr(self.main_page, 'video_search_query', '')
+            except Exception:
+                q = ''
+            try:
+                if q:
+                    self.main_page.execute_search_stable(q, 'Videos')
             except Exception:
                 pass
         self._pagination.bind_page_size(lambda v: _on_size(v))
