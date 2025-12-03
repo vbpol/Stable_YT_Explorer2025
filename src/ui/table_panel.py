@@ -30,3 +30,22 @@ class TablePanel(ttk.Frame):
             self.pagination.set_visible((int(row_count or 0) > thr))
         except Exception:
             pass
+
+    def update_pages(self, index: int, has_prev: bool, has_next: bool, total_items: int, row_count: int = None):
+        try:
+            self.pagination.set_page_info(index, has_prev, has_next, total_items)
+        except Exception:
+            pass
+        try:
+            rc = int(row_count) if row_count is not None else len(self.tree.get_children())
+        except Exception:
+            rc = 0
+        try:
+            thr = int(ConfigManager.get_ui_pagination_min_rows())
+        except Exception:
+            thr = 10
+        try:
+            should_show = (rc > thr) or (has_prev or has_next)
+            self.pagination.set_visible(should_show)
+        except Exception:
+            pass

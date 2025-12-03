@@ -25,6 +25,9 @@ class PaginationBar(ttk.Frame):
         self.prev_btn.configure(command=self._fire_prev)
         self.next_btn.configure(command=self._fire_next)
         self._visible = True
+        self._page_index = 1
+        self._total_pages = 1
+        self._total_items = 0
 
     def bind_prev(self, fn):
         self._on_prev = fn
@@ -73,3 +76,23 @@ class PaginationBar(ttk.Frame):
             self._visible = visible
         except Exception:
             pass
+
+    def set_page_info(self, index: int, has_prev: bool, has_next: bool, total_items: int):
+        try:
+            self._page_index = max(int(index or 1), 1)
+        except Exception:
+            self._page_index = 1
+        try:
+            self._total_items = max(int(total_items or 0), 0)
+        except Exception:
+            self._total_items = 0
+        self.set_prev_enabled(bool(has_prev))
+        self.set_next_enabled(bool(has_next))
+        total_pages = 1 if (not has_prev and not has_next) else None
+        self._total_pages = total_pages or self._page_index
+        if total_pages is None:
+            self.page_indicator.configure(text=f"Page {self._page_index} of ?")
+        else:
+            self.page_indicator.configure(text=f"Page {self._page_index} of {total_pages}")
+        self.total_label.configure(text=f"Total: {self._total_items}")
+        self.set_visible(False if (total_pages == 1) else True)

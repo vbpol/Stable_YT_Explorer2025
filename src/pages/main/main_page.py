@@ -552,8 +552,14 @@ class MainPage(tk.Frame):
             try:
                 self.video.prev_page_btn.configure(command=lambda: self.show_videos_search_page(self.video_prev_page_token))
                 self.video.next_page_btn.configure(command=lambda: self.show_videos_search_page(self.video_next_page_token))
-                self.video.prev_page_btn["state"] = "normal" if self.video_prev_page_token else "disabled"
-                self.video.next_page_btn["state"] = "normal" if self.video_next_page_token else "disabled"
+                has_prev = bool(self.video_prev_page_token)
+                has_next = bool(self.video_next_page_token)
+                self.video.prev_page_btn["state"] = "normal" if has_prev else "disabled"
+                self.video.next_page_btn["state"] = "normal" if has_next else "disabled"
+                try:
+                    self.video._panel.update_pages(index=int(getattr(self, 'video_search_page_index', 1) or 1), has_prev=has_prev, has_next=has_next, total_items=len(videos))
+                except Exception:
+                    pass
             except Exception:
                 pass
 
@@ -645,8 +651,14 @@ class MainPage(tk.Frame):
         try:
             self.video.prev_page_btn.configure(command=lambda: self.show_videos_search_page(self.video_prev_page_token))
             self.video.next_page_btn.configure(command=lambda: self.show_videos_search_page(self.video_next_page_token))
-            self.video.prev_page_btn["state"] = "normal" if self.video_prev_page_token else "disabled"
-            self.video.next_page_btn["state"] = "normal" if self.video_next_page_token else "disabled"
+            has_prev = bool(self.video_prev_page_token)
+            has_next = bool(self.video_next_page_token)
+            self.video.prev_page_btn["state"] = "normal" if has_prev else "disabled"
+            self.video.next_page_btn["state"] = "normal" if has_next else "disabled"
+            try:
+                self.video._panel.update_pages(index=int(getattr(self, 'video_search_page_index', 1) or 1), has_prev=has_prev, has_next=has_next, total_items=len(videos))
+            except Exception:
+                pass
         except Exception:
             pass
         self.video.update_back_button_state(True)
@@ -911,8 +923,14 @@ class MainPage(tk.Frame):
                 except Exception:
                     self.video.video_tree.insert('', 'end', values=self._video_row(v))
             try:
-                self.video.prev_page_btn["state"] = "normal" if self.video_prev_page_token else "disabled"
-                self.video.next_page_btn["state"] = "normal" if self.video_next_page_token else "disabled"
+                has_prev = bool(self.video_prev_page_token)
+                has_next = bool(self.video_next_page_token)
+                self.video.prev_page_btn["state"] = "normal" if has_prev else "disabled"
+                self.video.next_page_btn["state"] = "normal" if has_next else "disabled"
+                try:
+                    self.video._panel.update_pages(index=int(getattr(self, 'video_search_page_index', 1) or 1), has_prev=has_prev, has_next=has_next, total_items=len(videos))
+                except Exception:
+                    pass
             except Exception:
                 pass
         except Exception as e:
