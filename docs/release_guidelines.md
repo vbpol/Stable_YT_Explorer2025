@@ -33,11 +33,15 @@
 - Verify:
 - `python scripts/pre_release_check.py`
   - `python -m unittest -v`
-  - Verify UI flows:
+- Verify UI flows:
     - Videos search → playlist open (cache-first)
     - Concurrent opens are queued with status messages
     - Highlight scanning shows progress and resets
     - Network errors fall back to highlighting without dialogs
+    - Download Progress window shows speed/ETA, indeterminate bar on unknown sizes
+    - Open Folder button is enabled only when files exist
+    - Folder is auto-created before downloads start
+    - Status shows "Completed with issues" when nothing was saved
 - Finalize:
   - `git checkout main`
   - `git merge --no-ff release/vX.Y.Z`
@@ -55,4 +59,9 @@
 - Do not commit `src/data/app.sqlite3`, `data/*.json`, or logs — see `.gitignore`.
 - Build steps are project-specific; validate binaries separately if applicable.
 - Django integration is optional; keep JSON/SQLite as defaults until ORM parity passes.
+ - Video downloads (yt-dlp) quality mappings:
+   - Best: `bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best`
+   - 720p: `bestvideo[ext=mp4][height>=720]+bestaudio[ext=m4a]/best[ext=mp4]/best`
+   - These constraints ensure audio is present and merged cleanly to MP4 when ffmpeg is available; otherwise single MP4 streams are chosen.
+ - ffmpeg recommended and should be available on `PATH` for HD merges.
 

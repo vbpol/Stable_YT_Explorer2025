@@ -17,10 +17,10 @@ class DownloadOptionsDialog:
         quality_frame.pack(pady=5)
         
         qualities = [
-            ("Best", "best"),
-            ("720p", "best[height<=720]"),
-            ("480p", "best[height<=480]"),
-            ("360p", "best[height<=360]")
+            ("Best", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"),
+            ("720p", "bestvideo[ext=mp4][height>=720]+bestaudio[ext=m4a]/best[ext=mp4]/best"),
+            ("480p", "bestvideo[ext=mp4][height>=480]+bestaudio[ext=m4a]/best[ext=mp4]/best"),
+            ("360p", "bestvideo[ext=mp4][height>=360]+bestaudio[ext=m4a]/best[ext=mp4]/best")
         ]
         
         for text, value in qualities:

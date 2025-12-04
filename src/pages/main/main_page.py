@@ -1774,6 +1774,28 @@ class MainPage(tk.Frame):
         if not selected_playlist:
             messagebox.showerror("Error", "Please select a playlist first.")
             return
+        try:
+            if not self.current_playlist_info:
+                try:
+                    vals = self.playlist.playlist_tree.item(selected_playlist).get('values', [])
+                except Exception:
+                    vals = []
+                ttl = ''
+                chn = ''
+                try:
+                    ttl = vals[1] if len(vals) > 1 else ''
+                except Exception:
+                    ttl = ''
+                try:
+                    chn = vals[2] if len(vals) > 2 else ''
+                except Exception:
+                    chn = ''
+                try:
+                    self.current_playlist_info = {"title": ttl or str(selected_playlist), "channel": chn, "id": selected_playlist}
+                except Exception:
+                    self.current_playlist_info = {"title": str(selected_playlist), "channel": '', "id": selected_playlist}
+        except Exception:
+            pass
         
         # Then check if videos are loaded
         if not self.current_videos:
