@@ -46,3 +46,19 @@
 - API layer: `src/playlist.py`.
 - Persistence: `src/data/*.py`.
 - Tools menu is hidden when `APP_ENV=production`.
+
+## Release Workflow
+- Branching scheme:
+  - `main`: integrated, reviewed work.
+  - `stable-YYYY-MM-DD`: release candidate snapshot.
+  - `production-YYYY-MM-DD`: deployed version snapshot.
+- Promote a release:
+  - From `main`, create `stable-<date>`: `git checkout -b stable-YYYY-MM-DD && git push -u origin stable-YYYY-MM-DD`.
+  - Verify on `stable-<date>`; then create `production-<date>`: `git checkout -b production-YYYY-MM-DD && git push -u origin production-YYYY-MM-DD`.
+- Hotfix policy:
+  - Fix on `main`.
+  - Cherry-pick into the current `production-<date>` if needed.
+  - Include fix in the next `stable-<date>` cut.
+- Production mode:
+  - Hide build tools by setting `APP_ENV=production` before launching.
+  - Example (PowerShell): `$env:APP_ENV='production'; python -m src.main`.
