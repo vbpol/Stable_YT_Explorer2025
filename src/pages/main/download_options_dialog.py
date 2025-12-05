@@ -12,7 +12,7 @@ class DownloadOptionsDialog:
         print("Setting up dialog components")  # Debug print
         # Quality selection
         ttk.Label(self.window, text="Video Quality:").pack(pady=5)
-        self.quality_var = tk.StringVar(value="best")
+        self.quality_var = tk.StringVar(value="bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best")
         quality_frame = ttk.Frame(self.window)
         quality_frame.pack(pady=5)
         

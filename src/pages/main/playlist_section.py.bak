@@ -211,12 +211,7 @@ class PlaylistSection(BaseSection):
             if item:
                 self._rc_item = item
                 try:
-                    current = set(self.playlist_tree.selection())
-                    if item not in current:
-                        try:
-                            self.playlist_tree.selection_add(item)
-                        except Exception:
-                            self.playlist_tree.selection_set(item)
+                    self.playlist_tree.selection_set(item)
                 except Exception:
                     pass
                 try:

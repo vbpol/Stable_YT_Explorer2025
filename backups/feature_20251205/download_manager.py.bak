@@ -1,0 +1,16 @@
+import tkinter as tk
+from tkinter import ttk
+import threading
+import yt_dlp
+import os
+import sys
+import subprocess
+import shutil
+
+class DownloadManager:
+    def __init__(self, parent, videos, download_folder, options):
+        self.parent = parent
+        self.videos = videos
+        self.download_folder = download_folder
+        self.options = options
+        self.setup_progress_window()

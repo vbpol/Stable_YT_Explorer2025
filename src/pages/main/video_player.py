@@ -114,10 +114,25 @@ class VideoPlayer:
         selection = self.video_listbox.curselection()
         if selection:
             video_path = os.path.join(self.playlist_folder, self.video_listbox.get(selection[0]))
-            media = self.instance.media_new(video_path)
-            self.player.set_media(media)
-            self.player.play()
-            self.update_time_label()
+            try:
+                if os.name == "nt":
+                    os.startfile(video_path)
+                elif sys.platform == "darwin":
+                    import subprocess
+                    subprocess.run(["open", video_path])
+                else:
+                    import subprocess
+                    subprocess.run(["xdg-open", video_path])
+                return
+            except Exception:
+                pass
+            try:
+                media = self.instance.media_new(video_path)
+                self.player.set_media(media)
+                self.player.play()
+                self.update_time_label()
+            except Exception:
+                pass
 
     def toggle_play(self):
         if self.player.is_playing():

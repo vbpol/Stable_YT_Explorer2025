@@ -8,13 +8,11 @@ except ModuleNotFoundError:
 
 class VideoSection(BaseSection):
     def setup_gui(self):
-        """Create the video section with pagination."""
         self._title_videos = "Videos"
         self._title_playlist = "Videos in Playlist"
         self.configure(text=self._title_videos)
         self.pack(fill="both", expand=True, padx=10, pady=10)
-        
-        cols = ("Title", "Playlist", "Channel", "Duration", "Published", "Views", "Status", "Actions")
+        cols = ("Title", "Playlist", "Channel", "Duration", "Published", "Views")
         self._panel = TablePanel(self, columns=cols, show_page_size=True, size_label="Videos per page:")
         self.video_tree = self._panel.tree
         try:
@@ -28,8 +26,6 @@ class VideoSection(BaseSection):
         self.page_indicator = self._pagination.page_indicator
         self.total_label = self._pagination.total_label
         self.page_size_var = self._pagination.page_size_var
-        
-        # Create action buttons
         self._create_action_buttons()
 
     def _create_video_tree_styles(self):
@@ -37,8 +33,6 @@ class VideoSection(BaseSection):
         self.video_tree.column("Duration", width=100, anchor="center")
         self.video_tree.column("Published", width=120, anchor="center")
         self.video_tree.column("Views", width=90, anchor="center")
-        self.video_tree.column("Status", width=120, anchor="center")
-        self.video_tree.column("Actions", width=80, anchor="center")
         try:
             self.video_tree.tag_configure('pl_match', background='#d7ffd7')
         except Exception:
@@ -85,25 +79,14 @@ class VideoSection(BaseSection):
         button_frame.pack(pady=5)
         self.back_btn = ttk.Button(button_frame, text="Back to Results", command=self.main_page.back_to_video_results)
         self.back_btn.pack(side="left", padx=5)
-        
-        ttk.Button(button_frame, text="Save Playlist", 
-                  command=self.main_page.save_playlist).pack(side="left", padx=5)
-        
-        # Add debug print to verify button click
-        self.download_btn = ttk.Button(
-            button_frame, 
-            text="Download Videos", 
-            command=lambda: print("Download button clicked") or self.main_page.download_playlist_videos()
-        )
+        ttk.Button(button_frame, text="Save Playlist", command=self.main_page.save_playlist).pack(side="left", padx=5)
+        self.download_btn = ttk.Button(button_frame, text="Download Videos", command=lambda: print("Download button clicked") or self.main_page.download_playlist_videos())
         self.download_btn.pack(side="left", padx=5)
-        
-        ttk.Button(button_frame, text="View Downloaded", 
-                  command=self.main_page.view_downloaded_videos).pack(side="left", padx=5)
+        ttk.Button(button_frame, text="View Downloaded", command=self.main_page.view_downloaded_videos).pack(side="left", padx=5)
         import os as _os
         _env = str(_os.getenv("APP_ENV", "")).strip().lower()
         if _env not in ("production", "prod", "release"):
-            ttk.Button(button_frame, text="Build EXE", 
-                      command=self.main_page.build_exe_windows).pack(side="left", padx=5)
+            ttk.Button(button_frame, text="Build EXE", command=self.main_page.build_exe_windows).pack(side="left", padx=5)
 
     def update_back_button_state(self, enabled: bool):
         try:
@@ -148,34 +131,16 @@ class VideoSection(BaseSection):
         r = self.video_tree.identify_region(event.x, event.y)
         if r == 'heading':
             col = self.video_tree.identify_column(event.x)
-            name_map = {"#1":"Title","#2":"Playlist","#3":"Channel","#4":"Duration","#5":"Published","#6":"Views","#7":"Status","#8":"Actions"}
+            name_map = {"#1":"Title","#2":"Playlist","#3":"Channel","#4":"Duration","#5":"Published","#6":"Views"}
             name = name_map.get(str(col))
             if name:
                 self.main_page.sort_videos_by(name)
-            return
-        if r == 'cell':
-            col = self.video_tree.identify_column(event.x)
-            iid = self.video_tree.identify_row(event.y)
-            if str(col) == "#8" and iid:
-                try:
-                    import tkinter.messagebox as messagebox
-                    if messagebox.askyesno("Confirm Removal", "Remove this video from the list?"):
-                        idx = self.video_tree.index(iid)
-                        try:
-                            if 0 <= idx < len(self.main_page.current_videos):
-                                self.main_page.current_videos.pop(idx)
-                        except Exception:
-                            pass
-                        self.video_tree.delete(iid)
-                        return "break"
-                except Exception:
-                    pass
 
     def _on_video_double(self, event):
         r = self.video_tree.identify_region(event.x, event.y)
         if r == 'heading':
             col = self.video_tree.identify_column(event.x)
-            name_map = {"#1":"Title","#2":"Playlist","#3":"Channel","#4":"Duration","#5":"Published","#6":"Views","#7":"Status","#8":"Actions"}
+            name_map = {"#1":"Title","#2":"Playlist","#3":"Channel","#4":"Duration","#5":"Published","#6":"Views"}
             name = name_map.get(str(col))
             if name:
                 try:
@@ -223,10 +188,6 @@ class VideoSection(BaseSection):
                 return
             idx = self.video_tree.index(iid)
             v = self.main_page.current_videos[idx] if idx < len(self.main_page.current_videos) else {}
-            col = self.video_tree.identify_column(event.x)
-            if str(col) == "#8":
-                self._show_tooltip("Delete from list", event.x_root, event.y_root)
-                return
             vid = v.get('videoId')
             pid = v.get('playlistId') or self.main_page.video_playlist_cache.get(vid)
             title = ''

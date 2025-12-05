@@ -11,7 +11,6 @@ class MenuSection(BaseSection):
         menubar = tk.Menu(self.controller.root)
         self.controller.root.config(menu=menubar)
 
-        # File menu
         file_menu = tk.Menu(menubar, tearoff=0)
         file_menu.add_command(label="Change Download Folder", command=self.main_page.change_download_folder)
         file_menu.add_separator()
@@ -23,14 +22,12 @@ class MenuSection(BaseSection):
         file_menu.add_command(label="Exit", command=self.controller.root.quit)
         menubar.add_cascade(label="File", menu=file_menu)
 
-        # View menu
         view_menu = tk.Menu(menubar, tearoff=0)
         view_menu.add_command(label="Sort by Name", command=lambda: self.main_page._sort_playlists("Name"))
         view_menu.add_command(label="Sort by Channel", command=lambda: self.main_page._sort_playlists("Channel"))
         view_menu.add_command(label="Sort by Videos", command=lambda: self.main_page._sort_playlists("Videos"))
         menubar.add_cascade(label="View", menu=view_menu)
 
-        # Download menu
         download_menu = tk.Menu(menubar, tearoff=0)
         download_menu.add_command(label="Save Playlist", command=self.main_page.save_playlist)
         download_menu.add_command(label="Download Videos", command=getattr(self.main_page, 'download_playlist_videos', lambda: None))
@@ -43,6 +40,4 @@ class MenuSection(BaseSection):
             tools_menu = tk.Menu(menubar, tearoff=0)
             tools_menu.add_command(label="Build EXE (Onefile)", command=getattr(self.main_page, 'build_exe_windows', lambda: None))
             tools_menu.add_command(label="Build Portable (Folder)", command=getattr(self.main_page, 'build_portable_windows', lambda: None))
-            tools_menu.add_separator()
-            tools_menu.add_command(label="Restart App", command=getattr(self.main_page, 'restart_app', lambda: None))
             menubar.add_cascade(label="Tools", menu=tools_menu)

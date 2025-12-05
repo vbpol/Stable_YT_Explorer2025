@@ -113,16 +113,13 @@ class MainPage(tk.Frame):
                 idx = self.playlist_index_map.get(plid, '')
             elif v.get('playlistIndex'):
                 idx = v.get('playlistIndex')
-            status = self._video_download_status(v)
             return (
                 v.get('title', ''),
                 idx,
                 v.get('channelTitle', ''),
                 v.get('duration', 'N/A'),
                 self._fmt_date(v.get('published', '')),
-                (f"{int(v.get('views', '0')):,}" if str(v.get('views', '0')).isdigit() else v.get('views', '0')),
-                status,
-                "🗑"
+                (f"{int(v.get('views', '0')):,}" if str(v.get('views', '0')).isdigit() else v.get('views', '0'))
             )
         self._video_row = _video_row
         def _log(msg):
@@ -143,69 +140,6 @@ class MainPage(tk.Frame):
             self._create_mid_controls()
         except Exception:
             pass
-
-    def _video_target_folder(self, v):
-        try:
-            if getattr(self, 'download_folder', None):
-                return self.download_folder
-            vid = v.get('videoId')
-            pid = v.get('playlistId') or self.video_playlist_cache.get(vid)
-            if not pid:
-                try:
-                    pi = v.get('playlistIndex')
-                    if pi:
-                        rev = {idx: pid2 for pid2, idx in getattr(self, 'playlist_index_map', {}).items()}
-                        pid = rev.get(pi)
-                except Exception:
-                    pid = None
-            if pid:
-                try:
-                    ttl = ''
-                    if self.playlist.playlist_tree.exists(pid):
-                        vals = self.playlist.playlist_tree.item(pid).get('values', [])
-                        ttl = vals[1] if len(vals) > 1 else ''
-                    return os.path.join(self.controller.default_folder, f"Playlist - {ttl or pid}")
-                except Exception:
-                    pass
-            q = getattr(self, 'video_search_query', '') or 'Misc'
-            return os.path.join(self.controller.default_folder, f"Videos - {q}")
-        except Exception:
-            return self.controller.default_folder
-
-    def _find_downloaded_file(self, folder, title):
-        try:
-            name = str(title or '').strip()
-            if not folder or not name:
-                return None
-            exts = ('.mp4', '.webm', '.mkv')
-            candidates = []
-            for f in os.listdir(folder):
-                try:
-                    if any(f.lower().endswith(e) for e in exts) and f.lower().startswith(name.lower()[:50]):
-                        candidates.append(os.path.join(folder, f))
-                except Exception:
-                    pass
-            if not candidates:
-                return None
-            try:
-                candidates.sort(key=lambda p: os.path.getmtime(p), reverse=True)
-            except Exception:
-                pass
-            return candidates[0]
-        except Exception:
-            return None
-
-    def _video_download_status(self, v):
-        try:
-            folder = self._video_target_folder(v)
-            try:
-                os.makedirs(folder, exist_ok=True)
-            except Exception:
-                pass
-            fp = self._find_downloaded_file(folder, v.get('title',''))
-            return "Downloaded" if fp else "Not Downloaded"
-        except Exception:
-            return "Unknown"
         try:
             import tkinter as _tk
             def _safe_ui(fn):
@@ -2475,10 +2409,6 @@ class MainPage(tk.Frame):
     def _start_download_for_videos(self, videos, folder=None):
         try:
             try:
-                self._enrich_video_playlist_info(videos)
-            except Exception:
-                pass
-            try:
                 from .download_options_dialog import DownloadOptionsDialog
             except Exception:
                 from src.pages.main.download_options_dialog import DownloadOptionsDialog
@@ -2493,81 +2423,12 @@ class MainPage(tk.Frame):
         except Exception:
             pass
 
-    def open_explore_downloaded_popup(self):
-        try:
-            try:
-                from .download_manager import DownloadManager
-            except Exception:
-                from src.pages.main.download_manager import DownloadManager
-            # No direct instance access; this triggers only within an active download window
-            # Provided here for context-menu binding; it will be a no-op if not available
-        except Exception:
-            pass
-
-    def _enrich_video_playlist_info(self, videos):
-        try:
-            rev = {}
-            try:
-                rev = {idx: pid for pid, idx in (self.playlist_index_map or {}).items()}
-            except Exception:
-                rev = {}
-            for v in list(videos or []):
-                try:
-                    vid = v.get('videoId')
-                    pid = v.get('playlistId')
-                    if not pid:
-                        try:
-                            pid = self.video_playlist_cache.get(vid)
-                        except Exception:
-                            pid = None
-                    if not pid:
-                        try:
-                            pi = v.get('playlistIndex')
-                            if pi and pi in rev:
-                                pid = rev.get(pi)
-                        except Exception:
-                            pid = None
-                    if not pid:
-                        try:
-                            for k, ids in (self.playlist_video_ids or {}).items():
-                                if vid in ids:
-                                    pid = k
-                                    break
-                        except Exception:
-                            pid = None
-                    if pid:
-                        v['playlistId'] = pid
-                        try:
-                            self.video_playlist_cache[vid] = pid
-                        except Exception:
-                            pass
-                except Exception:
-                    pass
-        except Exception:
-            pass
-
     def restart_app(self):
         try:
-            import subprocess, os, sys
+            import subprocess, os
             bat = r"d:\Py_2025\11-2025\youtube_downloaderV2_CURSOR_OK1_dev_multi_OK07-04-25\run_app.bat"
-            if os.name == "nt":
-                try:
-                    ps = "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match 'run_app\\.bat' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"
-                    subprocess.run(["powershell", "-NoProfile", "-Command", ps], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                except Exception:
-                    pass
             if os.path.exists(bat):
-                try:
-                    p = subprocess.Popen(["cmd", "/c", bat], creationflags=getattr(subprocess, 'CREATE_NEW_CONSOLE', 0))
-                    try:
-                        self._bat_process = p
-                    except Exception:
-                        pass
-                except Exception:
-                    try:
-                        subprocess.Popen(["cmd", "/c", "start", "", bat])
-                    except Exception:
-                        pass
+                subprocess.Popen(["cmd", "/c", "start", "", bat])
         except Exception:
             pass
         try:
