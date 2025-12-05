@@ -1,6 +1,13 @@
 {
-  "query": "E3D",
+  "query": "AVEVA",
   "playlists": [
+    {
+      "playlistId": "PLp6sczyQUTPNIOQgKsc1vUCCIbBM5oDCW",
+      "title": "AVEVA Edge Training Videos",
+      "channelTitle": "AVEVA Select California (Wonderware California)",
+      "thumbnail": "https://i.ytimg.com/vi/Ei6UxtDne7w/default.jpg",
+      "video_count": 42
+    },
     {
       "playlistId": "PLZYuulzjE1ABnmts7xHU31nuNvEPrIggR",
       "title": "AVEVA E3D TUTORIAL",
@@ -9,67 +16,60 @@
       "video_count": 15
     },
     {
-      "playlistId": "PLjChkog_p_LEEwqxvdniWTK7JlEnDXUW_",
-      "title": "AVEVA E3D - Getting Started",
-      "channelTitle": "TDS Engr Solutions Pte Ltd",
-      "thumbnail": "https://i.ytimg.com/vi/5c4LTTz-gGQ/default.jpg",
-      "video_count": 12
+      "playlistId": "PLJq4rR8tWINxOQDteyUlDiDnB4D1tVp8S",
+      "title": "AVEVA Plant SCADA - Flexible, high-performance supervisory control and data acquisition (SCADA) software for plant personnel",
+      "channelTitle": "AVEVA Operations Control",
+      "thumbnail": "https://i.ytimg.com/vi/HwZRT0p_A70/default.jpg",
+      "video_count": 6
     },
     {
-      "playlistId": "PLjV5XTNQA1rz784U2gdMMwN1JAuooMrhT",
-      "title": "Projet Routier avec Civil 3D 2020",
-      "channelTitle": "walker baweni",
-      "thumbnail": "https://i.ytimg.com/vi/ix4keAKwlZo/default.jpg",
-      "video_count": 12
+      "playlistId": "PLMNq4CGnXT34PzfK_ofCiv522XQmiK7nk",
+      "title": "AVEVA Engineering Tools",
+      "channelTitle": "AVEVA Group",
+      "thumbnail": "https://i.ytimg.com/vi/mkGSDSUZ6wo/default.jpg",
+      "video_count": 13
     },
     {
-      "playlistId": "PLLD0AXRDg5kRTxg3aQaUmSRvMDxIIEjyM",
-      "title": "e3d piping modeling",
-      "channelTitle": "Aveva E3D Tutorials",
-      "thumbnail": "https://i.ytimg.com/vi/1zbN8b7INC0/default.jpg",
-      "video_count": 16
+      "playlistId": "PLMNq4CGnXT34FduXGPZElG1tMnyXOsyn4",
+      "title": "AVEVA Operations",
+      "channelTitle": "AVEVA Group",
+      "thumbnail": "https://i.ytimg.com/vi/Nd5lV_tZkO8/default.jpg",
+      "video_count": 13
     },
     {
-      "playlistId": "PL75IZtNZuZ3tnyUCSdefbcD_FKB3KAn5Z",
-      "title": "CURSO AVEVA E3D TUBULAÇÃO INDUSTRIAL",
-      "channelTitle": "Jeverson Evangelista",
-      "thumbnail": "https://i.ytimg.com/vi/3inCraZrdS8/default.jpg",
-      "video_count": 27
-    },
-    {
-      "playlistId": "PLjChkog_p_LFWXnasBK39_az2XMxt6XkN",
-      "title": "AVEVA E3D 3.1 - &quot;How To&quot;",
-      "channelTitle": "TDS Engr Solutions Pte Ltd",
-      "thumbnail": "https://i.ytimg.com/vi/qcb-RQUsKHM/default.jpg",
-      "video_count": 22
-    },
-    {
-      "playlistId": "PL1jTYwbsIqVoEeorq9Z-ONkoDQvS6NY4M",
-      "title": "Lessons of Aveva E3D",
-      "channelTitle": "SmartProject",
-      "thumbnail": "https://i.ytimg.com/vi/f21nNWzkwcA/default.jpg",
+      "playlistId": "PLtp9Ri9t0JvXodWa6Ho94hZSjnD-cHlAK",
+      "title": "AVEVA Plant SCADA (Citect SCADA) Tutorials &amp; Guides",
+      "channelTitle": "Control System Guru",
+      "thumbnail": "https://i.ytimg.com/vi/IfLxnBzD4ec/default.jpg",
       "video_count": 20
     },
     {
-      "playlistId": "PLjChkog_p_LGhfPnFczX64gLhZsX6rxwx",
-      "title": "AVEVA E3D - PML",
-      "channelTitle": "TDS Engr Solutions Pte Ltd",
-      "thumbnail": "https://i.ytimg.com/vi/aKFAf4ymup4/default.jpg",
-      "video_count": 14
+      "playlistId": "PLJq4rR8tWINyOrvwxbIjRvgTtoyuuEfSz",
+      "title": "AVEVA System Platform - Responsive, standards-driven, and scalable foundation for supervisory, Enterprise SCADA, MES, and IIoT applications.",
+      "channelTitle": "AVEVA Operations Control",
+      "thumbnail": "https://i.ytimg.com/vi/TItqvmCSwu8/default.jpg",
+      "video_count": 72
     },
     {
-      "playlistId": "PLFMJSepvX3NEQEnwnnDd7T1sZ-N7OSRL2",
-      "title": "AVEVA-Everything 3D-Equipment &amp; Piping Basic",
-      "channelTitle": "Nazmul Hossain",
-      "thumbnail": "https://i.ytimg.com/vi/wfUGvb3c_cs/default.jpg",
-      "video_count": 8
+      "playlistId": "PLMNq4CGnXT352IoxOV5nVk00Y_mUNuENk",
+      "title": "AVEVA Unified Operations Center",
+      "channelTitle": "AVEVA Group",
+      "thumbnail": "https://i.ytimg.com/vi/e1OHndblgAs/default.jpg",
+      "video_count": 13
     },
     {
-      "playlistId": "PLeaIM0zUlEqswa6Pskg9uMq15LiWWYP39",
-      "title": "3D Slicer Tutorial",
-      "channelTitle": "Jan Witowski",
-      "thumbnail": "https://i.ytimg.com/vi/QTEti9aY0vs/default.jpg",
-      "video_count": 11
+      "playlistId": "PLMNq4CGnXT37Me_Lb_6lQDbIuSx8c-Do_",
+      "title": "AVEVA Process Simulation Tutorials",
+      "channelTitle": "AVEVA Group",
+      "thumbnail": "https://i.ytimg.com/vi/qpNWckKWcrw/default.jpg",
+      "video_count": 16
+    },
+    {
+      "playlistId": "PLJq4rR8tWINx1U-wu6GsXq1YKuC2Ipz9C",
+      "title": "AVEVA Edge - Easy-to-use, powerful, and affordable HMI software for IoT/Industry 4.0 solutions",
+      "channelTitle": "AVEVA Operations Control",
+      "thumbnail": "https://i.ytimg.com/vi/mLHr3p5a5fc/default.jpg",
+      "video_count": 37
     }
   ]
 }

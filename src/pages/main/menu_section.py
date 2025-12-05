@@ -1,4 +1,5 @@
 import tkinter as tk
+import os
 from .base_section import BaseSection
 try:
     from src.pages.setup_page import SetupPage
@@ -36,3 +37,10 @@ class MenuSection(BaseSection):
         download_menu.add_command(label="Download Selected", command=getattr(self.main_page, 'download_selected_videos', lambda: None))
         download_menu.add_command(label="View Downloaded", command=self.main_page.view_downloaded_videos)
         menubar.add_cascade(label="Download", menu=download_menu)
+
+        env = str(os.getenv("APP_ENV", "")).strip().lower()
+        if env != "production":
+            tools_menu = tk.Menu(menubar, tearoff=0)
+            tools_menu.add_command(label="Build EXE (Onefile)", command=getattr(self.main_page, 'build_exe_windows', lambda: None))
+            tools_menu.add_command(label="Build Portable (Folder)", command=getattr(self.main_page, 'build_portable_windows', lambda: None))
+            menubar.add_cascade(label="Tools", menu=tools_menu)

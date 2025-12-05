@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import json
+import webbrowser
 from googleapiclient.errors import HttpError
 try:
     from src.playlist import Playlist
@@ -20,6 +21,7 @@ class SetupPage(tk.Frame):
         self._create_api_key_section()
         self._create_folder_section()
         self._create_save_button()
+        self._create_help_section()
 
     def _create_api_key_section(self):
         tk.Label(self, text="Enter Your YouTube API Key").pack(pady=10)
@@ -116,4 +118,27 @@ class SetupPage(tk.Frame):
     def _toggle_show(self):
         self.api_key_entry.config(show="" if self.show_var.get() else "*")
 
-    # ... [rest of the SetupPage class methods]
+    def _create_help_section(self):
+        box = ttk.Frame(self)
+        box.pack(pady=12)
+        ttk.Label(box, text="Need a YouTube API Key?").pack()
+        ttk.Button(box, text="Open Step-by-Step Guide", command=self._open_api_key_help).pack(pady=4)
+        ttk.Button(box, text="Open Google Cloud Console", command=lambda: webbrowser.open("https://console.cloud.google.com/apis/credentials")).pack(pady=2)
+
+    def _open_api_key_help(self):
+        win = tk.Toplevel(self)
+        win.title("How to get a YouTube API Key")
+        frm = ttk.Frame(win)
+        frm.pack(fill="both", expand=True, padx=12, pady=12)
+        txt = tk.Text(frm, width=72, height=16)
+        txt.pack(fill="both", expand=True)
+        steps = (
+            "1. Go to Google Cloud Console (opens from the button).\n"
+            "2. Create a project or select an existing one.\n"
+            "3. Enable the YouTube Data API v3 in the APIs & Services.\n"
+            "4. Create credentials: choose API key.\n"
+            "5. Copy the key and paste it above.\n"
+            "6. Save settings and start using the app.\n"
+        )
+        txt.insert("end", steps)
+        txt.config(state="disabled")

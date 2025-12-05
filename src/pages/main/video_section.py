@@ -82,6 +82,8 @@ class VideoSection(BaseSection):
         
         ttk.Button(button_frame, text="View Downloaded", 
                   command=self.main_page.view_downloaded_videos).pack(side="left", padx=5) 
+        ttk.Button(button_frame, text="Build EXE", 
+                  command=self.main_page.build_exe_windows).pack(side="left", padx=5)
 
     def update_back_button_state(self, enabled: bool):
         try:

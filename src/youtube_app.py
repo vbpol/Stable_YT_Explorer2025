@@ -11,7 +11,12 @@ class YouTubeApp:
         self.config = ConfigManager.load_config()
         self.api_key = self.config.get("api_key", "")
         self.default_folder = self.config.get("default_folder", "")
-        self.playlist_handler = Playlist(self.api_key)
+        self.playlist_handler = None
+        try:
+            if self.api_key:
+                self.playlist_handler = Playlist(self.api_key)
+        except Exception:
+            self.playlist_handler = None
         self._initialize_gui()
 
     def _initialize_gui(self):
@@ -62,7 +67,7 @@ class YouTubeApp:
 
     def _show_initial_frame(self):
         """Show the appropriate initial frame based on configuration."""
-        if self.api_key and self.default_folder:
+        if self.api_key and self.default_folder and self.playlist_handler is not None:
             self.show_frame(MainPage)
             try:
                 mp = self.frames[MainPage]
@@ -81,6 +86,8 @@ class YouTubeApp:
 
     def show_frame(self, page_class):
         """Show the selected frame."""
+        if page_class is MainPage and (not self.api_key or not self.default_folder or self.playlist_handler is None):
+            page_class = SetupPage
         frame = self.frames[page_class]
         frame.tkraise()
 
@@ -89,7 +96,10 @@ class YouTubeApp:
         self.api_key = api_key
         self.default_folder = default_folder
         ConfigManager.save_config(api_key, default_folder)
-        self.playlist_handler = Playlist(api_key)
+        try:
+            self.playlist_handler = Playlist(api_key)
+        except Exception:
+            self.playlist_handler = None
 
     def get_current_config(self):
         """Get current configuration values."""

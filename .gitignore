@@ -1,24 +1,16 @@
-# Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.egg-info/
 .venv/
 venv/
-.env
-
-# IDE
-.DS_Store
-Thumbs.db
-.vscode/
-
-# Logs
-*.log
-
-# Build/Dist
 build/
 dist/
-
-# Local data caches
-last_search_*.json
+*.spec
+.env
+*.log
+*.pyc
+*.pyo
+node_modules/
+*.sqlite
+*.db
+.DS_Store
+backups/**/venv/
+backups/**/venv/**

@@ -10,8 +10,9 @@
 - Optional: create `.env` with `YOUTUBE_API_KEY` or `YOUTUBE_API_KEYS`.
 
 ## First Run
-- Start the app: `python run.py` or `python -m src.main`.
-- Provide your API key and default download folder in the setup page.
+- Start the app: `python -m src.main`.
+- The setup page appears if no API key or folder is set.
+- Use the inline helper to open the Google Cloud Console and follow steps to obtain a YouTube Data API v3 key, then save settings.
 
 ## Key Features
 - `Playlists` mode: search playlists, open, paginate videos, highlight query hits.
@@ -33,6 +34,8 @@
 - No results: verify API key and network access.
 - Rate limits: wait or use multiple keys via `YOUTUBE_API_KEYS`.
 - UI not responding: avoid blocking operations; the app uses background threads.
+- If packaged EXE fails by double-click, start via `dist/Run-YouTubePlaylistExplorer.cmd` or `dist/YouTubePlaylistExplorer/Run-App.cmd` which clears conflicting environment variables.
+- Antivirus blocking PowerShell: builds use Python-only; allow the EXE and launcher via AV exclusions if needed.
 
 ---
 
@@ -42,4 +45,4 @@
 - Core page: `src/pages/main/main_page.py`.
 - API layer: `src/playlist.py`.
 - Persistence: `src/data/*.py`.
-
+- Tools menu is hidden when `APP_ENV=production`.
