@@ -1771,11 +1771,15 @@ class MainPage(tk.Frame):
             sb.pack(side="right", fill="y")
             btns = ttk.Frame(frm)
             btns.pack(fill="x", pady=8)
-            open_btn = ttk.Button(btns, text="Open Distribution Folder")
-            open_btn.pack(side="left")
+            run_btn = ttk.Button(btns, text="Run EXE")
+            run_btn.pack(side="left")
+            open_btn = ttk.Button(btns, text="Open EXE Folder")
+            open_btn.pack(side="left", padx=6)
             close_btn = ttk.Button(btns, text="Close", command=top.destroy)
             close_btn.pack(side="right")
             open_btn.configure(state="disabled")
+            run_btn.configure(state="disabled")
+            exe_path = os.path.join(dist_dir, "YouTubePlaylistExplorer.exe")
             def _open_dist():
                 try:
                     if sys.platform == "win32":
@@ -1787,6 +1791,17 @@ class MainPage(tk.Frame):
                 except Exception:
                     pass
             open_btn.configure(command=_open_dist)
+            def _run_exe():
+                try:
+                    if sys.platform == "win32":
+                        os.startfile(exe_path)
+                    elif sys.platform == "darwin":
+                        subprocess.run(["open", exe_path])
+                    else:
+                        subprocess.run([exe_path])
+                except Exception:
+                    pass
+            run_btn.configure(command=_run_exe)
             def _append(s):
                 try:
                     txt.insert("end", s)
@@ -1799,6 +1814,7 @@ class MainPage(tk.Frame):
                     lbl.configure(text=("Build completed" if ok else "Build failed"))
                     if ok:
                         open_btn.configure(state="normal")
+                        run_btn.configure(state="normal")
                 except Exception:
                     pass
             def _worker():
@@ -1896,11 +1912,15 @@ class MainPage(tk.Frame):
             sb.pack(side="right", fill="y")
             btns = ttk.Frame(frm)
             btns.pack(fill="x", pady=8)
-            open_btn = ttk.Button(btns, text="Open Distribution Folder")
-            open_btn.pack(side="left")
+            run_btn = ttk.Button(btns, text="Run EXE")
+            run_btn.pack(side="left")
+            open_btn = ttk.Button(btns, text="Open EXE Folder")
+            open_btn.pack(side="left", padx=6)
             close_btn = ttk.Button(btns, text="Close", command=top.destroy)
             close_btn.pack(side="right")
             open_btn.configure(state="disabled")
+            run_btn.configure(state="disabled")
+            exe_path = os.path.join(dist_dir, "YouTubePlaylistExplorer.exe")
             def _open_dist():
                 try:
                     if sys.platform == "win32":
@@ -1924,6 +1944,7 @@ class MainPage(tk.Frame):
                     lbl.configure(text=("Build completed" if ok else "Build failed"))
                     if ok:
                         open_btn.configure(state="normal")
+                        run_btn.configure(state="normal")
                 except Exception:
                     pass
             def _worker():
@@ -1967,6 +1988,7 @@ class MainPage(tk.Frame):
                         self.after(0, lambda s=r.stdout: _append(s))
                         target_dir = os.path.join(dist, "YouTubePlaylistExplorer")
                         ok = os.path.isdir(target_dir)
+                        exe_path2 = os.path.join(target_dir, "YouTubePlaylistExplorer.exe")
                         if ok:
                             try:
                                 run_cmd = os.path.join(target_dir, "Run-App.cmd")

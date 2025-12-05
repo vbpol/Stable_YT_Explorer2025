@@ -1,4 +1,5 @@
 import tkinter as tk
+import os
 from .config_manager import ConfigManager
 from .pages.setup_page import SetupPage
 from .pages.main.main_page import MainPage
@@ -26,7 +27,29 @@ class YouTubeApp:
 
     def setup_window(self):
         """Configure the main window properties."""
-        self.root.title("YouTube Playlist Explorer")
+        try:
+            ver = str(os.getenv("APP_VERSION", "1.0.0")).strip()
+        except Exception:
+            ver = "1.0.0"
+        try:
+            env = str(os.getenv("APP_ENV", "development")).strip().lower()
+        except Exception:
+            env = "development"
+        try:
+            env_label = {
+                "production": "PROD",
+                "prod": "PROD",
+                "release": "PROD",
+                "stable": "STABLE",
+                "development": "DEV",
+                "dev": "DEV"
+            }.get(env, env.upper() or "DEV")
+        except Exception:
+            env_label = "DEV"
+        try:
+            self.root.title(f"YouTube Playlist Explorer — v{ver} [{env_label}]")
+        except Exception:
+            self.root.title("YouTube Playlist Explorer")
         try:
             from .config_manager import ConfigManager
             ui_cfg = ConfigManager.load_config().get('ui', {})

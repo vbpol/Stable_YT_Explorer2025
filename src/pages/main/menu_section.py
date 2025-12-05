@@ -39,7 +39,7 @@ class MenuSection(BaseSection):
         menubar.add_cascade(label="Download", menu=download_menu)
 
         env = str(os.getenv("APP_ENV", "")).strip().lower()
-        if env != "production":
+        if env not in ("production", "prod", "release"):
             tools_menu = tk.Menu(menubar, tearoff=0)
             tools_menu.add_command(label="Build EXE (Onefile)", command=getattr(self.main_page, 'build_exe_windows', lambda: None))
             tools_menu.add_command(label="Build Portable (Folder)", command=getattr(self.main_page, 'build_portable_windows', lambda: None))
