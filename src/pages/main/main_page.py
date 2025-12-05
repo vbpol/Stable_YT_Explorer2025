@@ -206,6 +206,57 @@ class MainPage(tk.Frame):
             return "Downloaded" if fp else "Not Downloaded"
         except Exception:
             return "Unknown"
+
+    def _count_downloaded_files(self, folder):
+        try:
+            exts = ('.mp4', '.webm', '.mkv')
+            return len([f for f in os.listdir(folder) if any(f.lower().endswith(e) for e in exts)])
+        except Exception:
+            return 0
+
+    def _playlist_folder_by_id(self, playlist_id):
+        try:
+            ttl = ''
+            if self.playlist.playlist_tree.exists(playlist_id):
+                vals = self.playlist.playlist_tree.item(playlist_id).get('values', [])
+                ttl = vals[1] if len(vals) > 1 else ''
+            return os.path.join(self.controller.default_folder, f"Playlist - {ttl or playlist_id}")
+        except Exception:
+            return self.controller.default_folder
+
+    def _playlist_download_status(self, playlist_id, expected_count):
+        try:
+            folder = self._playlist_folder_by_id(playlist_id)
+            if not os.path.exists(folder):
+                return "Not Downloaded"
+            cnt = self._count_downloaded_files(folder)
+            try:
+                exp = int(expected_count or 0)
+            except Exception:
+                exp = 0
+            if cnt == 0:
+                return "Empty Folder"
+            if exp and cnt >= exp:
+                return "Complete"
+            if exp:
+                return f"{cnt}/{exp}"
+            return str(cnt)
+        except Exception:
+            return "Unknown"
+
+    def refresh_video_statuses(self):
+        try:
+            items = list(self.video.video_tree.get_children())
+        except Exception:
+            items = []
+        for i, iid in enumerate(items):
+            try:
+                v = self.current_videos[i] if i < len(self.current_videos) else None
+                if not v:
+                    continue
+                self.video.video_tree.item(iid, values=self._video_row(v))
+            except Exception:
+                pass
         try:
             import tkinter as _tk
             def _safe_ui(fn):

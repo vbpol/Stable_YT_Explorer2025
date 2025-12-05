@@ -211,6 +211,14 @@ class DownloadManager:
                             pass
                 except Exception:
                     pass
+                try:
+                    self.parent.after(0, lambda: self.parent.refresh_video_statuses())
+                except Exception:
+                    pass
+                try:
+                    self.parent.after(0, lambda: self.parent.playlist.refresh_all_statuses())
+                except Exception:
+                    pass
             else:
                 msg = last_error or "No files downloaded"
                 self.status_label["text"] = f"Completed with issues: {msg}"

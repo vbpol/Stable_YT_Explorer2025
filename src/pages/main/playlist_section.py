@@ -233,30 +233,32 @@ class PlaylistSection(BaseSection):
             self.playlist_tree.delete(playlist_id)
 
     def check_download_status(self, playlist_id, video_count):
-        """Check if all videos in the playlist are downloaded."""
-        # Get the playlist title from the tree
-        playlist_values = self.playlist_tree.item(playlist_id)["values"]
-        playlist_title = playlist_values[1] if playlist_values else "Unknown"
-        
-        playlist_folder = os.path.join(
-            self.controller.default_folder,
-            f"Playlist - {playlist_title}"  # Match the folder name format used in download
-        )
-
-        if not os.path.exists(playlist_folder):
-            return "Not Downloaded"
-
-        video_files = [
-            f for f in os.listdir(playlist_folder) 
-            if f.lower().endswith(('.mp4', '.webm', '.mkv'))
-        ]
-        
-        if len(video_files) == 0:
-            return "Empty Folder"
-        elif len(video_files) < video_count:
-            return f"{len(video_files)}/{video_count}"
-        else:
-            return "Complete"
+        """Check playlist download status via shared logic in MainPage."""
+        try:
+            return self.main_page._playlist_download_status(playlist_id, video_count)
+        except Exception:
+            try:
+                # Fallback to direct computation
+                playlist_values = self.playlist_tree.item(playlist_id)["values"]
+                playlist_title = playlist_values[1] if playlist_values else "Unknown"
+                folder = os.path.join(self.controller.default_folder, f"Playlist - {playlist_title}")
+                if not os.path.exists(folder):
+                    return "Not Downloaded"
+                exts = ('.mp4', '.webm', '.mkv')
+                files = [f for f in os.listdir(folder) if any(f.lower().endswith(e) for e in exts)]
+                if not files:
+                    return "Empty Folder"
+                try:
+                    vc = int(video_count or 0)
+                except Exception:
+                    vc = 0
+                if vc and len(files) >= vc:
+                    return "Complete"
+                if vc:
+                    return f"{len(files)}/{vc}"
+                return str(len(files))
+            except Exception:
+                return "Unknown"
 
     def update_playlist(self, playlist_data):
         """Update or add a playlist to the tree."""
