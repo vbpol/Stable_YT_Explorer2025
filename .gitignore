@@ -1,6 +1,7 @@
 __pycache__/
 .venv/
 venv/
+tutor/**/venv/
 build/
 dist/
 *.spec
