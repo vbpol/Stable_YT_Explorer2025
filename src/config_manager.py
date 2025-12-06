@@ -32,11 +32,19 @@ class ConfigManager:
 
     @staticmethod
     def save_config(api_key, default_folder):
-        with open(CONFIG_FILE, "w") as file:
-            json.dump({
-                "api_key": "",
-                "default_folder": default_folder
-            }, file, indent=4)
+        try:
+            data = {}
+            try:
+                with open(CONFIG_FILE, "r") as file:
+                    data = json.load(file) or {}
+            except Exception:
+                data = {}
+            data["api_key"] = ""
+            data["default_folder"] = default_folder
+            with open(CONFIG_FILE, "w") as file:
+                json.dump(data, file, indent=4)
+        except Exception:
+            pass
 
     @staticmethod
     def get_available_api_keys() -> List[str]:
@@ -171,3 +179,62 @@ class ConfigManager:
             return max(1, v)
         except Exception:
             return 10
+
+    @staticmethod
+    def set_cookie_source(source: str):
+        try:
+            src = (source or "").strip().lower()
+            data = {}
+            try:
+                with open(CONFIG_FILE, "r") as file:
+                    data = json.load(file) or {}
+            except Exception:
+                data = {}
+            ui = dict(data.get("ui", {}) or {})
+            ui["cookie_source"] = src
+            data["ui"] = ui
+            with open(CONFIG_FILE, "w") as file:
+                json.dump(data, file, indent=4)
+        except Exception:
+            pass
+
+    @staticmethod
+    def get_cookie_source() -> str:
+        try:
+            cfg = ConfigManager.load_config() or {}
+            ui = cfg.get("ui", {}) or {}
+            src = str(ui.get("cookie_source", "firefox")).strip().lower()
+            if src in ("none","edge","chrome","firefox","cookiefile"):
+                return src
+        except Exception:
+            pass
+        return "firefox"
+
+    @staticmethod
+    def set_use_channel_title_fallback(value: bool):
+        try:
+            data = {}
+            try:
+                with open(CONFIG_FILE, "r") as file:
+                    data = json.load(file) or {}
+            except Exception:
+                data = {}
+            ui = dict(data.get("ui", {}) or {})
+            ui["use_channel_title_fallback"] = bool(value)
+            data["ui"] = ui
+            with open(CONFIG_FILE, "w") as file:
+                json.dump(data, file, indent=4)
+        except Exception:
+            pass
+
+    @staticmethod
+    def get_use_channel_title_fallback() -> bool:
+        try:
+            cfg = ConfigManager.load_config() or {}
+            ui = cfg.get("ui", {}) or {}
+            val = ui.get("use_channel_title_fallback")
+            if val is None:
+                return True
+            return bool(val)
+        except Exception:
+            return True

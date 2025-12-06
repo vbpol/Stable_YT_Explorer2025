@@ -34,6 +34,17 @@ class MainPage(tk.Frame):
         self.current_page_token = None
         self._initialize_components()
 
+    def _safe_ui(self, fn):
+        try:
+            if not self.winfo_exists():
+                return
+            try:
+                self.after(0, fn)
+            except Exception:
+                pass
+        except Exception:
+            pass
+
     def _initialize_components(self):
         """Initialize and pack GUI components."""
         self._create_sections()
@@ -152,10 +163,7 @@ class MainPage(tk.Frame):
             pid = v.get('playlistId') or self.video_playlist_cache.get(vid)
             if not pid:
                 try:
-                    pi = v.get('playlistIndex')
-                    if pi:
-                        rev = {idx: pid2 for pid2, idx in getattr(self, 'playlist_index_map', {}).items()}
-                        pid = rev.get(pi)
+                    pid = self._resolve_playlist_for_video(v)
                 except Exception:
                     pid = None
             if pid:
@@ -167,12 +175,30 @@ class MainPage(tk.Frame):
                     return os.path.join(self.controller.default_folder, f"Playlist - {ttl or pid}")
                 except Exception:
                     pass
-            q = getattr(self, 'video_search_query', '') or 'Misc'
-            return os.path.join(self.controller.default_folder, f"Videos - {q}")
+            try:
+                opts = getattr(self, '_download_opts', {})
+                fv = bool(opts.get('fallback_videos', True))
+            except Exception:
+                fv = True
+            if fv:
+                try:
+                    use_ct = bool(opts.get('use_channel_title_fallback', True))
+                except Exception:
+                    use_ct = True
+                if use_ct:
+                    ct = str(v.get('channelTitle','')).strip()
+                    if ct:
+                        q = ct
+                    else:
+                        q = getattr(self, 'video_search_query', '') or 'Misc'
+                else:
+                    q = getattr(self, 'video_search_query', '') or 'Misc'
+                return os.path.join(self.controller.default_folder, f"Videos - {q}")
+            return os.path.join(self.controller.default_folder, f"Playlist - Unknown")
         except Exception:
             return self.controller.default_folder
 
-    def _find_downloaded_file(self, folder, title):
+    def _find_downloaded_file(self, folder, title, video_id=None):
         try:
             name = str(title or '').strip()
             if not folder or not name:
@@ -181,7 +207,16 @@ class MainPage(tk.Frame):
             candidates = []
             for f in os.listdir(folder):
                 try:
-                    if any(f.lower().endswith(e) for e in exts) and f.lower().startswith(name.lower()[:50]):
+                    if not any(f.lower().endswith(e) for e in exts):
+                        continue
+                    fl = f.lower()
+                    if video_id and str(video_id).lower() in fl:
+                        candidates.append(os.path.join(folder, f))
+                        continue
+                    import re
+                    def _norm(s):
+                        return re.sub(r"[^a-z0-9]+"," ", s.lower()).strip()
+                    if _norm(fl).startswith(_norm(name)[:50]):
                         candidates.append(os.path.join(folder, f))
                 except Exception:
                     pass
@@ -202,7 +237,7 @@ class MainPage(tk.Frame):
                 os.makedirs(folder, exist_ok=True)
             except Exception:
                 pass
-            fp = self._find_downloaded_file(folder, v.get('title',''))
+            fp = self._find_downloaded_file(folder, v.get('title',''), v.get('videoId'))
             return "Downloaded" if fp else "Not Downloaded"
         except Exception:
             return "Unknown"
@@ -258,17 +293,19 @@ class MainPage(tk.Frame):
             except Exception:
                 pass
         try:
-            import tkinter as _tk
-            def _safe_ui(fn):
-                try:
-                    if not self.winfo_exists():
-                        return
-                    fn()
-                except Exception:
-                    pass
-            self._safe_ui = _safe_ui
+            pass
         except Exception:
-            self._safe_ui = lambda fn: None
+            pass
+
+    def refresh_all_statuses(self):
+        try:
+            self.playlist.refresh_all_statuses()
+        except Exception:
+            pass
+        try:
+            self.refresh_video_statuses()
+        except Exception:
+            pass
 
     def _update_video_row_by_vid(self, vid, playlist_id):
         try:
@@ -367,7 +404,7 @@ class MainPage(tk.Frame):
         try:
             frm = tk.Frame(self)
             self._mid_controls = frm
-            btn = tk.Button(frm, text="Refresh Status", command=self.playlist.refresh_all_statuses)
+            btn = tk.Button(frm, text="Refresh Status", command=self.refresh_all_statuses)
             btn.pack(side=tk.LEFT, padx=6, pady=2)
             import tkinter.ttk as ttk
             self._mid_pb = ttk.Progressbar(frm, orient="horizontal", length=220, mode="determinate")
@@ -1652,7 +1689,8 @@ class MainPage(tk.Frame):
             "Channel": (lambda v: str(v.get('channelTitle', '')).lower()),
             "Duration": (lambda v: str(v.get('duration', ''))),
             "Published": (lambda v: v.get('published', '')),
-            "Views": (lambda v: int(v.get('views') or 0))
+            "Views": (lambda v: int(v.get('views') or 0)),
+            "Status": (lambda v: (2 if self._video_download_status(v) == 'Downloaded' else (1 if self._video_download_status(v) == 'Not Downloaded' else 0)))
         }
         keyfunc = col_map.get(column_name)
         if not keyfunc:
@@ -2537,6 +2575,10 @@ class MainPage(tk.Frame):
             if not getattr(dlg, 'result', None):
                 return
             try:
+                self._download_opts = dict(dlg.result or {})
+            except Exception:
+                self._download_opts = dlg.result
+            try:
                 from .download_manager import DownloadManager
             except Exception:
                 from src.pages.main.download_manager import DownloadManager
@@ -2557,11 +2599,6 @@ class MainPage(tk.Frame):
 
     def _enrich_video_playlist_info(self, videos):
         try:
-            rev = {}
-            try:
-                rev = {idx: pid for pid, idx in (self.playlist_index_map or {}).items()}
-            except Exception:
-                rev = {}
             for v in list(videos or []):
                 try:
                     vid = v.get('videoId')
@@ -2573,19 +2610,24 @@ class MainPage(tk.Frame):
                             pid = None
                     if not pid:
                         try:
-                            pi = v.get('playlistIndex')
-                            if pi and pi in rev:
-                                pid = rev.get(pi)
-                        except Exception:
-                            pid = None
-                    if not pid:
-                        try:
                             for k, ids in (self.playlist_video_ids or {}).items():
                                 if vid in ids:
                                     pid = k
                                     break
                         except Exception:
                             pid = None
+                    if not pid:
+                        try:
+                            existing = list(self.playlist.playlist_tree.get_children())
+                        except Exception:
+                            existing = []
+                        for plid in existing:
+                            try:
+                                if self.controller.playlist_handler.playlist_contains_video(plid, vid):
+                                    pid = plid
+                                    break
+                            except Exception:
+                                continue
                     if pid:
                         v['playlistId'] = pid
                         try:
@@ -2625,3 +2667,55 @@ class MainPage(tk.Frame):
             self.controller.root.quit()
         except Exception:
             pass
+    def _resolve_playlist_for_video(self, v):
+        try:
+            vid = v.get('videoId')
+            pid = v.get('playlistId') or self.video_playlist_cache.get(vid)
+            if pid:
+                return pid
+            try:
+                for k, ids in (self.playlist_video_ids or {}).items():
+                    if vid in ids:
+                        return k
+            except Exception:
+                pass
+            try:
+                existing = list(self.playlist.playlist_tree.get_children())
+            except Exception:
+                existing = []
+            for plid in existing:
+                try:
+                    if self.controller.playlist_handler.playlist_contains_video(plid, vid):
+                        try:
+                            self.video_playlist_cache[vid] = plid
+                        except Exception:
+                            pass
+                        return plid
+                except Exception:
+                    continue
+            try:
+                ch = v.get('channelId')
+                if ch:
+                    pls = self.controller.playlist_handler.get_channel_playlists(ch, max_results=20)
+                    for info in pls:
+                        plid = info.get('playlistId') or info.get('id') or info.get('playlist_id')
+                        if not plid:
+                            continue
+                        try:
+                            if self.controller.playlist_handler.playlist_contains_video(plid, vid):
+                                try:
+                                    self.playlist.update_playlist(info)
+                                except Exception:
+                                    pass
+                                try:
+                                    self.video_playlist_cache[vid] = plid
+                                except Exception:
+                                    pass
+                                return plid
+                        except Exception:
+                            continue
+            except Exception:
+                pass
+            return None
+        except Exception:
+            return None

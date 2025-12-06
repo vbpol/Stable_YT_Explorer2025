@@ -83,9 +83,37 @@ class DownloadManager:
             'concurrent_fragment_downloads': 8,
             'http_chunk_size': 1048576,
             'ignoreerrors': True,
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['default']
+                }
+            },
+            'sleep_interval': 2,
         }
         if ffmpeg_ok:
             base_opts['merge_output_format'] = 'mp4'
+
+        try:
+            if isinstance(self.options, dict):
+                src_opt = str(self.options.get('cookies_source','')).strip().lower()
+            else:
+                src_opt = ''
+            if not src_opt:
+                try:
+                    from src.config_manager import ConfigManager
+                except ModuleNotFoundError:
+                    from config_manager import ConfigManager
+                src_opt = ConfigManager.get_cookie_source()
+            if src_opt in ('edge','chrome','firefox'):
+                base_opts['cookiesfrombrowser'] = (src_opt,)
+            elif src_opt == 'cookiefile':
+                cf = None
+                if isinstance(self.options, dict):
+                    cf = self.options.get('cookie_file')
+                if cf:
+                    base_opts['cookiefile'] = cf
+        except Exception:
+            pass
 
         downloaded_count = 0
         last_error = ''
@@ -94,17 +122,13 @@ class DownloadManager:
                 if self.download_folder:
                     return self.download_folder
                 vid = v.get('videoId')
-                pid = None
                 try:
-                    pid = self.parent.video_playlist_cache.get(vid)
+                    pid = v.get('playlistId') or self.parent.video_playlist_cache.get(vid)
                 except Exception:
                     pid = v.get('playlistId')
                 if not pid:
                     try:
-                        pi = v.get('playlistIndex')
-                        if pi:
-                            rev = {idx: pid2 for pid2, idx in getattr(self.parent, 'playlist_index_map', {}).items()}
-                            pid = rev.get(pi)
+                        pid = self.parent._resolve_playlist_for_video(v)
                     except Exception:
                         pid = None
                 if pid:
@@ -120,8 +144,25 @@ class DownloadManager:
                         return folder
                     except Exception:
                         pass
-                q = getattr(self.parent, 'video_search_query', '') or 'Misc'
-                return os.path.join(self.parent.controller.default_folder, f"Videos - {q}")
+                try:
+                    fv = bool(self.options.get('fallback_videos', True)) if isinstance(self.options, dict) else True
+                except Exception:
+                    fv = True
+                if fv:
+                    try:
+                        use_ct = bool(self.options.get('use_channel_title_fallback', True)) if isinstance(self.options, dict) else True
+                    except Exception:
+                        use_ct = True
+                    if use_ct:
+                        ct = str(v.get('channelTitle','')).strip()
+                        if ct:
+                            q = ct
+                        else:
+                            q = getattr(self.parent, 'video_search_query', '') or 'Misc'
+                    else:
+                        q = getattr(self.parent, 'video_search_query', '') or 'Misc'
+                    return os.path.join(self.parent.controller.default_folder, f"Videos - {q}")
+                return os.path.join(self.parent.controller.default_folder, f"Playlist - Unknown")
             except Exception:
                 return self.parent.controller.default_folder
 
@@ -171,11 +212,13 @@ class DownloadManager:
                             pl_title = pid or ''
                     else:
                         try:
-                            q = getattr(self.parent, 'video_search_query', '')
-                            pl_title = q or ''
+                            pl_title = os.path.basename(folder) if folder else ''
                         except Exception:
-                            pl_title = ''
-                    fpath = self._find_downloaded_file(folder, video.get('title',''))
+                            try:
+                                pl_title = folder or ''
+                            except Exception:
+                                pl_title = ''
+                    fpath = self._find_downloaded_file(folder, video.get('title',''), video.get('videoId'))
                     self._results.append({'title': video.get('title',''), 'playlist': pl_title or '', 'folder': folder, 'file': fpath})
                 except Exception:
                     pass
@@ -271,7 +314,7 @@ class DownloadManager:
             except Exception:
                 pass
 
-    def _find_downloaded_file(self, folder, title):
+    def _find_downloaded_file(self, folder, title, video_id=None):
         try:
             name = str(title or '').strip()
             if not folder or not name:
@@ -280,7 +323,16 @@ class DownloadManager:
             candidates = []
             for f in os.listdir(folder):
                 try:
-                    if any(f.lower().endswith(e) for e in exts) and f.lower().startswith(name.lower()[:50]):
+                    if not any(f.lower().endswith(e) for e in exts):
+                        continue
+                    fl = f.lower()
+                    if video_id and video_id.lower() in fl:
+                        candidates.append(os.path.join(folder, f))
+                        continue
+                    import re
+                    def _norm(s):
+                        return re.sub(r"[^a-z0-9]+"," ", s.lower()).strip()
+                    if _norm(fl).startswith(_norm(name)[:50]):
                         candidates.append(os.path.join(folder, f))
                 except Exception:
                     pass
@@ -303,13 +355,27 @@ class DownloadManager:
             win = tk.Toplevel(self.window)
             win.title("Downloaded Videos")
             win.geometry("720x440")
-            panel = TablePanel(win, columns=("Playlist","Title","Actions"), show_page_size=False, size_label="Rows:")
+            panel = TablePanel(win, columns=("Playlist / Video Folder","Title","Actions"), show_page_size=False, size_label="Rows:")
             tv = panel.tree
-            tv.column("Playlist", width=240, anchor="w")
+            tv.column("Playlist / Video Folder", width=240, anchor="w")
             tv.column("Title", width=420, anchor="w")
             tv.column("Actions", width=100, anchor="center")
-            for r in list(self._results or []):
-                tv.insert('', 'end', values=(r.get('playlist',''), r.get('title',''), "📁  ▶"))
+
+            sort_state = {"Playlist / Video Folder": True, "Title": True}
+            rows_current = list(self._results or [])
+            def _render():
+                tv.delete(*tv.get_children())
+                for r in list(rows_current or []):
+                    tv.insert('', 'end', values=(r.get('playlist',''), r.get('title',''), "📁  ▶"))
+            def _sort(col, initial=False):
+                asc = True if initial else sort_state.get(col, False)
+                key = (lambda r: str(r.get('playlist','')).lower()) if col == 'Playlist / Video Folder' else (lambda r: str(r.get('title','')).lower())
+                rows_current.sort(key=key, reverse=not asc)
+                sort_state[col] = not asc
+                _render()
+            tv.heading("Playlist / Video Folder", text="Playlist / Video Folder", command=lambda: _sort('Playlist / Video Folder'))
+            tv.heading("Title", text="Title", command=lambda: _sort('Title'))
+            _sort('Playlist / Video Folder', initial=True)
             tip = tk.Toplevel(win)
             tip.wm_overrideredirect(True)
             tip.withdraw()
@@ -333,7 +399,7 @@ class DownloadManager:
                     if not sel:
                         return None
                     idx = tv.index(sel[0])
-                    return (self._results[idx] if idx < len(self._results) else None)
+                    return (rows_current[idx] if idx < len(rows_current) else None)
                 except Exception:
                     return None
             def _open_sel_folder():
