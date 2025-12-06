@@ -140,7 +140,7 @@ class DownloadManager:
                                 ttl = vals[1] if len(vals) > 1 else ''
                         except Exception:
                             ttl = ''
-                        folder = os.path.join(self.parent.controller.default_folder, f"Playlist - {ttl or pid}")
+                        folder = os.path.join(self.parent.controller.default_folder, f"Playlist - {ttl or 'Unknown'}")
                         return folder
                     except Exception:
                         pass

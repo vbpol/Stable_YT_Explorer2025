@@ -23,7 +23,7 @@ Non-playlist video downloads now organize files into folders named `Videos - {Ch
 **Validation:**
 - [x] Verify non-playlist video download creates `Videos - {Channel Title}`.
 - [x] Verify fallback to `Videos - {Query}` when channel title is missing or toggle is off.
-- [x] Verify playlist downloads remain `Playlist - {Title/ID}`.
+- [x] Verify playlist downloads remain `Playlist - {Title}`.
 
 **Testing:**
 - **Unit:** Mock `v['channelTitle']` and assert folder path.

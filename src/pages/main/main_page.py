@@ -172,7 +172,7 @@ class MainPage(tk.Frame):
                     if self.playlist.playlist_tree.exists(pid):
                         vals = self.playlist.playlist_tree.item(pid).get('values', [])
                         ttl = vals[1] if len(vals) > 1 else ''
-                    return os.path.join(self.controller.default_folder, f"Playlist - {ttl or pid}")
+                    return os.path.join(self.controller.default_folder, f"Playlist - {ttl or 'Unknown'}")
                 except Exception:
                     pass
             try:
@@ -255,7 +255,7 @@ class MainPage(tk.Frame):
             if self.playlist.playlist_tree.exists(playlist_id):
                 vals = self.playlist.playlist_tree.item(playlist_id).get('values', [])
                 ttl = vals[1] if len(vals) > 1 else ''
-            return os.path.join(self.controller.default_folder, f"Playlist - {ttl or playlist_id}")
+            return os.path.join(self.controller.default_folder, f"Playlist - {ttl or 'Unknown'}")
         except Exception:
             return self.controller.default_folder
 
