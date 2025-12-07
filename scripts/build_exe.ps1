@@ -78,7 +78,7 @@ if ($Mode -eq 'onefile') {
     "set PYTHONUTF8=1" | Out-File -FilePath $runnerCmd -Encoding ascii -Append
     "set SSL_CERT_FILE=" | Out-File -FilePath $runnerCmd -Encoding ascii -Append
     "set REQUESTS_CA_BUNDLE=" | Out-File -FilePath $runnerCmd -Encoding ascii -Append
-    "start \"\" \"%~dp0{0}.exe\"" -f $AppName | Out-File -FilePath $runnerCmd -Encoding ascii -Append
+    'start "" "%~dp0{0}.exe"' -f $AppName | Out-File -FilePath $runnerCmd -Encoding ascii -Append
     Write-Host "[Build] Runner created: $runnerCmd" -ForegroundColor Cyan
   } else {
     Write-Warning "[Build] Build finished but executable not found in $distDir"
@@ -96,8 +96,8 @@ if ($Mode -eq 'onefile') {
     "set PYTHONUTF8=1" | Out-File -FilePath $runnerCmd -Encoding ascii -Append
     "set SSL_CERT_FILE=" | Out-File -FilePath $runnerCmd -Encoding ascii -Append
     "set REQUESTS_CA_BUNDLE=" | Out-File -FilePath $runnerCmd -Encoding ascii -Append
-    "pushd \"%~dp0\"" | Out-File -FilePath $runnerCmd -Encoding ascii -Append
-    "start \"\" \"%~dp0{0}.exe\"" -f $AppName | Out-File -FilePath $runnerCmd -Encoding ascii -Append
+    'pushd "%~dp0"' | Out-File -FilePath $runnerCmd -Encoding ascii -Append
+    'start "" "%~dp0{0}.exe"' -f $AppName | Out-File -FilePath $runnerCmd -Encoding ascii -Append
     "popd" | Out-File -FilePath $runnerCmd -Encoding ascii -Append
     Write-Host "[Build] Runner created: $runnerCmd" -ForegroundColor Cyan
   } else {

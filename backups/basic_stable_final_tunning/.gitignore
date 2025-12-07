@@ -1,7 +1,0 @@
-.qodo
-venv/
-v0_basic/
-.env
-__pycache__/
-*.pyc
-*.log
