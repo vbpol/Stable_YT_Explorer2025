@@ -6,7 +6,6 @@ import csv
 import sys
 import subprocess
 import threading  # Add this for download threading
-import json
 import tkinter.ttk as ttk
 try:
     from src.config_manager import ConfigManager
@@ -18,12 +17,14 @@ from .playlist_section import PlaylistSection
 from .video_section import VideoSection
 from .status_bar import StatusBar
 from .video_player import VideoPlayer
-from .download_options_dialog import DownloadOptionsDialog
-from .download_manager import DownloadManager
 try:
     from src.services.video_playlist_scanner import VideoPlaylistScanner
+    from src.services.media_index import MediaIndex
+    from src.data.json_store import JsonStore
 except ModuleNotFoundError:
     from services.video_playlist_scanner import VideoPlaylistScanner
+    from services.media_index import MediaIndex
+    from data.json_store import JsonStore
 
 class MainPage(tk.Frame):
     def __init__(self, parent, controller):
@@ -108,6 +109,14 @@ class MainPage(tk.Frame):
         self.playlist_video_ids = {}
         self._preview_only_hits = False
         self._last_open_playlist_id = None
+        try:
+            self.media_index = MediaIndex()
+        except Exception:
+            self.media_index = None
+        try:
+            self._load_media_index_snapshot()
+        except Exception:
+            pass
         def _fmt_date(s):
             try:
                 from datetime import datetime
@@ -155,6 +164,66 @@ class MainPage(tk.Frame):
         except Exception:
             pass
 
+    def _save_media_index_snapshot(self):
+        try:
+            if not self.media_index:
+                return
+            vids = {}
+            pls = {}
+            try:
+                for vid, vm in (self.media_index.videos or {}).items():
+                    vids[vid] = {
+                        'videoId': vm.videoId,
+                        'title': vm.title,
+                        'channelTitle': vm.channelTitle,
+                        'channelId': vm.channelId,
+                        'duration': vm.duration,
+                        'published': vm.published,
+                        'views': vm.views,
+                        'playlistId': vm.playlistId,
+                        'playlistIndex': vm.playlistIndex,
+                    }
+            except Exception:
+                pass
+            try:
+                for pid, pm in (self.media_index.playlists or {}).items():
+                    pls[pid] = {
+                        'playlistId': pm.playlistId,
+                        'title': pm.title,
+                        'channelTitle': pm.channelTitle,
+                        'video_count': pm.video_count,
+                        'video_ids': list(pm.video_ids or set()),
+                    }
+            except Exception:
+                pass
+            JsonStore().save_media_index_snapshot(vids, pls)
+        except Exception:
+            pass
+
+    def _load_media_index_snapshot(self):
+        try:
+            snap = JsonStore().load_media_index_snapshot() or {}
+            vids = snap.get('videos') or {}
+            pls = snap.get('playlists') or {}
+            if not self.media_index:
+                self.media_index = MediaIndex()
+            try:
+                self.media_index.add_playlists(list(pls.values()))
+            except Exception:
+                pass
+            try:
+                self.media_index.add_videos(list(vids.values()))
+            except Exception:
+                pass
+            for pid, pinfo in pls.items():
+                try:
+                    for vid in list(pinfo.get('video_ids') or []):
+                        self.media_index.link_video_to_playlist(pid, vid)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
     def _video_target_folder(self, v):
         try:
             if getattr(self, 'download_folder', None):
@@ -194,7 +263,7 @@ class MainPage(tk.Frame):
                 else:
                     q = getattr(self, 'video_search_query', '') or 'Misc'
                 return os.path.join(self.controller.default_folder, f"Videos - {q}")
-            return os.path.join(self.controller.default_folder, f"Playlist - Unknown")
+            return os.path.join(self.controller.default_folder, "Playlist - Unknown")
         except Exception:
             return self.controller.default_folder
 
@@ -365,6 +434,11 @@ class MainPage(tk.Frame):
                     cur.add(i)
             except Exception:
                 pass
+            try:
+                if self.media_index:
+                    self.media_index.bulk_link_playlist_videos(playlist_id, list(ids))
+            except Exception:
+                pass
         except Exception:
             pass
 
@@ -476,6 +550,10 @@ class MainPage(tk.Frame):
         self.current_playlist_info = None
         self.prev_page_token = None
         self.current_page_token = None
+        try:
+            self.media_index = MediaIndex()
+        except Exception:
+            self.media_index = None
 
     def set_search_mode(self, mode_display):
         mode = (mode_display or '').strip().lower()
@@ -484,6 +562,31 @@ class MainPage(tk.Frame):
         if mode != self.search_mode:
             self.search_mode = mode
             self.clear_panels()
+            try:
+                if mode == 'videos':
+                    try:
+                        self.status_bar.configure(text="Mode: Videos — reloading last search results")
+                    except Exception:
+                        pass
+                    try:
+                        self.video._panel.pagination.set_visible(False)
+                    except Exception:
+                        pass
+                    try:
+                        self._preview_active = False
+                    except Exception:
+                        pass
+                    try:
+                        self.playlist.playlist_tree.configure(selectmode='browse')
+                    except Exception:
+                        pass
+                else:
+                    try:
+                        self.status_bar.configure(text="Mode: Playlists — ready")
+                    except Exception:
+                        pass
+            except Exception:
+                pass
             try:
                 self._load_last_search(mode_display)
             except Exception:
@@ -528,6 +631,10 @@ class MainPage(tk.Frame):
                 except Exception:
                     pass
             else:
+                try:
+                    self.video._panel.pagination.set_visible(False)
+                except Exception:
+                    pass
                 path = ConfigManager.get_last_search_path('videos')
                 data = ConfigManager.load_json(path) or {}
                 videos = data.get('videos', [])
@@ -607,6 +714,14 @@ class MainPage(tk.Frame):
         else:
             self.video_search_query = query
             try:
+                self.status_bar.configure(text="Searching videos...")
+            except Exception:
+                pass
+            try:
+                self.video._panel.pagination.set_visible(False)
+            except Exception:
+                pass
+            try:
                 max_results = int(self.video.page_size_var.get())
             except Exception:
                 max_results = 10
@@ -620,6 +735,11 @@ class MainPage(tk.Frame):
             self.video_next_page_token = resp.get('nextPageToken')
             self.video_prev_page_token = resp.get('prevPageToken')
             try:
+                self.video_search_page_index = 1
+                self.video.page_indicator["text"] = f"Results page {self.video_search_page_index}"
+            except Exception:
+                pass
+            try:
                 self.video_search_ids = set([v.get('videoId') for v in videos if v.get('videoId')])
             except Exception:
                 self.video_search_ids = set()
@@ -631,6 +751,11 @@ class MainPage(tk.Frame):
                     self.video.video_tree.insert('', 'end', values=self._video_row(v), tags=tags)
                 except Exception:
                     self.video.video_tree.insert('', 'end', values=self._video_row(v))
+            try:
+                if self.media_index:
+                    self.media_index.add_videos(videos)
+            except Exception:
+                pass
 
             def _fetch_playlists():
                     self._safe_ui(lambda: self.set_mid_job_title('Mapping playlists'))
@@ -645,6 +770,11 @@ class MainPage(tk.Frame):
                         except Exception:
                             pi = None
                         self._safe_ui(lambda d=pl: self.playlist.update_playlist(d))
+                        try:
+                            if self.media_index:
+                                self.media_index.add_playlists([pl])
+                        except Exception:
+                            pass
                         collected_local.append(pl)
                         return pi
                     def _prefetch(pid):
@@ -656,6 +786,11 @@ class MainPage(tk.Frame):
                             ph2 = _Pl(self.controller.api_key)
                             resp_pf = ph2.get_videos(pid, None, max_results=10)
                             self._cache_playlist_videos(pid, None, resp_pf)
+                            try:
+                                if self.media_index:
+                                    self.media_index.bulk_link_playlist_videos(pid, [x.get('videoId') for x in (resp_pf.get('videos', []) or []) if x.get('videoId')])
+                            except Exception:
+                                pass
                         except Exception:
                             pass
                     def _progress(done, total):
@@ -664,6 +799,11 @@ class MainPage(tk.Frame):
                         self._safe_ui(lambda x=done, t=total: self.update_mid_scan_progress(x, t))
                     def _index(vid, pid, idx):
                         self._safe_ui(lambda v_id=vid, p_id=pid: self._update_video_row_by_vid(v_id, p_id))
+                        try:
+                            if self.media_index:
+                                self.media_index.link_video_to_playlist(pid, vid, idx)
+                        except Exception:
+                            pass
                     try:
                         scanner.scan(videos, _on_pl, _prefetch, _progress, _index)
                     except Exception:
@@ -679,6 +819,10 @@ class MainPage(tk.Frame):
                             'playlistPages': {pid: {'pages': cache.get('pages', {}), 'tokens': cache.get('tokens', {})} for pid, cache in (self.playlist_videos_cache or {}).items()},
                             'playlistIds': {pid: list(self.playlist_video_ids.get(pid, set())) for pid in (self.playlist_video_ids or {}).keys()}
                         })
+                        try:
+                            self._save_media_index_snapshot()
+                        except Exception:
+                            pass
                         self.collected_playlists = collected_local
                         try:
                             vids_cnt = len(videos or [])
@@ -703,6 +847,10 @@ class MainPage(tk.Frame):
                 'playlistPages': {pid: {'pages': cache.get('pages', {}), 'tokens': cache.get('tokens', {})} for pid, cache in (self.playlist_videos_cache or {}).items()},
                 'playlistIds': {pid: list(self.playlist_video_ids.get(pid, set())) for pid in (self.playlist_video_ids or {}).keys()}
             })
+            try:
+                self._save_media_index_snapshot()
+            except Exception:
+                pass
             self.video.update_back_button_state(False)
             try:
                 self.video.prev_page_btn.configure(command=lambda: self.show_videos_search_page(self.video_prev_page_token))
@@ -752,6 +900,12 @@ class MainPage(tk.Frame):
         videos = data.get('videos', [])
         playlists = data.get('playlists', [])
         try:
+            if self.media_index:
+                self.media_index.add_videos(videos)
+                self.media_index.add_playlists(playlists)
+        except Exception:
+            pass
+        try:
             ppages = data.get('playlistPages') or {}
             if isinstance(ppages, dict):
                 self.playlist_videos_cache = ppages
@@ -761,6 +915,12 @@ class MainPage(tk.Frame):
             pids = data.get('playlistIds') or {}
             if isinstance(pids, dict):
                 self.playlist_video_ids = {pid: set(v or []) for pid, v in pids.items()}
+                try:
+                    if self.media_index:
+                        for pid, vids in pids.items():
+                            self.media_index.bulk_link_playlist_videos(pid, vids or [])
+                except Exception:
+                    pass
         except Exception:
             pass
         try:
@@ -1079,6 +1239,8 @@ class MainPage(tk.Frame):
         if self.search_mode != 'videos' or not self.video_search_query:
             return
         try:
+            prev_before = getattr(self, 'video_prev_page_token', None)
+            next_before = getattr(self, 'video_next_page_token', None)
             max_results = int(self.video.page_size_var.get())
             resp = self.controller.playlist_handler.search_videos(self.video_search_query, max_results=max_results, page_token=page_token)
             videos = resp.get('videos', [])
@@ -1094,20 +1256,26 @@ class MainPage(tk.Frame):
                 except Exception:
                     self.video.video_tree.insert('', 'end', values=self._video_row(v))
             try:
+                if page_token is None:
+                    self.video_search_page_index = 1
+                elif page_token == next_before:
+                    self.video_search_page_index = int(getattr(self, 'video_search_page_index', 1) or 1) + 1
+                elif page_token == prev_before:
+                    self.video_search_page_index = max(1, int(getattr(self, 'video_search_page_index', 1) or 1) - 1)
+                self.video.page_indicator["text"] = f"Results page {int(getattr(self, 'video_search_page_index', 1) or 1)}"
+            except Exception:
+                pass
+            try:
                 has_prev = bool(self.video_prev_page_token)
                 has_next = bool(self.video_next_page_token)
                 self.video.prev_page_btn["state"] = "normal" if has_prev else "disabled"
                 self.video.next_page_btn["state"] = "normal" if has_next else "disabled"
                 try:
-                    idx = int(getattr(self, 'video_search_page_index', 1) or 1)
-                except Exception:
-                    idx = 1
-                try:
                     count_items = len(self.video.video_tree.get_children())
                 except Exception:
                     count_items = len(videos)
                 try:
-                    self.video._panel.update_pages(index=idx, has_prev=has_prev, has_next=has_next, total_items=count_items)
+                    self.video._panel.update_pages(index=int(getattr(self, 'video_search_page_index', 1) or 1), has_prev=has_prev, has_next=has_next, total_items=count_items)
                 except Exception:
                     pass
             except Exception:
@@ -1217,7 +1385,14 @@ class MainPage(tk.Frame):
                         continue
                     vid = v.get('videoId')
                     cached_hit = bool(vid) and (self.video_playlist_cache.get(vid) == playlist_id)
-                    ids_hit = bool(vid) and (vid in self.playlist_video_ids.get(playlist_id, set()))
+                    ids_hit = False
+                    try:
+                        if self.media_index:
+                            ids_hit = bool(vid) and (vid in self.media_index.get_playlist_video_ids(playlist_id))
+                        else:
+                            ids_hit = bool(vid) and (vid in self.playlist_video_ids.get(playlist_id, set()))
+                    except Exception:
+                        ids_hit = bool(vid) and (vid in self.playlist_video_ids.get(playlist_id, set()))
                     in_results = bool(vid) and (vid in getattr(self, 'video_search_ids', set()))
                     is_hit = (cached_hit or ids_hit) and in_results
                     if is_hit:
@@ -1247,6 +1422,49 @@ class MainPage(tk.Frame):
                 pass
         except Exception:
             pass
+
+    def on_videos_mode_playlist_click(self, playlist_id):
+        try:
+            if not playlist_id:
+                return
+            busy = bool(getattr(self, '_videos_mode_click_busy', False))
+            if busy:
+                try:
+                    self.status_bar.configure(text="Busy… please wait")
+                except Exception:
+                    pass
+                return
+            try:
+                self._videos_mode_click_busy = True
+            except Exception:
+                pass
+            try:
+                self._set_pinned_playlist(playlist_id)
+            except Exception:
+                pass
+            try:
+                self.status_bar.configure(text="Loading playlist context…")
+            except Exception:
+                pass
+            try:
+                self.print_playlist_videos_to_terminal(playlist_id)
+            except Exception:
+                pass
+            try:
+                # Run highlight on UI thread
+                self.after(0, lambda pid=playlist_id: self._safe_ui(lambda: self.highlight_videos_for_playlist(pid)))
+            except Exception:
+                try:
+                    self.highlight_videos_for_playlist(playlist_id)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        finally:
+            try:
+                self._videos_mode_click_busy = False
+            except Exception:
+                pass
 
     def clear_video_playlist_highlights(self):
         # Removes all transient highlight/star tags from Videos table
@@ -1292,7 +1510,7 @@ class MainPage(tk.Frame):
                         playlist["playlistId"]
                     )
                     playlist["video_count"] = video_count
-                except Exception as e:
+                except Exception:
                     # If we can't get details, just use the playlist without video count
                     print(f"Note: Could not get details for playlist {playlist['title']}")
                     playlist["video_count"] = "N/A"
@@ -1358,6 +1576,8 @@ class MainPage(tk.Frame):
 
         try:
             max_results = int(self.video.page_size_var.get())
+            next_before = getattr(self, 'current_page_token', None)
+            prev_before = getattr(self, 'prev_page_token', None)
             try:
                 cached = self._get_cached_playlist_page(playlist_id, page_token)
             except Exception:
@@ -1391,7 +1611,23 @@ class MainPage(tk.Frame):
                     self._preview_only_hits = False
                 except Exception:
                     pass
+                try:
+                    total_pages = (total_videos + max_results - 1) // max_results
+                    if page_token is None:
+                        self.current_page = 1
+                    elif page_token == next_before:
+                        self.current_page = min(int(getattr(self, 'current_page', 1) or 1) + 1, total_pages)
+                    elif page_token == prev_before:
+                        self.current_page = max(1, int(getattr(self, 'current_page', 1) or 1) - 1)
+                except Exception:
+                    pass
                 self._render_playlist_videos(total_videos)
+                try:
+                    has_prev = bool(self.prev_page_token)
+                    has_next = bool(self.current_page_token)
+                    self.video._panel.update_pages(index=int(getattr(self, 'current_page', 1) or 1), has_prev=has_prev, has_next=has_next, total_items=total_videos)
+                except Exception:
+                    pass
                 try:
                     if page_token is None:
                         self._show_playlist_listing_popup(playlist_id, self.current_videos)
@@ -1399,7 +1635,8 @@ class MainPage(tk.Frame):
                     pass
                 return
             try:
-                import threading as _t_wd, time as _t
+                import threading as _t_wd
+                import time as _t
                 def _watchdog(pid):
                     try:
                         _t.sleep(12)
@@ -1532,15 +1769,16 @@ class MainPage(tk.Frame):
             except Exception:
                 pass
 
-            # Update pagination info
             total_pages = (total_videos + max_results - 1) // max_results
-            if not hasattr(self, 'current_page') or page_token is None:
-                self.current_page = 1
-            elif page_token == self.current_page_token:
-                self.current_page = min(self.current_page + 1, total_pages)
-            elif page_token == self.prev_page_token:
-                self.current_page = max(1, self.current_page - 1)
-            
+            try:
+                if not hasattr(self, 'current_page') or page_token is None:
+                    self.current_page = 1
+                elif page_token == next_before:
+                    self.current_page = min(int(getattr(self, 'current_page', 1) or 1) + 1, total_pages)
+                elif page_token == prev_before:
+                    self.current_page = max(1, int(getattr(self, 'current_page', 1) or 1) - 1)
+            except Exception:
+                pass
             try:
                 self.video.set_total_videos(total_videos)
             except Exception:
@@ -1551,6 +1789,12 @@ class MainPage(tk.Frame):
             self.video.next_page_btn["state"] = "normal" if self.current_page_token else "disabled"
             self.video.prev_page_btn["state"] = "normal" if self.prev_page_token else "disabled"
             self.video.update_back_button_state(True)
+            try:
+                has_prev = bool(self.prev_page_token)
+                has_next = bool(self.current_page_token)
+                self.video._panel.update_pages(index=int(getattr(self, 'current_page', 1) or 1), has_prev=has_prev, has_next=has_next, total_items=total_videos)
+            except Exception:
+                pass
 
         except Exception as e:
             messagebox.showerror("Error", f"Failed to fetch videos: {e}")
@@ -1937,7 +2181,7 @@ class MainPage(tk.Frame):
             close_btn.pack(side="right")
             open_btn.configure(state="disabled")
             run_btn.configure(state="disabled")
-            exe_path = os.path.join(dist_dir, "YouTubePlaylistExplorer.exe")
+            # Open EXE folder via OS-specific handler; path not needed here
             def _open_dist():
                 try:
                     if sys.platform == "win32":
@@ -1951,12 +2195,13 @@ class MainPage(tk.Frame):
             open_btn.configure(command=_open_dist)
             def _run_exe():
                 try:
+                    exe_path_local = os.path.join(dist_dir, "YouTubePlaylistExplorer.exe")
                     if sys.platform == "win32":
-                        os.startfile(exe_path)
+                        os.startfile(exe_path_local)
                     elif sys.platform == "darwin":
-                        subprocess.run(["open", exe_path])
+                        subprocess.run(["open", exe_path_local])
                     else:
-                        subprocess.run([exe_path])
+                        subprocess.run([exe_path_local])
                 except Exception:
                     pass
             run_btn.configure(command=_run_exe)
@@ -1976,65 +2221,62 @@ class MainPage(tk.Frame):
                 except Exception:
                     pass
             def _worker():
+                ok = False
                 try:
+                    venv_dir = os.path.join(project_root, ".venv")
+                    if not os.path.exists(venv_dir):
+                        subprocess.run([sys.executable, "-m", "venv", venv_dir], cwd=project_root, check=True)
+                    vpy = os.path.join(venv_dir, "Scripts", "python.exe")
+                    if not os.path.exists(vpy):
+                        vpy = os.path.join(venv_dir, "bin", "python")
+                    def runp(args):
+                        p = subprocess.run(args, cwd=project_root, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+                        self.after(0, lambda s=p.stdout: _append(s))
+                        return p.returncode
+                    runp([vpy, "-m", "pip", "install", "--upgrade", "pip"])
+                    runp([vpy, "-m", "pip", "install", "pyinstaller"])
+                    req_path = os.path.join(project_root, "requirements.txt")
+                    if os.path.exists(req_path):
+                        runp([vpy, "-m", "pip", "install", "-r", req_path])
+                    entry = os.path.join(project_root, "src", "main.py")
+                    dist = os.path.join(project_root, "dist")
+                    work = os.path.join(project_root, "build")
+                    os.makedirs(dist, exist_ok=True)
+                    os.makedirs(work, exist_ok=True)
+                    args = [
+                        vpy, "-m", "PyInstaller",
+                        "--onefile", "--windowed",
+                        "--name", "YouTubePlaylistExplorer",
+                        "--distpath", dist, "--workpath", work,
+                        "--hidden-import", "googleapiclient.discovery",
+                        "--hidden-import", "googleapiclient.errors",
+                        "--hidden-import", "isodate",
+                        "--hidden-import", "vlc",
+                        "--hidden-import", "yt_dlp",
+                        entry
+                    ]
+                    r = subprocess.run(args, cwd=project_root, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+                    self.after(0, lambda s=r.stdout: _append(s))
+                    exe = os.path.join(dist, "YouTubePlaylistExplorer.exe")
+                    ok = os.path.exists(exe)
+                    if ok:
+                        try:
+                            run_cmd = os.path.join(dist, "Run-YouTubePlaylistExplorer.cmd")
+                            with open(run_cmd, "w", encoding="ascii") as f:
+                                f.write("@echo off\r\n")
+                                f.write("setlocal\r\n")
+                                for env in ("PYTHONHOME","PYTHONPATH","PYTHONUSERBASE","SSL_CERT_FILE","REQUESTS_CA_BUNDLE"):
+                                    f.write(f"set {env}=\r\n")
+                                f.write("set PYTHONUTF8=1\r\n")
+                                f.write("start \"\" \"%~dp0YouTubePlaylistExplorer.exe\"\r\n")
+                        except Exception:
+                            pass
+                except Exception as e:
+                    err_msg = str(e)
+                    self.after(0, lambda s=err_msg: _append(s + "\n"))
                     ok = False
-                    # Python-first build
-                    try:
-                        venv_dir = os.path.join(project_root, ".venv")
-                        if not os.path.exists(venv_dir):
-                            subprocess.run([sys.executable, "-m", "venv", venv_dir], cwd=project_root, check=True)
-                        vpy = os.path.join(venv_dir, "Scripts", "python.exe")
-                        if not os.path.exists(vpy):
-                            vpy = os.path.join(venv_dir, "bin", "python")
-                        def runp(args):
-                            p = subprocess.run(args, cwd=project_root, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-                            self.after(0, lambda s=p.stdout: _append(s))
-                            return p.returncode
-                        runp([vpy, "-m", "pip", "install", "--upgrade", "pip"])
-                        runp([vpy, "-m", "pip", "install", "pyinstaller"])
-                        req_path = os.path.join(project_root, "requirements.txt")
-                        if os.path.exists(req_path):
-                            runp([vpy, "-m", "pip", "install", "-r", req_path])
-                        entry = os.path.join(project_root, "src", "main.py")
-                        dist = os.path.join(project_root, "dist")
-                        work = os.path.join(project_root, "build")
-                        os.makedirs(dist, exist_ok=True)
-                        os.makedirs(work, exist_ok=True)
-                        args = [
-                            vpy, "-m", "PyInstaller",
-                            "--onefile", "--windowed",
-                            "--name", "YouTubePlaylistExplorer",
-                            "--distpath", dist, "--workpath", work,
-                            "--hidden-import", "googleapiclient.discovery",
-                            "--hidden-import", "googleapiclient.errors",
-                            "--hidden-import", "isodate",
-                            "--hidden-import", "vlc",
-                            "--hidden-import", "yt_dlp",
-                            entry
-                        ]
-                        r = subprocess.run(args, cwd=project_root, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-                        self.after(0, lambda s=r.stdout: _append(s))
-                        exe = os.path.join(dist, "YouTubePlaylistExplorer.exe")
-                        ok = os.path.exists(exe)
-                        if ok:
-                            try:
-                                run_cmd = os.path.join(dist, "Run-YouTubePlaylistExplorer.cmd")
-                                with open(run_cmd, "w", encoding="ascii") as f:
-                                    f.write("@echo off\r\n")
-                                    f.write("setlocal\r\n")
-                                    for env in ("PYTHONHOME","PYTHONPATH","PYTHONUSERBASE","SSL_CERT_FILE","REQUESTS_CA_BUNDLE"):
-                                        f.write(f"set {env}=\r\n")
-                                    f.write("set PYTHONUTF8=1\r\n")
-                                    f.write("start \"\" \"%~dp0YouTubePlaylistExplorer.exe\"\r\n")
-                            except Exception:
-                                pass
-                    except Exception as e:
-                        self.after(0, lambda: _append(str(e) + "\n"))
-                        ok = False
-                    # No PowerShell fallback; Python-only build
+                finally:
                     self.after(0, lambda: _done(ok))
-                except Exception:
-                    self.after(0, lambda: _done(False))
             try:
                 threading.Thread(target=_worker, daemon=True).start()
             except Exception:
@@ -2078,7 +2320,6 @@ class MainPage(tk.Frame):
             close_btn.pack(side="right")
             open_btn.configure(state="disabled")
             run_btn.configure(state="disabled")
-            exe_path = os.path.join(dist_dir, "YouTubePlaylistExplorer.exe")
             def _open_dist():
                 try:
                     if sys.platform == "win32":
@@ -2146,7 +2387,6 @@ class MainPage(tk.Frame):
                         self.after(0, lambda s=r.stdout: _append(s))
                         target_dir = os.path.join(dist, "YouTubePlaylistExplorer")
                         ok = os.path.isdir(target_dir)
-                        exe_path2 = os.path.join(target_dir, "YouTubePlaylistExplorer.exe")
                         if ok:
                             try:
                                 run_cmd = os.path.join(target_dir, "Run-App.cmd")
@@ -2159,8 +2399,9 @@ class MainPage(tk.Frame):
                                     f.write("start \"\" \"%~dp0YouTubePlaylistExplorer.exe\"\r\n")
                             except Exception:
                                 pass
-                    except Exception as e:
-                        self.after(0, lambda: _append(str(e) + "\n"))
+                    except Exception as exc:
+                        err_msg = str(exc)
+                        self.after(0, lambda s=err_msg: _append(s + "\n"))
                         ok = False
                     # No PowerShell fallback; Python-only build
                     self.after(0, lambda: _done(ok))
@@ -2290,7 +2531,8 @@ class MainPage(tk.Frame):
                     is_timeout = 'timed out' in str(e).lower()
                 if is_ssl or is_timeout:
                     try:
-                        import time; time.sleep(0.3)
+                        import time
+                        time.sleep(0.3)
                     except Exception:
                         pass
                     try:
@@ -2588,12 +2830,7 @@ class MainPage(tk.Frame):
 
     def open_explore_downloaded_popup(self):
         try:
-            try:
-                from .download_manager import DownloadManager
-            except Exception:
-                from src.pages.main.download_manager import DownloadManager
-            # No direct instance access; this triggers only within an active download window
-            # Provided here for context-menu binding; it will be a no-op if not available
+            pass
         except Exception:
             pass
 
@@ -2641,7 +2878,8 @@ class MainPage(tk.Frame):
 
     def restart_app(self):
         try:
-            import subprocess, os, sys
+            import subprocess
+            import os
             bat = r"d:\Py_2025\11-2025\youtube_downloaderV2_CURSOR_OK1_dev_multi_OK07-04-25\run_app.bat"
             if os.name == "nt":
                 try:
