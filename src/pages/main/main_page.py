@@ -390,7 +390,21 @@ class MainPage(tk.Frame):
             self.current_videos[idx]['playlistIndex'] = pi
             items = self.video.video_tree.get_children()
             if idx < len(items):
-                self.video.video_tree.item(items[idx], values=self._video_row(self.current_videos[idx]))
+                row = self._video_row(self.current_videos[idx])
+                try:
+                    itm = items[idx]
+                    meta = self.video.video_tree.item(itm)
+                    tags = tuple(meta.get('tags') or ())
+                    if 'search_hit' in tags:
+                        try:
+                            row = (f"★ {row[0]}",) + row[1:]
+                        except Exception:
+                            pass
+                        self.video.video_tree.item(itm, values=row, tags=('search_hit',))
+                        return
+                except Exception:
+                    pass
+                self.video.video_tree.item(items[idx], values=row)
         except Exception:
             pass
 
@@ -1447,10 +1461,6 @@ class MainPage(tk.Frame):
             except Exception:
                 pass
             try:
-                self.print_playlist_videos_to_terminal(playlist_id)
-            except Exception:
-                pass
-            try:
                 # Run highlight on UI thread
                 self.after(0, lambda pid=playlist_id: self._safe_ui(lambda: self.highlight_videos_for_playlist(pid)))
             except Exception:
@@ -1458,6 +1468,11 @@ class MainPage(tk.Frame):
                     self.highlight_videos_for_playlist(playlist_id)
                 except Exception:
                     pass
+            try:
+                # Defer printing so highlight appears quickly
+                self.after(50, lambda pid=playlist_id: self.print_playlist_videos_to_terminal(pid))
+            except Exception:
+                pass
         except Exception:
             pass
         finally:
@@ -2484,6 +2499,10 @@ class MainPage(tk.Frame):
             ttl = (vals[1] if isinstance(vals, (list, tuple)) and len(vals) > 1 else '') or ''
         except Exception:
             ttl = ''
+        try:
+            mr_main = int(self.video.page_size_var.get())
+        except Exception:
+            mr_main = 10
         def _printer(resp):
             try:
                 vids = list(resp.get('videos', []) or [])
@@ -2497,7 +2516,7 @@ class MainPage(tk.Frame):
                         pass
             except Exception:
                 pass
-        def _worker():
+        def _worker(mr):
             try:
                 cached = self._get_cached_playlist_page(playlist_id, None)
             except Exception:
@@ -2505,10 +2524,6 @@ class MainPage(tk.Frame):
             if cached is not None:
                 _printer(cached)
                 return
-            try:
-                mr = int(self.video.page_size_var.get())
-            except Exception:
-                mr = 10
             def _fetch(mr2):
                 return self.controller.playlist_handler.get_videos(playlist_id, None, max_results=mr2)
             try:
@@ -2566,7 +2581,7 @@ class MainPage(tk.Frame):
                         pass
         try:
             import threading as _t
-            _t.Thread(target=_worker, daemon=True).start()
+            _t.Thread(target=lambda: _worker(mr_main), daemon=True).start()
         except Exception:
             pass
 
