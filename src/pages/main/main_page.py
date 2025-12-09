@@ -109,6 +109,8 @@ class MainPage(tk.Frame):
         self.playlist_video_ids = {}
         self._preview_only_hits = False
         self._last_open_playlist_id = None
+        self._pl_hits_cache = {}
+        self.video_results_ids = set()
         try:
             self.media_index = MediaIndex()
         except Exception:
@@ -716,8 +718,19 @@ class MainPage(tk.Frame):
                         playlist["video_count"] = video_count
                     except Exception:
                         playlist["video_count"] = "N/A"
-                    self.playlist.update_playlist(playlist)
                     enriched.append(playlist)
+                self.playlist.playlist_tree.delete(*self.playlist.playlist_tree.get_children())
+                def _ins_chunk(s):
+                    try:
+                        ch = 30
+                        e = min(s + ch, len(enriched))
+                        for i in range(s, e):
+                            self.playlist.update_playlist(enriched[i])
+                        if e < len(enriched):
+                            self.after(0, lambda st=e: _ins_chunk(st))
+                    except Exception:
+                        pass
+                _ins_chunk(0)
                 ConfigManager.save_json(ConfigManager.get_last_search_path('playlists'), {
                     'query': query,
                     'playlists': enriched
@@ -765,6 +778,10 @@ class MainPage(tk.Frame):
                     self.video.video_tree.insert('', 'end', values=self._video_row(v), tags=tags)
                 except Exception:
                     self.video.video_tree.insert('', 'end', values=self._video_row(v))
+            try:
+                self._update_results_ids()
+            except Exception:
+                pass
             try:
                 if self.media_index:
                     self.media_index.add_videos(videos)
@@ -1262,13 +1279,28 @@ class MainPage(tk.Frame):
             self.video_next_page_token = resp.get('nextPageToken')
             self.video_prev_page_token = resp.get('prevPageToken')
             self.video.video_tree.delete(*self.video.video_tree.get_children())
-            for v in videos:
+            def _ins_chunk(s):
                 try:
-                    vid = v.get('videoId')
-                    tags = ('search_hit',) if vid in getattr(self, 'video_search_ids', set()) else ()
-                    self.video.video_tree.insert('', 'end', values=self._video_row(v), tags=tags)
+                    ch = 50
+                    e = min(s + ch, len(videos))
+                    for i in range(s, e):
+                        v = videos[i]
+                        try:
+                            vid = v.get('videoId')
+                            tags = ('search_hit',) if vid in getattr(self, 'video_search_ids', set()) else ()
+                            self.video.video_tree.insert('', 'end', values=self._video_row(v), tags=tags)
+                        except Exception:
+                            self.video.video_tree.insert('', 'end', values=self._video_row(v))
+                    if e < len(videos):
+                        self.after(0, lambda st=e: _ins_chunk(st))
                 except Exception:
-                    self.video.video_tree.insert('', 'end', values=self._video_row(v))
+                    pass
+            _ins_chunk(0)
+            try:
+                self.current_videos = videos
+                self._update_results_ids()
+            except Exception:
+                pass
             try:
                 if page_token is None:
                     self.video_search_page_index = 1
@@ -1317,33 +1349,53 @@ class MainPage(tk.Frame):
     def map_videos_to_playlists(self, videos):
         collected = []
         try:
-            existing = list(self.playlist.playlist_tree.get_children())
+            children = list(self.playlist.playlist_tree.get_children())
         except Exception:
-            existing = []
+            children = []
+        try:
+            result_ids = {v.get('videoId') for v in list(videos or []) if v.get('videoId')}
+        except Exception:
+            result_ids = set()
+        hits_by_playlist = {}
+        for pid in children:
+            ids = set()
+            try:
+                if self.media_index:
+                    ids = set(list(self.media_index.get_playlist_video_ids(pid) or []))
+                else:
+                    ids = set(list(self.playlist_video_ids.get(pid, set()) or set()))
+            except Exception:
+                ids = set(list(self.playlist_video_ids.get(pid, set()) or set()))
+            inter = ids.intersection(result_ids)
+            if inter:
+                hits_by_playlist[pid] = inter
         index_map = dict(self.playlist_index_map or {})
+        for pid in hits_by_playlist.keys():
+            try:
+                if pid not in index_map:
+                    index_map[pid] = len(index_map) + 1
+            except Exception:
+                pass
+            try:
+                info = self.controller.playlist_handler.get_playlist_info(pid)
+            except Exception:
+                info = {'playlistId': pid, 'title': '', 'channelTitle': '', 'video_count': 'N/A'}
+            collected.append(info)
+        vid_to_pid = {}
+        for pid, vids in hits_by_playlist.items():
+            for vid in vids:
+                vid_to_pid[vid] = pid
         for v in list(videos or []):
-            vid = v.get('videoId')
-            target = None
-            for pid in existing:
-                try:
-                    if self.controller.playlist_handler.playlist_contains_video(pid, vid):
-                        target = pid
-                        break
-                except Exception:
+            try:
+                vid = v.get('videoId')
+                pid = vid_to_pid.get(vid)
+                if not pid:
                     continue
-            if not target:
-                continue
-            if not any(p.get('playlistId') == target for p in collected):
-                try:
-                    info = self.controller.playlist_handler.get_playlist_info(target)
-                except Exception:
-                    info = {'playlistId': target, 'title': '', 'channelTitle': '', 'video_count': 'N/A'}
-                collected.append(info)
-            if target not in index_map:
-                index_map[target] = len(index_map) + 1
-            v['playlistId'] = target
-            v['playlistIndex'] = index_map.get(target)
-            self.video_playlist_cache[vid] = target
+                v['playlistId'] = pid
+                v['playlistIndex'] = index_map.get(pid)
+                self.video_playlist_cache[vid] = pid
+            except Exception:
+                pass
         try:
             self.playlist_index_map = index_map
         except Exception:
@@ -1353,6 +1405,10 @@ class MainPage(tk.Frame):
             for i, item in enumerate(items):
                 if i < len(videos):
                     self.video.video_tree.item(item, values=self._video_row(videos[i]))
+        except Exception:
+            pass
+        try:
+            self.collected_playlists = collected
         except Exception:
             pass
         return collected
@@ -1381,6 +1437,36 @@ class MainPage(tk.Frame):
         except Exception:
             pass
 
+    def recompute_indices_from_tree(self):
+        try:
+            children = list(self.playlist.playlist_tree.get_children())
+        except Exception:
+            children = []
+        try:
+            new_map = {}
+            n = 1
+            for pid in children:
+                new_map[pid] = n
+                n += 1
+            self.playlist_index_map = new_map
+        except Exception:
+            pass
+        try:
+            self.playlist.normalize_numbers()
+        except Exception:
+            pass
+        try:
+            for v in list(self.current_videos or []):
+                pid = v.get('playlistId')
+                if pid in self.playlist_index_map:
+                    v['playlistIndex'] = self.playlist_index_map[pid]
+            items = self.video.video_tree.get_children()
+            for i, item in enumerate(items):
+                if i < len(self.current_videos):
+                    self.video.video_tree.item(item, values=self._video_row(self.current_videos[i]))
+        except Exception:
+            pass
+
     def highlight_videos_for_playlist(self, playlist_id):
         # Marks only intersection: videos in selected playlist AND present in current search results
         # Updates row values without changing mode; safe against UI restart
@@ -1392,27 +1478,48 @@ class MainPage(tk.Frame):
                 pi = self.assign_playlist_index(playlist_id)
             except Exception:
                 pi = None
+            try:
+                vids = set(self.video_results_ids or set())
+            except Exception:
+                vids = set()
+            try:
+                hits = self._pl_hits_cache.get(playlist_id)
+                if hits is None:
+                    ids = set()
+                    try:
+                        if self.media_index:
+                            ids = set(list(self.media_index.get_playlist_video_ids(playlist_id) or []))
+                        else:
+                            ids = set(list(self.playlist_video_ids.get(playlist_id, set()) or set()))
+                    except Exception:
+                        ids = set(list(self.playlist_video_ids.get(playlist_id, set()) or set()))
+                    hits = vids.intersection(ids)
+                    if not hits:
+                        lim = min(30, len(self.current_videos or []))
+                        tmp = set()
+                        for i in range(lim):
+                            try:
+                                v = self.current_videos[i]
+                                vid = v.get('videoId')
+                                if vid and self.controller.playlist_handler.playlist_contains_video(playlist_id, vid):
+                                    tmp.add(vid)
+                            except Exception:
+                                pass
+                        if tmp:
+                            hits = tmp
+                    self._pl_hits_cache[playlist_id] = hits
+            except Exception:
+                hits = set()
             for i, item in enumerate(items):
                 try:
                     v = self.current_videos[i] if i < len(self.current_videos) else None
                     if not v:
                         continue
                     vid = v.get('videoId')
-                    cached_hit = bool(vid) and (self.video_playlist_cache.get(vid) == playlist_id)
-                    ids_hit = False
-                    try:
-                        if self.media_index:
-                            ids_hit = bool(vid) and (vid in self.media_index.get_playlist_video_ids(playlist_id))
-                        else:
-                            ids_hit = bool(vid) and (vid in self.playlist_video_ids.get(playlist_id, set()))
-                    except Exception:
-                        ids_hit = bool(vid) and (vid in self.playlist_video_ids.get(playlist_id, set()))
-                    in_results = bool(vid) and (vid in getattr(self, 'video_search_ids', set()))
-                    is_hit = (cached_hit or ids_hit) and in_results
+                    is_hit = bool(vid) and (vid in hits)
                     if is_hit:
                         try:
-                            if in_results:
-                                self.video_playlist_cache[vid] = playlist_id
+                            self.video_playlist_cache[vid] = playlist_id
                             if pi is not None:
                                 v['playlistIndex'] = pi
                         except Exception:
@@ -1473,6 +1580,10 @@ class MainPage(tk.Frame):
                 self.after(50, lambda pid=playlist_id: self.print_playlist_videos_to_terminal(pid))
             except Exception:
                 pass
+            try:
+                self.after(80, lambda pid=playlist_id: self._report_playlist_hits(pid))
+            except Exception:
+                pass
         except Exception:
             pass
         finally:
@@ -1480,6 +1591,40 @@ class MainPage(tk.Frame):
                 self._videos_mode_click_busy = False
             except Exception:
                 pass
+
+    def _report_playlist_hits(self, playlist_id):
+        try:
+            vids = set(self.video_results_ids or set())
+        except Exception:
+            vids = set()
+        hits = 0
+        try:
+            ids = set()
+            if self.media_index:
+                ids = set(list(self.media_index.get_playlist_video_ids(playlist_id) or []))
+            else:
+                ids = set(list(self.playlist_video_ids.get(playlist_id, set()) or set()))
+            hits = len(vids.intersection(ids))
+        except Exception:
+            hits = 0
+        try:
+            if hits <= 0:
+                self.status_bar.configure(text="No videos from this playlist in current results")
+        except Exception:
+            pass
+
+    def _invalidate_hits_cache(self):
+        try:
+            self._pl_hits_cache = {}
+        except Exception:
+            pass
+
+    def _update_results_ids(self):
+        try:
+            self.video_results_ids = {v.get('videoId') for v in list(self.current_videos or []) if v.get('videoId')}
+            self._invalidate_hits_cache()
+        except Exception:
+            self.video_results_ids = set()
 
     def clear_video_playlist_highlights(self):
         # Removes all transient highlight/star tags from Videos table
@@ -1609,6 +1754,10 @@ class MainPage(tk.Frame):
                 except Exception:
                     pass
                 try:
+                    self._update_results_ids()
+                except Exception:
+                    pass
+                try:
                     pi_local = None
                     try:
                         pi_local = self.assign_playlist_index(playlist_id)
@@ -1719,6 +1868,10 @@ class MainPage(tk.Frame):
                 except Exception:
                     pass
                 try:
+                    self._update_results_ids()
+                except Exception:
+                    pass
+                try:
                     try:
                         import time as _t1
                         dt = 0
@@ -1821,40 +1974,41 @@ class MainPage(tk.Frame):
             pass
         hit_count = 0
         ql = (self.video_search_query or '').strip().lower()
-        try:
-            print(f"[Playlist] {self.current_playlist_info.get('title','')} ({self.current_playlist_info.get('id','')})")
-        except Exception:
-            pass
-        for video in list(self.current_videos or []):
+        vids_set = set(getattr(self, 'video_search_ids', set()))
+        def _ins_chunk(s):
+            nonlocal hit_count
             try:
-                vid = video.get('videoId')
-                ttl = str(video.get('title', '')).lower()
-                chn = str(video.get('channelTitle', '')).lower()
-                if getattr(self, '_preview_only_hits', False):
-                    is_hit = (vid in getattr(self, 'video_search_ids', set()))
-                else:
-                    is_hit = (vid in getattr(self, 'video_search_ids', set())) or (ql and (ql in ttl or ql in chn))
-                tags = ('search_hit',) if is_hit else ()
-                row = self._video_row(video)
-                if is_hit:
-                    hit_count += 1
+                ch = 50
+                e = min(s + ch, len(self.current_videos or []))
+                for i in range(s, e):
+                    video = self.current_videos[i]
                     try:
-                        row = (f"★ {row[0]}",) + row[1:]
+                        vid = video.get('videoId')
+                        ttl = str(video.get('title', '')).lower()
+                        chn = str(video.get('channelTitle', '')).lower()
+                        if getattr(self, '_preview_only_hits', False):
+                            is_hit = bool(vid) and (vid in vids_set)
+                        else:
+                            is_hit = (bool(vid) and (vid in vids_set)) or (ql and (ql in ttl or ql in chn))
+                        tags = ('search_hit',) if is_hit else ()
+                        row = self._video_row(video)
+                        if is_hit:
+                            hit_count += 1
+                            try:
+                                row = (f"★ {row[0]}",) + row[1:]
+                            except Exception:
+                                pass
+                        self.video.video_tree.insert('', 'end', values=row, tags=tags)
                     except Exception:
-                        pass
-                self.video.video_tree.insert("", "end", values=row, tags=tags)
-                try:
-                    pub = self._fmt_date(video.get('published',''))
-                    vs = video.get('views','')
-                    prefix = '★ ' if is_hit else ''
-                    print(f" - {prefix}{video.get('title','')} | {video.get('duration','')} | {pub} | {vs}")
-                except Exception:
-                    pass
+                        try:
+                            self.video.video_tree.insert('', 'end', values=self._video_row(video))
+                        except Exception:
+                            pass
+                if e < len(self.current_videos or []):
+                    self.after(0, lambda st=e: _ins_chunk(st))
             except Exception:
-                try:
-                    self.video.video_tree.insert("", "end", values=self._video_row(video))
-                except Exception:
-                    pass
+                pass
+        _ins_chunk(0)
         try:
             self.status_bar.configure(text=f"Highlighted {hit_count} matched videos in playlist")
         except Exception:
@@ -1879,6 +2033,17 @@ class MainPage(tk.Frame):
             self.video.update_back_button_state(True)
         except Exception:
             pass
+
+    def toggle_only_hits(self, enabled: bool):
+        try:
+            self._preview_only_hits = bool(enabled)
+        except Exception:
+            pass
+        try:
+            tv = max(int(self.video.total_label["text"].split(':')[-1].strip()), len(self.current_videos or []))
+        except Exception:
+            tv = len(self.current_videos or [])
+        self._render_playlist_videos(tv)
 
     def on_video_header_double_click(self, column_name, q=None):
         try:
@@ -1998,6 +2163,30 @@ class MainPage(tk.Frame):
             except Exception:
                 pass
         self.playlist_sort_state[column_name] = not asc
+        try:
+            for iid in self.playlist.playlist_tree.get_children():
+                try:
+                    pi = self.playlist_index_map.get(iid)
+                except Exception:
+                    pi = None
+                if pi is None:
+                    continue
+                try:
+                    vals = self.playlist.playlist_tree.item(iid).get('values', [])
+                except Exception:
+                    vals = []
+                try:
+                    new_vals = ((pi or ""),) + tuple(vals[1:]) if vals else ((pi or ""),)
+                except Exception:
+                    new_vals = vals
+                try:
+                    self.playlist.playlist_tree.item(iid, values=new_vals)
+                    self.playlist.playlist_tree.set(iid, 'No', str(pi))
+                except Exception:
+                    pass
+            self.playlist.normalize_numbers()
+        except Exception:
+            pass
 
     def _sort_playlists(self, name):
         try:

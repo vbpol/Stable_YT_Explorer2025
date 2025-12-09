@@ -10,7 +10,7 @@ except Exception:
 def _start_current_runtime():
     try:
         try:
-            import importlib, types
+            import importlib
             import sys as _sys
             def _alias(name, target):
                 try:
@@ -31,10 +31,11 @@ def _start_current_runtime():
         import tkinter as tk
         root = tk.Tk()
         try:
-            root.deiconify(); root.lift()
+            root.deiconify()
+            root.lift()
         except Exception:
             pass
-        app = YouTubeApp(root)
+        YouTubeApp(root)
         try:
             root.mainloop()
         except KeyboardInterrupt:
@@ -96,7 +97,7 @@ def main():
             except Exception:
                 print("[Launcher] Stable runtime crashed; switching to current runtime")
             root = tk.Tk()
-            app = YouTubeApp(root)
+            YouTubeApp(root)
             try:
                 root.mainloop()
             except KeyboardInterrupt:

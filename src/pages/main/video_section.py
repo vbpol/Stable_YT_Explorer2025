@@ -104,6 +104,11 @@ class VideoSection(BaseSection):
         if _env not in ("production", "prod", "release"):
             ttk.Button(button_frame, text="Build EXE", 
                       command=self.main_page.build_exe_windows).pack(side="left", padx=5)
+        try:
+            self.only_hits_var = tk.BooleanVar(value=False)
+            ttk.Checkbutton(button_frame, text="Show Only Hits", variable=self.only_hits_var, command=lambda: self.main_page.toggle_only_hits(self.only_hits_var.get())).pack(side="left", padx=8)
+        except Exception:
+            pass
 
     def update_back_button_state(self, enabled: bool):
         try:

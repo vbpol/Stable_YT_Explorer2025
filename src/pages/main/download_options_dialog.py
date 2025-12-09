@@ -1,5 +1,9 @@
 import tkinter as tk
 from tkinter import ttk
+try:
+    from src.config_manager import ConfigManager
+except ModuleNotFoundError:
+    from config_manager import ConfigManager
 
 class DownloadOptionsDialog:
     def __init__(self, parent):
@@ -27,10 +31,6 @@ class DownloadOptionsDialog:
             ttk.Radiobutton(quality_frame, text=text, value=value, 
                           variable=self.quality_var).pack(side=tk.LEFT, padx=5)
         ttk.Label(self.window, text="Cookies:").pack(pady=5)
-        try:
-            from src.config_manager import ConfigManager
-        except ModuleNotFoundError:
-            from config_manager import ConfigManager
         self.cookies_var = tk.StringVar(value=ConfigManager.get_cookie_source())
         cookies_frame = ttk.Frame(self.window)
         cookies_frame.pack(pady=5)
@@ -43,10 +43,6 @@ class DownloadOptionsDialog:
         ttk.Button(file_frame, text="Browse", command=self._browse_cookiefile).pack(side=tk.LEFT, padx=5)
         self.fallback_videos_var = tk.BooleanVar(value=True)
         ttk.Checkbutton(self.window, text="Fallback to 'Videos - {query}' when playlist unknown", variable=self.fallback_videos_var).pack(pady=6)
-        try:
-            from src.config_manager import ConfigManager
-        except ModuleNotFoundError:
-            from config_manager import ConfigManager
         self.use_channel_title_var = tk.BooleanVar(value=ConfigManager.get_use_channel_title_fallback())
         ttk.Checkbutton(self.window, text="Prefer channel title for 'Videos - {...}'", variable=self.use_channel_title_var).pack(pady=4)
         

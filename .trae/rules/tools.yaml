@@ -1,0 +1,69 @@
+version: 1
+
+tools:
+
+  ssot_enforce:
+    description: |
+      Enforce Single Source of Truth (SSOT) across UI logic, indexes, and state.
+      All UI visibility, membership, and decision logic must read from the
+      centralized index. Cached/prefetched data is considered authoritative.
+      Output must refuse any duplicated state or secondary decision source.
+    required_files:
+      - ".trae/rules/project_rules.md"
+
+  clean_responsibility:
+    description: |
+      Maintain strict UI/Service/Index responsibility boundaries.
+      UI = rendering & events. Services = orchestration. Index/model =
+      canonical state. Refuse business logic in UI or cross-layer side effects.
+
+  error_resistant_flow:
+    description: |
+      Ensure code is self-consistent, fully typed, and safe before output.
+      Simulate:
+        - ruff check .
+        - mypy src
+      Reject partial refactors, missing imports, invalid types, or implicit file creation.
+
+  change_scope_control:
+    description: |
+      Restrict modifications to only files explicitly requested by the user.
+      Add new files only when user explicitly asks or when required to prevent inconsistencies.
+      Ensure modifications remain DRY and SSOT-compliant.
+
+  docs_update:
+    description: |
+      Update docs/media-index-consistency.md whenever architectural behavior changes.
+      Must maintain overview, impact analysis, validation checklist, and rollback plan.
+
+  validation_checklist:
+    description: |
+      Final safeguard. AI must internally verify:
+        - SSOT usage
+        - No duplicated state or drift
+        - Clean responsibility boundaries
+        - Error-resistant logic
+        - Ruff-clean
+        - Mypy-clean
+        - No unauthorized file creation
+        - All modified files are internally consistent
+        - Documentation updated when architecture changes
+
+  # --- Project commands (callable by Trae or humans) -------------------------
+
+  lint:
+    command: "ruff check ."
+    description: "Run full project linting using Ruff."
+
+  format:
+    command: "ruff format ."
+    description: "Autoformat the project using Ruff. Optional step."
+
+  typecheck:
+    command: "mypy src"
+    description: "Strict type checking over the 'src' directory."
+
+  install_dev_tools:
+    command: "python -m pip install ruff mypy"
+    description: "Install Ruff and Mypy in the active virtual environment."
+

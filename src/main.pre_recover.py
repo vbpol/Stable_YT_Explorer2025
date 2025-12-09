@@ -184,7 +184,7 @@ class YouTubeApp:
 def main():
     """Initialize and run the YouTube Playlist Explorer application."""
     root = tk.Tk()
-    app = YouTubeApp(root)
+    YouTubeApp(root)
     try:
         root.mainloop()
     except KeyboardInterrupt:
