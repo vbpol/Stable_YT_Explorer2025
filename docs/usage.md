@@ -10,7 +10,7 @@
 
 ## Videos Mode
 - Columns: Title, Playlist No, Channel, Duration, Published, Views.
-- Mapping collects related playlists; only matched playlists get numbers.
+- Mapping uses targeted search with membership confirmation; only intersecting playlists are shown and numbered.
 - A progress dialog appears while collecting related playlists with percentage and counts.
 - Select a video to highlight its playlist and move it to top.
 - Double-click a playlist to open its videos; Back to Results enables to restore search list.
@@ -27,6 +27,7 @@
 
 ## Persistence
 - Last-results saved and loaded on mode changes; includes `query`, tokens, `videos` and related `playlists`.
+- On API errors or quota limits, the UI loads last saved Videos results automatically.
 - Startup prioritizes last-mode (`Videos` or `Playlists`) based on `last_mode.json`.
 - UI Playlist No is session-only and resets on each search (`src/pages/main/main_page.py:144-151`).
 

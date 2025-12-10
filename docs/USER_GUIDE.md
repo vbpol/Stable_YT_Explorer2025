@@ -3,6 +3,7 @@
 ## Overview
 - Explore YouTube playlists and videos, highlight matches, and download in HD.
 - Two modes: `Playlists` browsing and `Videos` search with playlist intersection.
+- Videos mode shows only intersecting playlists with stable numbering; no channel-level scanning.
 
 ## Installation
 - Ensure Python 3.10+ is installed.
@@ -33,6 +34,7 @@
 ## Troubleshooting
 - No results: verify API key and network access.
 - Rate limits: wait or use multiple keys via `YOUTUBE_API_KEYS`.
+- If API quota or errors occur during search, the app automatically loads the last saved Videos results.
 - UI not responding: avoid blocking operations; the app uses background threads.
 - If packaged EXE fails by double-click, start via `dist/Run-YouTubePlaylistExplorer.cmd` or `dist/YouTubePlaylistExplorer/Run-App.cmd` which clears conflicting environment variables.
 - Antivirus blocking PowerShell: builds use Python-only; allow the EXE and launcher via AV exclusions if needed.

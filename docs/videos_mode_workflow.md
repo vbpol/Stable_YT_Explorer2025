@@ -12,13 +12,14 @@
 - playlists normalization: `normalize_playlist_indices`
 
 ## Resolution Logic
+- No channel-level scanning.
 - Check datastore reverse map and local `video_playlist_cache` first.
 - Confirm membership for known playlists with `playlist_contains_video(playlistId, videoId)`.
-- If no candidates exist, search by `channelTitle`/`title` (max 5) and confirm membership.
+- If no candidates exist, perform targeted search by `title` and `channelTitle` (max 5) and confirm membership.
 - Enrich playlist info with `get_playlist_info(playlistId)`.
 
 ## Dataset Build
-1. Scan all current videos for playlist memberships.
+1. Scan current videos using targeted search and membership confirmation.
 2. Deduplicate playlists; sort by `title`.
 3. Assign contiguous local numbers 1..N for these playlists.
 4. Apply numbers to videos and playlists table.
@@ -26,13 +27,14 @@
 
 ## UI Updates
 - Videos table `Playlist` column uses local numbers.
-- Playlists table shows only playlists found for current videos.
+- Playlists table shows only intersecting playlists (at least one current result video).
 - Tooltip on videos shows `playlistId` and playlist title.
 - Selecting a video focuses its playlist and highlights related videos.
 
 ## Performance
 - Membership results cached per `(playlistId, videoId)` to avoid repeated checks.
-- Fallback search limited to 5 candidates per video.
+- Targeted search limited to 5 candidates per video with a session search budget.
+- Query results cached per session to reduce API calls.
 - Playlist info fetched by ID only when needed.
 
 ## Logging & Validation
@@ -49,7 +51,8 @@
 
 ## Known Limits
 - API rate limits can impact membership checks; caching mitigates cost.
-- Fallback search works best when `channelTitle`/`title` is descriptive; otherwise fewer matches.
+- Targeted search works best when `channelTitle`/`title` is descriptive; otherwise fewer matches.
+- On API quota/errors, the UI loads last saved Videos results automatically.
 
 ## Graceful Exit
 - KeyboardInterrupt during UI now closes the window without a stack trace.
