@@ -10,12 +10,14 @@
 - Toggle Mode in the Search row (Playlists vs Videos).
 - Enter a keyword and press Search.
 
-## Videos Mode
+-## Videos Mode
 - Columns: Title, Playlist No, Channel, Duration, Published, Views.
 - Mapping uses targeted search with membership confirmation; only intersecting playlists are shown and numbered.
+- Single-click a playlist: pins and highlights intersection videos only (no table clear).
+- Double-click a playlist: populates the Videos table with that playlist's videos; Back to Results becomes active.
+- Right-click a playlist: popup menu includes Highlight, Show Videos (Popup), Print Dataset, Populate Videos Table.
 - A progress dialog appears while collecting related playlists with percentage and counts.
 - Select a video to highlight its playlist and move it to top.
-- Double-click a playlist to open its videos; Back to Results enables to restore search list.
 - Back to Results reloads playlists first so the Playlist No is correctly shown (`src/pages/main/main_page.py:482-496`).
 - Sort: click column headers (`src/pages/main/main_page.py:420`).
 - Filter: double-click headers (`src/pages/main/main_page.py:440`).
