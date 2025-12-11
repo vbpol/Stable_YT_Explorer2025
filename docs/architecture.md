@@ -13,10 +13,11 @@
 - Search:
   - Playlists: `execute_search` in `src/pages/main/main_page.py:114`
   - Videos: same function; adds highlights and background mapping
- - Playlist view: `show_playlist_videos` in `src/pages/main/main_page.py:558`
- - Preview into Videos: `populate_videos_table_preview` shows playlist videos without mode switch
+- Playlist view: `show_playlist_videos` in `src/pages/main/main_page.py:558`
+- Preview into Videos: `populate_videos_table_preview` shows playlist videos without mode switch
 - Back to Results: `back_to_video_results` in `src/pages/main/main_page.py:309`
- - Progress dialog: created and updated in `src/pages/main/main_page.py:389-406` and `src/pages/main/main_page.py:346-364`; closes safely `src/pages/main/main_page.py:373-386`
+- Progress dialog: created and updated in `src/pages/main/main_page.py:389-406` and `src/pages/main/main_page.py:346-364`; closes safely `src/pages/main/main_page.py:373-386`
+- Startup performance: `_load_last_search` restores cached results with no network calls (`src/pages/main/main_page.py:619-694`).
 
 ## Videos Mapping
 - Search videos: `search_videos` in `src/playlist.py:40`

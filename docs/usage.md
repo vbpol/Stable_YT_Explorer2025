@@ -3,6 +3,8 @@
 ## Startup
 - Configure API key and default folder via Setup.
 - Window foreground lift is enabled (`src/youtube_app.py:22`).
+- No network calls at startup; the app restores last saved results instantly.
+- Background mapping and API queries occur only after a user-initiated search.
 
 ## Modes
 - Toggle Mode in the Search row (Playlists vs Videos).
