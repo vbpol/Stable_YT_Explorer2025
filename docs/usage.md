@@ -19,6 +19,7 @@
 - A progress dialog appears while collecting related playlists with percentage and counts.
 - Select a video to highlight its playlist and move it to top.
 - Back to Results reloads playlists first so the Playlist No is correctly shown (`src/pages/main/main_page.py:482-496`).
+ - Mapping is persisted during highlight/preview and restored automatically when you click Back to Results.
 - Sort: click column headers (`src/pages/main/main_page.py:420`).
 - Filter: double-click headers (`src/pages/main/main_page.py:440`).
 

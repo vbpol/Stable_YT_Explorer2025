@@ -49,3 +49,5 @@
 - Removed channel-level playlist scanning in Videos mode; use targeted search by `title`/`channelTitle` with membership confirmation.
 - Playlists table in Videos mode shows only intersecting playlists and preserves stable numbering with no renumber on click.
 - Added quota/error fallback: when video search fails, the app loads last saved Videos results automatically.
+- Playlist click behavior refined: single-click highlights intersection only (no table clearing); double-click populates playlist videos with Back to Results active.
+- Mapping persistence: highlight/preview updates are saved into last videos result so Back to Results restores mapping immediately.
