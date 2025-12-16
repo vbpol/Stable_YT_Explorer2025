@@ -22,11 +22,15 @@ try:
     from src.services.media_index import MediaIndex
     from src.data.json_store import JsonStore
     from src.services.results_mapper import build_index_map as _rm_build_index_map, rebuild_video_playlist_cache as _rm_rebuild_cache, link_media_index as _rm_link_index
+    from src.services.playlist_search import search_enriched_playlists as _ps_search
+    from src.services.video_search import search_videos as _vs_search
 except ModuleNotFoundError:
     from services.video_playlist_scanner import VideoPlaylistScanner
     from services.media_index import MediaIndex
     from data.json_store import JsonStore
     from services.results_mapper import build_index_map as _rm_build_index_map, rebuild_video_playlist_cache as _rm_rebuild_cache, link_media_index as _rm_link_index
+    from services.playlist_search import search_enriched_playlists as _ps_search
+    from services.video_search import search_videos as _vs_search
 
 class MainPage(tk.Frame):
     def __init__(self, parent, controller):
@@ -809,15 +813,7 @@ class MainPage(tk.Frame):
             pass
         if mode == 'playlists':
             try:
-                playlists = self.controller.playlist_handler.search_playlists(query)
-                enriched = []
-                for playlist in playlists:
-                    try:
-                        video_count = self.controller.playlist_handler.get_details(playlist["playlistId"])
-                        playlist["video_count"] = video_count
-                    except Exception:
-                        playlist["video_count"] = "N/A"
-                    enriched.append(playlist)
+                enriched = _ps_search(self.controller.playlist_handler, query)
                 self.playlist.playlist_tree.delete(*self.playlist.playlist_tree.get_children())
                 def _ins_chunk(s):
                     try:
@@ -868,9 +864,6 @@ class MainPage(tk.Frame):
                         except Exception:
                             pass
                     _ins_chunk_cached(0)
-                    self.search.search_entry.delete(0, 'end')
-                    if q_cached:
-                        self.search.search_entry.insert(0, q_cached)
                     self.video.update_back_button_state(False)
                 except Exception:
                     pass
@@ -889,7 +882,7 @@ class MainPage(tk.Frame):
             except Exception:
                 max_results = 10
             try:
-                resp = self.controller.playlist_handler.search_videos(query, max_results=max_results)
+                resp = _vs_search(self.controller.playlist_handler, query, max_results=max_results)
             except Exception as e:
                 try:
                     self.status_bar.configure(text="API quota/error — loading last saved results")
