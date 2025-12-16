@@ -21,10 +21,12 @@ try:
     from src.services.video_playlist_scanner import VideoPlaylistScanner
     from src.services.media_index import MediaIndex
     from src.data.json_store import JsonStore
+    from src.services.results_mapper import build_index_map as _rm_build_index_map, rebuild_video_playlist_cache as _rm_rebuild_cache, link_media_index as _rm_link_index
 except ModuleNotFoundError:
     from services.video_playlist_scanner import VideoPlaylistScanner
     from services.media_index import MediaIndex
     from data.json_store import JsonStore
+    from services.results_mapper import build_index_map as _rm_build_index_map, rebuild_video_playlist_cache as _rm_rebuild_cache, link_media_index as _rm_link_index
 
 class MainPage(tk.Frame):
     def __init__(self, parent, controller):
@@ -1173,39 +1175,12 @@ class MainPage(tk.Frame):
         except Exception:
             self.video_search_ids = set()
         try:
-            index_map = {}
-            vid_to_pid = {}
+            idx_map = _rm_build_index_map(videos, playlists, getattr(self, 'playlist_index_map', {}))
+            self.playlist_index_map = dict(idx_map or {})
             try:
-                for v in list(videos or []):
-                    vid = v.get('videoId')
-                    if not vid:
-                        continue
-                    pid = None
-                    try:
-                        if self.media_index:
-                            pid = self.media_index.get_video_playlist(vid)
-                    except Exception:
-                        pid = None
-                    if pid:
-                        vid_to_pid[vid] = pid
-                        try:
-                            pi = v.get('playlistIndex')
-                            if isinstance(pi, int):
-                                index_map[pid] = pi
-                        except Exception:
-                            pass
-            except Exception:
-                pass
-            try:
-                self.playlist_index_map = dict(index_map or {})
-            except Exception:
-                pass
-            try:
-                for v in list(videos or []):
-                    vid = v.get('videoId')
-                    pid = vid_to_pid.get(vid)
-                    if pid and vid:
-                        self.video_playlist_cache[vid] = pid
+                cache = _rm_rebuild_cache(videos, idx_map)
+                for vid, pid in (cache or {}).items():
+                    self.video_playlist_cache[vid] = pid
             except Exception:
                 pass
             try:
