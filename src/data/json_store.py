@@ -1,4 +1,5 @@
 from typing import List, Dict, Optional
+import os
 try:
     from src.config_manager import ConfigManager
 except ModuleNotFoundError:
@@ -38,3 +39,30 @@ class JsonStore:
         playlists = ConfigManager.load_json(ConfigManager.get_last_search_path('playlists')) or []
         meta = ConfigManager.load_json(ConfigManager.get_last_search_path('playlists').replace('_search.json', '_meta.json')) or {}
         return {'playlists': playlists, 'query': meta.get('query', '')}
+
+    def save_media_index_snapshot(self, videos: Dict, playlists: Dict) -> None:
+        try:
+            base = ConfigManager.get_data_dir()
+            path = os.path.join(base, 'media_index.json')
+        except Exception:
+            try:
+                path = 'media_index.json'
+            except Exception:
+                return
+        data = {
+            'videos': videos or {},
+            'playlists': playlists or {}
+        }
+        ConfigManager.save_json(path, data)
+
+    def load_media_index_snapshot(self) -> Dict:
+        try:
+            base = ConfigManager.get_data_dir()
+            path = os.path.join(base, 'media_index.json')
+        except Exception:
+            path = 'media_index.json'
+        data = ConfigManager.load_json(path) or {}
+        return {
+            'videos': data.get('videos', {}),
+            'playlists': data.get('playlists', {})
+        }

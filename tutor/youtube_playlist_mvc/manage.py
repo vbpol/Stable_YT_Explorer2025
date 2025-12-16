@@ -5,22 +5,9 @@ import venv
 import json
 import importlib
 import re
-
-# Ensure required packages are installed before importing them
-def ensure_package_installed(package_name):
-    """Install a package if it is not already installed."""
-    try:
-        importlib.import_module(package_name)
-    except ImportError:
-        print(f"Package '{package_name}' not found. Installing...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", package_name])
-        print(f"Package '{package_name}' installed successfully.")
-
-# Ensure pandas is installed
-ensure_package_installed("pandas")
-
-# Now import pandas and other modules
 import pandas as pd
+
+
 
 def validate_dependencies():
     """Validate that all required packages are installed."""

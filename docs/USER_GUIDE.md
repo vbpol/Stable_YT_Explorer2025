@@ -3,6 +3,8 @@
 ## Overview
 - Explore YouTube playlists and videos, highlight matches, and download in HD.
 - Two modes: `Playlists` browsing and `Videos` search with playlist intersection.
+- Videos mode shows only intersecting playlists with stable numbering; no channel-level scanning.
+- Startup performance is guaranteed: heavy operations are deferred until you press Search.
 
 ## Installation
 - Ensure Python 3.10+ is installed.
@@ -13,6 +15,7 @@
 - Start the app: `python -m src.main`.
 - The setup page appears if no API key or folder is set.
 - Use the inline helper to open the Google Cloud Console and follow steps to obtain a YouTube Data API v3 key, then save settings.
+- Startup is instant: the app does not perform network calls on launch and restores the last saved results for the selected mode.
 
 ## Key Features
 - `Playlists` mode: search playlists, open, paginate videos, highlight query hits.
@@ -33,6 +36,7 @@
 ## Troubleshooting
 - No results: verify API key and network access.
 - Rate limits: wait or use multiple keys via `YOUTUBE_API_KEYS`.
+- If API quota or errors occur during search, the app automatically loads the last saved Videos results.
 - UI not responding: avoid blocking operations; the app uses background threads.
 - If packaged EXE fails by double-click, start via `dist/Run-YouTubePlaylistExplorer.cmd` or `dist/YouTubePlaylistExplorer/Run-App.cmd` which clears conflicting environment variables.
 - Antivirus blocking PowerShell: builds use Python-only; allow the EXE and launcher via AV exclusions if needed.

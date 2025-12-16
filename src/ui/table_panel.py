@@ -1,4 +1,3 @@
-import tkinter as tk
 from tkinter import ttk
 from .pagination_bar import PaginationBar
 try:
@@ -33,24 +32,6 @@ class TablePanel(ttk.Frame):
 
     def update_pages(self, index: int, has_prev: bool, has_next: bool, total_items: int, row_count: int = None):
         try:
-            ps = int(self.pagination.page_size_var.get())
-        except Exception:
-            ps = 10
-        try:
-            total = int(total_items or 0)
-        except Exception:
-            total = 0
-        try:
-            from math import ceil
-            pages_by_count = max(1, ceil(total / max(ps, 1)))
-        except Exception:
-            pages_by_count = 1
-        try:
-            self.pagination.set_prev_enabled(bool(has_prev))
-            self.pagination.set_next_enabled(bool(has_next))
-            idx = max(int(index or 1), 1)
-            self.pagination.page_indicator.configure(text=f"Page {idx} of {pages_by_count}")
-            self.pagination.total_label.configure(text=f"Total: {total}")
-            self.pagination.set_visible(pages_by_count > 1)
+            self.pagination.set_page_info(index, has_prev, has_next, total_items)
         except Exception:
             pass

@@ -1,6 +1,6 @@
 from .base_section import BaseSection
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import messagebox
 try:
     from src.ui.table_panel import TablePanel
 except ModuleNotFoundError:
@@ -34,7 +34,6 @@ class PlaylistSection(BaseSection):
         self.playlist_tree.bind("<Double-1>", self.on_playlist_select)
         self.playlist_tree.bind("<Button-1>", self.handle_click)
         try:
-            import tkinter as tk
             self._ctx = tk.Menu(self.playlist_tree, tearoff=0)
             self._ctx.add_command(label="Highlight Related Videos", command=lambda: self.main_page.highlight_videos_for_playlist(getattr(self, "_rc_item", None)))
             self._ctx.add_command(label="Clear Video Highlights", command=self.main_page.clear_video_playlist_highlights)
@@ -139,14 +138,9 @@ class PlaylistSection(BaseSection):
                     self.main_page.show_playlist_videos_stable(selected_playlist)
                 else:
                     try:
-                        self.main_page._set_pinned_playlist(selected_playlist)
+                        self.main_page.populate_videos_table_preview(selected_playlist)
                     except Exception:
                         pass
-                    try:
-                        self.main_page.print_playlist_videos_to_terminal(selected_playlist)
-                    except Exception:
-                        pass
-                    self.main_page.highlight_videos_for_playlist(selected_playlist)
                     try:
                         return "break"
                     except Exception:
@@ -163,7 +157,28 @@ class PlaylistSection(BaseSection):
         try:
             if getattr(self.main_page, '_preview_active', False):
                 try:
-                    messagebox.showinfo("Preview Active", "Use Back to Results to change playlist.")
+                    item = self.playlist_tree.identify_row(event.y)
+                except Exception:
+                    item = None
+                try:
+                    col = self.playlist_tree.identify_column(event.x)
+                except Exception:
+                    col = None
+                try:
+                    if self.main_page.search_mode == 'videos' and item and str(col) != "#6":
+                        try:
+                            self.main_page.back_to_video_results()
+                        except Exception:
+                            pass
+                        try:
+                            self.playlist_tree.selection_set(item)
+                        except Exception:
+                            pass
+                        try:
+                            self.main_page.on_videos_mode_playlist_click(item)
+                        except Exception:
+                            pass
+                        return "break"
                 except Exception:
                     pass
                 return "break"
@@ -189,14 +204,9 @@ class PlaylistSection(BaseSection):
                 try:
                     if self.main_page.search_mode == 'videos' and item:
                         try:
-                            self.main_page._set_pinned_playlist(item)
+                            self.main_page.on_videos_mode_playlist_click(item)
                         except Exception:
                             pass
-                        try:
-                            self.main_page.print_playlist_videos_to_terminal(item)
-                        except Exception:
-                            pass
-                        self.main_page.highlight_videos_for_playlist(item)
                         try:
                             return "break"
                         except Exception:

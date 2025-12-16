@@ -76,6 +76,7 @@
 - Performance
   - Background threads do not block UI; use `after()` for UI updates.
   - Avoid unnecessary recomputation; reuse caches and maps safely per session.
+  - Zero-lag startup: do not perform network calls on launch; restore last results instantly from `ConfigManager`. Defer mapping/searches until user presses Search (`src/pages/main/main_page.py:619-694`).
 - Documentation
   - Update change log and architecture with references.
 - Commit Message

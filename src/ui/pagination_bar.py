@@ -4,7 +4,7 @@ from tkinter import ttk
 class PaginationBar(ttk.Frame):
     def __init__(self, parent, show_page_size=True, size_label="Videos per page:", sizes=("5","10","20","50")):
         super().__init__(parent)
-        self.pack(fill="x")
+        # Start hidden; becomes visible only when total_pages > 1
         self.page_size_var = tk.StringVar(value=sizes[1] if sizes else "10")
         if show_page_size:
             ttk.Label(self, text=size_label).pack(side="left", padx=5)
@@ -24,7 +24,7 @@ class PaginationBar(ttk.Frame):
         self._on_size_cb = None
         self.prev_btn.configure(command=self._fire_prev)
         self.next_btn.configure(command=self._fire_next)
-        self._visible = True
+        self._visible = False
         self._page_index = 1
         self._total_pages = 1
         self._total_items = 0
@@ -86,13 +86,37 @@ class PaginationBar(ttk.Frame):
             self._total_items = max(int(total_items or 0), 0)
         except Exception:
             self._total_items = 0
-        self.set_prev_enabled(bool(has_prev))
-        self.set_next_enabled(bool(has_next))
-        total_pages = 1 if (not has_prev and not has_next) else None
-        self._total_pages = total_pages or self._page_index
-        if total_pages is None:
-            self.page_indicator.configure(text=f"Page {self._page_index} of ?")
-        else:
+        try:
+            ps = int(self.page_size_var.get())
+        except Exception:
+            ps = 10
+        try:
+            total = int(self._total_items or 0)
+        except Exception:
+            total = 0
+        try:
+            from math import ceil
+            total_pages = max(1, ceil(total / max(ps, 1)))
+        except Exception:
+            total_pages = 1
+        self._total_pages = total_pages
+        try:
+            self.set_prev_enabled(self._page_index > 1)
+        except Exception:
+            pass
+        try:
+            self.set_next_enabled(self._page_index < total_pages)
+        except Exception:
+            pass
+        try:
             self.page_indicator.configure(text=f"Page {self._page_index} of {total_pages}")
-        self.total_label.configure(text=f"Total: {self._total_items}")
-        self.set_visible(False if (total_pages == 1) else True)
+        except Exception:
+            pass
+        try:
+            self.total_label.configure(text=f"Total: {self._total_items}")
+        except Exception:
+            pass
+        try:
+            self.set_visible(bool(total > max(ps, 1)))
+        except Exception:
+            pass

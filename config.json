@@ -1,4 +1,8 @@
 {
     "api_key": "",
-    "default_folder": "D:/youtube_playlists_root"
+    "default_folder": "D:/youtube_playlists_root",
+    "ui": {
+        "cookie_source": "firefox",
+        "use_channel_title_fallback": true
+    }
 }

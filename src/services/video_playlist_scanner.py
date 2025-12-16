@@ -18,6 +18,9 @@ class VideoPlaylistScanner:
         self.max_workers = max_workers
         self.channel_playlist_limit = channel_playlist_limit
         self.prefetch_page_size = prefetch_page_size
+        self._query_cache: Dict[str, List[Dict[str, Any]]] = {}
+        self._search_calls: int = 0
+        self._max_search_calls: int = 20
 
     def scan(
         self,
@@ -45,40 +48,65 @@ class VideoPlaylistScanner:
         def _scan_one(v: Dict[str, Any]):
             ph = Playlist(self.api_key)
             vid = v.get('videoId')
-            cid = v.get('channelId')
-            if not vid or not cid:
+            title = (v.get('title') or '').strip()
+            channel = (v.get('channelTitle') or '').strip()
+            if not vid:
                 return None
+            queries = []
             try:
-                chpls = ph.get_channel_playlists(cid, max_results=self.channel_playlist_limit)
+                if title:
+                    queries.append(title)
+                if channel and title:
+                    queries.append(f"{channel} {title}")
+                if channel and not title:
+                    queries.append(channel)
             except Exception:
-                chpls = []
+                pass
+            if not queries:
+                return None
             first_index = None
             first_plid = None
-            for pl in chpls:
-                plid = pl.get('playlistId')
-                if not plid:
-                    continue
+            for q in queries:
+                pls = []
                 try:
-                    has = ph.playlist_contains_video(plid, vid)
+                    if q in self._query_cache:
+                        pls = self._query_cache[q]
+                    elif self._search_calls < self._max_search_calls:
+                        pls = ph.search_playlists(q, max_results=5)
+                        self._query_cache[q] = pls
+                        self._search_calls += 1
+                    else:
+                        pls = []
                 except Exception:
-                    has = False
-                if not has:
-                    continue
-                idx = on_playlist_found(pl)
-                try:
-                    pid = plid
-                    if pid and pid not in seen:
-                        seen.add(pid)
-                        collected.append(pl)
-                except Exception:
-                    pass
-                try:
-                    on_prefetch_page(plid)
-                except Exception:
-                    pass
-                if first_index is None and isinstance(idx, int):
-                    first_index = idx
-                    first_plid = plid
+                    pls = []
+                for pl in pls:
+                    plid = pl.get('playlistId')
+                    if not plid:
+                        continue
+                    try:
+                        has = ph.playlist_contains_video(plid, vid)
+                    except Exception:
+                        has = False
+                    if not has:
+                        continue
+                    idx = on_playlist_found(pl)
+                    try:
+                        pid = plid
+                        if pid and pid not in seen:
+                            seen.add(pid)
+                            collected.append(pl)
+                    except Exception:
+                        pass
+                    try:
+                        on_prefetch_page(plid)
+                    except Exception:
+                        pass
+                    if first_index is None and isinstance(idx, int):
+                        first_index = idx
+                        first_plid = plid
+                    break
+                if first_plid:
+                    break
             if first_index and first_plid:
                 try:
                     on_video_index(vid, first_plid, first_index)

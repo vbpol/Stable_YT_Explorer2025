@@ -72,6 +72,11 @@ class VideosModeMappingTests(unittest.TestCase):
             {'videoId': 'v3', 'title': 'T3', 'channelTitle': 'C1'},
         ]
 
+        mp.playlist_video_ids = {
+            'plA': {'v1', 'v3'},
+            'plB': {'v2'}
+        }
+        mp.media_index = None
         collected = mp.map_videos_to_playlists(videos)
 
         self.assertEqual(set([p['playlistId'] for p in collected]), {'plA', 'plB'})
@@ -126,14 +131,50 @@ class VideosModeMappingTests(unittest.TestCase):
 
         # Before normalize, numbers should be present
         for iid in mp.playlist.playlist_tree.get_children():
-            val_no = mp.playlist.playlist_tree.set(iid, 'No')
-            self.assertIn(int(val_no or 0), {1, 2})
+            vals = mp.playlist.playlist_tree.item(iid).get('values', [])
+            n = int(str(vals[0] or '0')) if vals else 0
+            self.assertIn(n, {1, 2})
         # After normalize, they should remain consistent
         mp.playlist.normalize_numbers()
         for iid in mp.playlist.playlist_tree.get_children():
-            val_no = mp.playlist.playlist_tree.set(iid, 'No')
-            self.assertIn(int(val_no or 0), {1, 2})
+            vals = mp.playlist.playlist_tree.item(iid).get('values', [])
+            n = int(str(vals[0] or '0')) if vals else 0
+            self.assertIn(n, {1, 2})
 
+
+    def test_pin_to_top_does_not_change_numbers(self):
+        ph = MockPlaylistHandler({}, {})
+        ds = MockDatastore()
+        ctrl = MockController(ph, ds, self.root)
+        mp = MainPage(self.root, ctrl)
+        mp.set_search_mode('Videos')
+        try:
+            mp.playlist.playlist_tree.delete(*mp.playlist.playlist_tree.get_children())
+        except Exception:
+            pass
+        mp.playlist_index_map = {'plA': 1, 'plB': 2}
+        mp.playlist.update_playlist({'playlistId': 'plA', 'title': 'A', 'channelTitle': 'C1', 'video_count': 10})
+        mp.playlist.update_playlist({'playlistId': 'plB', 'title': 'B', 'channelTitle': 'C2', 'video_count': 5})
+        mp._bring_playlist_to_top('plB')
+        for iid in mp.playlist.playlist_tree.get_children():
+            vals = mp.playlist.playlist_tree.item(iid).get('values', [])
+            n = int(str(vals[0] or '0')) if vals else 0
+            self.assertIn(n, {1, 2})
+        self.assertEqual(mp.playlist_index_map.get('plA'), 1)
+        self.assertEqual(mp.playlist_index_map.get('plB'), 2)
+
+    def test_sort_does_not_renumber(self):
+        ph = MockPlaylistHandler({}, {})
+        ds = MockDatastore()
+        ctrl = MockController(ph, ds, self.root)
+        mp = MainPage(self.root, ctrl)
+        mp.set_search_mode('Videos')
+        mp.playlist_index_map = {'plA': 1, 'plB': 2}
+        mp.playlist.update_playlist({'playlistId': 'plB', 'title': 'B', 'channelTitle': 'C2', 'video_count': 5})
+        mp.playlist.update_playlist({'playlistId': 'plA', 'title': 'A', 'channelTitle': 'C1', 'video_count': 10})
+        mp.sort_playlists_by('Title')
+        self.assertEqual(mp.playlist_index_map.get('plA'), 1)
+        self.assertEqual(mp.playlist_index_map.get('plB'), 2)
 
 if __name__ == '__main__':
     unittest.main()

@@ -162,7 +162,7 @@ class DownloadManager:
                     else:
                         q = getattr(self.parent, 'video_search_query', '') or 'Misc'
                     return os.path.join(self.parent.controller.default_folder, f"Videos - {q}")
-                return os.path.join(self.parent.controller.default_folder, f"Playlist - Unknown")
+                return os.path.join(self.parent.controller.default_folder, "Playlist - Unknown")
             except Exception:
                 return self.parent.controller.default_folder
 
