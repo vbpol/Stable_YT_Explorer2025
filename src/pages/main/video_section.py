@@ -31,6 +31,10 @@ class VideoSection(BaseSection):
         
         # Create action buttons
         self._create_action_buttons()
+        try:
+            self._create_page_controls()
+        except Exception:
+            pass
 
     def _create_video_tree_styles(self):
         self.video_tree.column("Playlist", width=80, anchor="center")

@@ -1270,8 +1270,8 @@ class MainPage(tk.Frame):
         except Exception:
             pass
         try:
-            self.video.prev_page_btn.configure(command=lambda: self.show_videos_search_page(self.video_prev_page_token))
-            self.video.next_page_btn.configure(command=lambda: self.show_videos_search_page(self.video_next_page_token))
+            self.video.prev_page_btn.configure(command=lambda: self.show_videos_search_page(self.video_prev_page_token, direction='prev'))
+            self.video.next_page_btn.configure(command=lambda: self.show_videos_search_page(self.video_next_page_token, direction='next'))
             has_prev = bool(self.video_prev_page_token)
             has_next = bool(self.video_next_page_token)
             self.video.prev_page_btn["state"] = "normal" if has_prev else "disabled"
@@ -1534,7 +1534,7 @@ class MainPage(tk.Frame):
         except Exception:
             self._highlighting_video_id = None
 
-    def show_videos_search_page(self, page_token=None):
+    def show_videos_search_page(self, page_token=None, direction=None):
         if self.search_mode != 'videos' or not self.video_search_query:
             return
         try:
@@ -1611,8 +1611,16 @@ class MainPage(tk.Frame):
             except Exception:
                 pass
             try:
-                if page_token is None:
-                    self.video_search_page_index = 1
+                if page_token is None and isinstance(direction, str):
+                    d = direction.strip().lower()
+                    if d == 'next':
+                        self.video_search_page_index = int(getattr(self, 'video_search_page_index', 1) or 1) + 1
+                    elif d == 'prev':
+                        self.video_search_page_index = max(1, int(getattr(self, 'video_search_page_index', 1) or 1) - 1)
+                    else:
+                        self.video_search_page_index = max(1, int(getattr(self, 'video_search_page_index', 1) or 1))
+                elif page_token is None:
+                    self.video_search_page_index = max(1, int(getattr(self, 'video_search_page_index', 1) or 1))
                 elif page_token == next_before:
                     self.video_search_page_index = int(getattr(self, 'video_search_page_index', 1) or 1) + 1
                 elif page_token == prev_before:
