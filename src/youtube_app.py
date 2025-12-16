@@ -13,11 +13,6 @@ class YouTubeApp:
         self.api_key = self.config.get("api_key", "")
         self.default_folder = self.config.get("default_folder", "")
         self.playlist_handler = None
-        try:
-            if self.api_key:
-                self.playlist_handler = Playlist(self.api_key)
-        except Exception:
-            self.playlist_handler = None
         self._initialize_gui()
 
     def _initialize_gui(self):
@@ -47,7 +42,7 @@ class YouTubeApp:
         except Exception:
             env_label = "DEV"
         try:
-            self.root.title(f"YouTube Playlist Explorer — v{ver} [{env_label}]")
+            self.root.title(f"YouTube Playlist Explorer - [TRAE] - v{ver} [{env_label}]")
         except Exception:
             self.root.title("YouTube Playlist Explorer")
         try:
@@ -90,7 +85,7 @@ class YouTubeApp:
 
     def _show_initial_frame(self):
         """Show the appropriate initial frame based on configuration."""
-        if self.api_key and self.default_folder and self.playlist_handler is not None:
+        if self.api_key and self.default_folder:
             self.show_frame(MainPage)
             try:
                 mp = self.frames[MainPage]
@@ -109,7 +104,7 @@ class YouTubeApp:
 
     def show_frame(self, page_class):
         """Show the selected frame."""
-        if page_class is MainPage and (not self.api_key or not self.default_folder or self.playlist_handler is None):
+        if page_class is MainPage and (not self.api_key or not self.default_folder):
             page_class = SetupPage
         frame = self.frames[page_class]
         frame.tkraise()
@@ -120,7 +115,15 @@ class YouTubeApp:
         self.default_folder = default_folder
         ConfigManager.save_config(api_key, default_folder)
         try:
-            self.playlist_handler = Playlist(api_key)
+            self.playlist_handler = None
+        except Exception:
+            pass
+
+    def ensure_playlist_handler(self):
+        """Lazily initialize the Playlist handler to avoid startup lag."""
+        try:
+            if self.playlist_handler is None and self.api_key:
+                self.playlist_handler = Playlist(self.api_key)
         except Exception:
             self.playlist_handler = None
 

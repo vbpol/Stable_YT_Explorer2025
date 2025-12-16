@@ -5,6 +5,7 @@ try:
     from dotenv import load_dotenv
 except Exception:
     load_dotenv = None
+import re
 
 CONFIG_FILE = "config.json"
 ENV_FILE = ".env"
@@ -51,7 +52,17 @@ class ConfigManager:
         keys: List[str] = []
         try:
             if load_dotenv is not None:
-                load_dotenv(ENV_FILE)
+                base = os.getcwd()
+                candidates = [
+                    os.path.join(base, ENV_FILE),
+                    os.path.join(base, "dist", ENV_FILE),
+                ]
+                for p in candidates:
+                    try:
+                        if os.path.exists(p):
+                            load_dotenv(p, override=True)
+                    except Exception:
+                        pass
             env_multi = os.getenv("YOUTUBE_API_KEYS", "")
             env_single = os.getenv("YOUTUBE_API_KEY", "")
             if env_multi:
@@ -60,6 +71,55 @@ class ConfigManager:
                 keys.append(env_single.strip())
         except Exception:
             pass
+        # Manual parse fallback if environment not set correctly
+        try:
+            base = os.getcwd()
+            for p in (os.path.join(base, ENV_FILE), os.path.join(base, "dist", ENV_FILE)):
+                try:
+                    if not os.path.exists(p):
+                        continue
+                    with open(p, "r", encoding="utf-8") as f:
+                        content = f.read()
+                    for line in content.splitlines():
+                        ln = line.strip()
+                        if not ln or ln.startswith("#"):
+                            continue
+                        if ln.upper().startswith("YOUTUBE_API_KEYS="):
+                            vals = ln.split("=", 1)[1]
+                            keys.extend([k.strip() for k in vals.split(",") if k.strip()])
+                        elif ln.upper().startswith("YOUTUBE_API_KEY="):
+                            val = ln.split("=", 1)[1].strip()
+                            if val:
+                                keys.append(val)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        # Normalize and filter to likely API keys
+        def _normalize(s: str) -> str:
+            try:
+                s = s.strip().strip("[]").strip("\"").strip("'")
+                return s.strip()
+            except Exception:
+                return s
+        def _is_likely_api_key(s: str) -> bool:
+            try:
+                if not s:
+                    return False
+                if "googleusercontent.com" in s.lower():
+                    return False
+                if len(s) < 30 or len(s) > 120:
+                    return False
+                if not re.match(r"^[A-Za-z0-9_-]+$", s):
+                    return False
+                return True
+            except Exception:
+                return False
+        cleaned: List[str] = []
+        for k in keys:
+            nk = _normalize(k)
+            if _is_likely_api_key(nk):
+                cleaned.append(nk)
 
         try:
             import importlib
@@ -69,13 +129,13 @@ class ConfigManager:
                 spec.loader.exec_module(mod)
                 val = getattr(mod, "API_KEY", "")
                 if val:
-                    keys.append(str(val).strip())
+                    cleaned.append(str(val).strip())
         except Exception:
             pass
 
         seen = set()
         unique = []
-        for k in keys:
+        for k in cleaned:
             if k not in seen:
                 unique.append(k)
                 seen.add(k)

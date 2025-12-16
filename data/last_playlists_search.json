@@ -1,75 +1,8 @@
-{
-  "query": "permis massy",
-  "playlists": [
-    {
-      "playlistId": "PLnp_k_WSfG1o267N4z-Q9Eww5sK4vTxOt",
-      "title": "Mon avis sur Les Centres d&#39;examens du Permis de Conduire.",
-      "channelTitle": "Parlons Permis",
-      "thumbnail": "https://i.ytimg.com/vi/6N8sW9yOClo/default.jpg",
-      "video_count": 16
-    },
-    {
-      "playlistId": "PLtbgG-iCWfmXyXhU35YwL4CtZPT5cCMmX",
-      "title": "Permis",
-      "channelTitle": "D",
-      "thumbnail": "https://i.ytimg.com/vi/CCuCMh-Mhkk/default.jpg",
-      "video_count": 44
-    },
-    {
-      "playlistId": "PLIsmFpmM9lUYuPmEKK1wcsviqszmMdfnW",
-      "title": "Conduite 12345",
-      "channelTitle": "abdul saad",
-      "thumbnail": "https://i.ytimg.com/vi/oOZlfJz-h7I/default.jpg",
-      "video_count": 61
-    },
-    {
-      "playlistId": "PLCPxpadR3GS3tiDvz04FICAzTNBmLE7yw",
-      "title": "Conduite",
-      "channelTitle": "Sulex Shana",
-      "thumbnail": "https://i.ytimg.com/vi/zfJMK6WQ8Zc/default.jpg",
-      "video_count": 63
-    },
-    {
-      "playlistId": "PLMBalVGHWJ0jnRIt_oY3boXt_05wgJ3ea",
-      "title": "Conduit",
-      "channelTitle": "jargal1421",
-      "thumbnail": "https://i.ytimg.com/vi/WnkRmHRnqHU/default.jpg",
-      "video_count": 27
-    },
-    {
-      "playlistId": "PLqq039ScAHqvlf3M0Ys6ta62Zcz1nGtru",
-      "title": "Lourd",
-      "channelTitle": "KZ",
-      "thumbnail": "https://i.ytimg.com/vi/9KqlnDfCIeY/default.jpg",
-      "video_count": 25
-    },
-    {
-      "playlistId": "PLsgmn1gM2CoG74FlFcZfggRZ_ZetADmXB",
-      "title": "Leyna",
-      "channelTitle": "Hawa",
-      "thumbnail": "https://i.ytimg.com/vi/8uLCpsG6VZs/default.jpg",
-      "video_count": 17
-    },
-    {
-      "playlistId": "PLl5llMCRZN2lOVh-o2mqx9d8NjEMw5bt1",
-      "title": "🇨🇩 ♪ Simaro Lutumba &quot;Le poète du TP OK Jazz&quot; ♪ T-M CHACHA RUMBA SOUKOUS [ af.congo-rdc ] ♪ Best of YT Videos ♪ PLAYLiST lovinair AFRiCA",
-      "channelTitle": "lovinair",
-      "thumbnail": "https://i.ytimg.com/vi/Af73GK5CPDc/default.jpg",
-      "video_count": 322
-    },
-    {
-      "playlistId": "PL7290D84BA3C2CEE8",
-      "title": "Productions 2010",
-      "channelTitle": "EmagesTV",
-      "thumbnail": "https://i.ytimg.com/vi/0nHl83EXRfc/default.jpg",
-      "video_count": 9
-    },
-    {
-      "playlistId": "PL6s-h6XXd1RXyMqDziGn6wh3NXkXiMSrI",
-      "title": "📒Oustaz Alhoussainy BAH Dakar",
-      "channelTitle": "𝐃𝐎𝐔𝐃𝐇𝐄 𝐃𝐈𝐈𝐍𝐀 𝐓𝐕",
-      "thumbnail": "https://i.ytimg.com/vi/sQ9EkLygbo4/default.jpg",
-      "video_count": 168
-    }
-  ]
-}
+[
+  {
+    "playlistId": "t_pl",
+    "title": "P1",
+    "channelTitle": "CH",
+    "video_count": 1
+  }
+]

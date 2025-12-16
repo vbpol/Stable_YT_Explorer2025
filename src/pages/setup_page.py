@@ -14,6 +14,7 @@ class SetupPage(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
+        self._api_valid = False
         self.setup_gui()
 
     def setup_gui(self):
@@ -21,6 +22,7 @@ class SetupPage(tk.Frame):
         self._create_api_key_section()
         self._create_folder_section()
         self._create_save_button()
+        self._create_start_button()
         self._create_help_section()
 
     def _create_api_key_section(self):
@@ -50,6 +52,11 @@ class SetupPage(tk.Frame):
     def _create_save_button(self):
         """Create the save settings button."""
         tk.Button(self, text="Save Settings", command=self.save_settings).pack(pady=10)
+
+    def _create_start_button(self):
+        """Create the start app button, enabled only when API is validated."""
+        self.start_btn = tk.Button(self, text="Start App", state="disabled", command=self.start_app)
+        self.start_btn.pack(pady=4)
 
     def browse_folder(self):
         """Browse and select a default download folder."""
@@ -101,6 +108,12 @@ class SetupPage(tk.Frame):
         try:
             Playlist(api_key).search_playlists("test", 1)
             messagebox.showinfo("Success", "API key is valid.")
+            try:
+                self._api_valid = True
+                if hasattr(self, 'start_btn'):
+                    self.start_btn["state"] = "normal"
+            except Exception:
+                pass
         except HttpError as err:
             try:
                 data = json.loads(err.content.decode())
@@ -110,6 +123,36 @@ class SetupPage(tk.Frame):
                 messagebox.showerror("Error", "API key invalid or quota exceeded.")
         except Exception:
             messagebox.showerror("Error", "Network error during validation.")
+
+    def start_app(self):
+        """Start the main app once API key is validated and folder selected."""
+        api_key = self.api_key_entry.get().strip()
+        default_folder = self.folder_var.get().strip()
+        if not self._api_valid:
+            messagebox.showerror("Error", "Please validate the API key first.")
+            return
+        if not api_key:
+            messagebox.showerror("Error", "Please enter a YouTube API key.")
+            return
+        if not default_folder:
+            messagebox.showerror("Error", "Please select a download folder.")
+            return
+        try:
+            ConfigManager.save_env_api_keys([api_key])
+        except Exception:
+            pass
+        try:
+            self.controller.update_config(api_key, default_folder)
+        except Exception:
+            pass
+        try:
+            from src.pages.main.main_page import MainPage
+        except ModuleNotFoundError:
+            from pages.main.main_page import MainPage
+        try:
+            self.controller.show_frame(MainPage)
+        except Exception:
+            messagebox.showerror("Error", "Failed to start the app.")
 
     def _apply_selected_key(self, value):
         self.api_key_entry.delete(0, tk.END)
