@@ -40,7 +40,11 @@ class SetupPage(tk.Frame):
         if keys:
             tk.Label(self, text="Available API Keys").pack(pady=5)
             self.selected_key = tk.StringVar(value=keys[0])
-            ttk.OptionMenu(self, self.selected_key, keys[0], *keys, command=self._apply_selected_key).pack(pady=5)
+            self.api_keys_menu = ttk.OptionMenu(self, self.selected_key, keys[0], *keys, command=self._apply_selected_key)
+            self.api_keys_menu.pack(pady=5)
+        else:
+            self.selected_key = tk.StringVar(value="")
+            self.api_keys_menu = None
 
     def _create_folder_section(self):
         """Create the folder selection section."""
@@ -92,6 +96,10 @@ class SetupPage(tk.Frame):
             ConfigManager.save_env_api_keys([api_key])
             self.controller.update_config(api_key, default_folder)
             try:
+                self._refresh_api_keys_dropdown()
+            except Exception:
+                pass
+            try:
                 from src.pages.main.main_page import MainPage
             except ModuleNotFoundError:
                 from pages.main.main_page import MainPage
@@ -107,13 +115,30 @@ class SetupPage(tk.Frame):
             return
         try:
             Playlist(api_key).search_playlists("test", 1)
-            messagebox.showinfo("Success", "API key is valid.")
+            ok = True
             try:
                 self._api_valid = True
                 if hasattr(self, 'start_btn'):
                     self.start_btn["state"] = "normal"
             except Exception:
                 pass
+            try:
+                ask = messagebox.askyesno("Success", "API key is valid.\nSave it to .env and add to dropdown?")
+            except Exception:
+                ask = True
+            if ask:
+                try:
+                    ConfigManager.save_env_api_keys([api_key])
+                except Exception:
+                    pass
+                try:
+                    self._refresh_api_keys_dropdown()
+                except Exception:
+                    pass
+                try:
+                    messagebox.showinfo("Saved", "API key saved to .env and added to list.")
+                except Exception:
+                    pass
         except HttpError as err:
             try:
                 data = json.loads(err.content.decode())
@@ -143,6 +168,10 @@ class SetupPage(tk.Frame):
             pass
         try:
             self.controller.update_config(api_key, default_folder)
+        except Exception:
+            pass
+        try:
+            self._refresh_api_keys_dropdown()
         except Exception:
             pass
         try:
@@ -185,3 +214,31 @@ class SetupPage(tk.Frame):
         )
         txt.insert("end", steps)
         txt.config(state="disabled")
+
+    def _refresh_api_keys_dropdown(self):
+        try:
+            keys = ConfigManager.get_available_api_keys()
+        except Exception:
+            keys = []
+        if not keys:
+            return
+        try:
+            if self.selected_key:
+                self.selected_key.set(keys[0])
+        except Exception:
+            pass
+        try:
+            if self.api_keys_menu:
+                m = self.api_keys_menu["menu"]
+                m.delete(0, "end")
+                for k in keys:
+                    m.add_command(label=k, command=lambda v=k: self._apply_selected_key(v))
+        except Exception:
+            try:
+                # fallback: recreate section
+                for w in self.winfo_children():
+                    if isinstance(w, ttk.OptionMenu):
+                        w.destroy()
+                self._create_api_key_section()
+            except Exception:
+                pass

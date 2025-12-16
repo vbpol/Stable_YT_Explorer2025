@@ -143,7 +143,21 @@ class ConfigManager:
 
     @staticmethod
     def save_env_api_keys(api_keys: List[str]):
-        content = "YOUTUBE_API_KEYS=" + ",".join(api_keys)
+        try:
+            existing = ConfigManager.get_available_api_keys() or []
+        except Exception:
+            existing = []
+        merged = []
+        seen = set()
+        for k in list(existing) + list(api_keys or []):
+            try:
+                s = str(k or "").strip()
+            except Exception:
+                s = k
+            if s and s not in seen:
+                merged.append(s)
+                seen.add(s)
+        content = "YOUTUBE_API_KEYS=" + ",".join(merged)
         try:
             with open(ENV_FILE, "w", encoding="utf-8") as f:
                 f.write(content)
