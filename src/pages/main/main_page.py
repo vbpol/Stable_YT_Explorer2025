@@ -1022,6 +1022,34 @@ class MainPage(tk.Frame):
                     except Exception:
                         pass
                     try:
+                        idx_map = _rm_build_index_map(videos, collected_local, getattr(self, 'playlist_index_map', {}))
+                        self.playlist_index_map = dict(idx_map or {})
+                        try:
+                            cache_map = _rm_rebuild_cache(videos, idx_map)
+                            for vid, pid in (cache_map or {}).items():
+                                self.video_playlist_cache[vid] = pid
+                        except Exception:
+                            pass
+                        try:
+                            for item in self.playlist.playlist_tree.get_children():
+                                vals = self.playlist.playlist_tree.item(item).get('values', [])
+                                pi = self.playlist_index_map.get(item)
+                                if pi is not None:
+                                    new_vals = ((pi or ""),) + tuple(vals[1:]) if vals else ((pi or ""),)
+                                    self.playlist.playlist_tree.item(item, values=new_vals)
+                                    try:
+                                        self.playlist.playlist_tree.set(item, 'No', str(pi))
+                                    except Exception:
+                                        pass
+                            try:
+                                self.playlist.normalize_numbers()
+                            except Exception:
+                                pass
+                        except Exception:
+                            pass
+                    except Exception:
+                        pass
+                    try:
                         ConfigManager.save_json(ConfigManager.get_last_search_path('videos'), {
                             'query': query,
                             'videos': videos,
