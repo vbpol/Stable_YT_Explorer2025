@@ -70,8 +70,24 @@ class VideoSection(BaseSection):
         self.video_tree.bind("<Leave>", self._on_leave)
 
     def _create_page_controls(self):
-        self._pagination.bind_prev(lambda: self.main_page.show_playlist_videos(page_token=self.main_page.prev_page_token))
-        self._pagination.bind_next(lambda: self.main_page.show_playlist_videos(page_token=self.main_page.current_page_token))
+        def _prev():
+            try:
+                if getattr(self.main_page, 'search_mode', 'playlists') == 'videos':
+                    self.main_page.show_videos_search_page(getattr(self.main_page, 'video_prev_page_token', None), direction='prev')
+                else:
+                    self.main_page.show_playlist_videos(page_token=getattr(self.main_page, 'prev_page_token', None))
+            except Exception:
+                pass
+        def _next():
+            try:
+                if getattr(self.main_page, 'search_mode', 'playlists') == 'videos':
+                    self.main_page.show_videos_search_page(getattr(self.main_page, 'video_next_page_token', None), direction='next')
+                else:
+                    self.main_page.show_playlist_videos(page_token=getattr(self.main_page, 'current_page_token', None))
+            except Exception:
+                pass
+        self._pagination.bind_prev(_prev)
+        self._pagination.bind_next(_next)
         def _on_size(val):
             try:
                 q = getattr(self.main_page, 'video_search_query', '')
