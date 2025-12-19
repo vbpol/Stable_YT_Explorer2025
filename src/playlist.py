@@ -7,6 +7,18 @@ class Playlist:
         self.youtube = build('youtube', 'v3', developerKey=api_key)
         self._contains_cache = {}
 
+    def validate_key(self):
+        """
+        Validate the API key using a low-cost endpoint (1 quota unit).
+        Using channels list for 'GoogleDevelopers' as recommended.
+        Returns True if valid, raises HttpError if invalid or quota exceeded.
+        """
+        self.youtube.channels().list(
+            part="id",
+            forUsername="GoogleDevelopers"
+        ).execute()
+        return True
+
     def search_playlists(self, query, max_results=10):
         """Search for playlists matching the query."""
         request = self.youtube.search().list(
@@ -56,6 +68,30 @@ class Playlist:
             pass
         return {'playlistId': playlist_id, 'title': title, 'channelTitle': channel, 'video_count': count}
 
+    def get_playlists_details(self, playlist_ids):
+        """Get details for multiple playlists in one batch request."""
+        if not playlist_ids:
+            return {}
+        
+        # Process in batches of 50
+        results = {}
+        chunk_size = 50
+        for i in range(0, len(playlist_ids), chunk_size):
+            chunk = playlist_ids[i:i + chunk_size]
+            try:
+                request = self.youtube.playlists().list(
+                    part="contentDetails",
+                    id=','.join(chunk)
+                )
+                response = request.execute()
+                for item in response.get('items', []):
+                    pid = item['id']
+                    count = item['contentDetails']['itemCount']
+                    results[pid] = count
+            except Exception:
+                pass
+        return results
+
     def search_videos(self, query, max_results=10, page_token=None):
         request = self.youtube.search().list(
             part="snippet",
@@ -66,7 +102,7 @@ class Playlist:
         )
         response = request.execute()
         video_ids = [item['id']['videoId'] for item in response.get('items', [])]
-        durations = self._get_video_durations(video_ids)
+        # details now includes duration
         details = self._get_video_details(video_ids)
         videos = []
         for item in response.get('items', []):
@@ -77,7 +113,7 @@ class Playlist:
                 'title': item['snippet']['title'],
                 'channelTitle': item['snippet'].get('channelTitle',''),
                 'channelId': item['snippet'].get('channelId',''),
-                'duration': durations.get(vid, 'N/A'),
+                'duration': d.get('duration', 'N/A'),
                 'published': d.get('published', ''),
                 'views': d.get('views', '0')
             })
@@ -98,7 +134,7 @@ class Playlist:
         response = request.execute()
 
         video_ids = [item['contentDetails']['videoId'] for item in response['items']]
-        durations = self._get_video_durations(video_ids)
+        # details now includes duration
         details = self._get_video_details(video_ids)
 
         videos = []
@@ -109,7 +145,7 @@ class Playlist:
                 'videoId': video_id,
                 'title': item['snippet']['title'],
                 'channelTitle': item['snippet'].get('channelTitle', ''),
-                'duration': durations.get(video_id, 'N/A'),
+                'duration': d.get('duration', 'N/A'),
                 'published': d.get('published', ''),
                 'views': d.get('views', '0')
             }
@@ -121,51 +157,40 @@ class Playlist:
             'prevPageToken': response.get('prevPageToken')
         }
 
-    def _get_video_durations(self, video_ids):
-        """Get durations for a list of videos."""
-        if not video_ids:
-            return {}
-
-        request = self.youtube.videos().list(
-            part="contentDetails",
-            id=','.join(video_ids)
-        )
-        response = request.execute()
-
-        durations = {}
-        for item in response['items']:
-            duration = isodate.parse_duration(item['contentDetails']['duration'])
-            formatted = str(timedelta(seconds=int(duration.total_seconds())))
-            if formatted.startswith('0:'):  # Remove leading 0 hour
-                formatted = formatted[2:]
-            durations[item['id']] = formatted
-
-        return durations 
-
     def _get_video_details(self, video_ids):
         if not video_ids:
             return {}
-        request = self.youtube.videos().list(
-            part="contentDetails,snippet,statistics",
-            id=','.join(video_ids)
-        )
-        response = request.execute()
+        
+        # Batch in groups of 50
         result = {}
-        for item in response.get('items', []):
+        chunk_size = 50
+        
+        for i in range(0, len(video_ids), chunk_size):
+            chunk = video_ids[i:i + chunk_size]
             try:
-                dur = isodate.parse_duration(item['contentDetails']['duration'])
-                duration = str(timedelta(seconds=int(dur.total_seconds())))
-                if duration.startswith('0:'):
-                    duration = duration[2:]
+                request = self.youtube.videos().list(
+                    part="contentDetails,snippet,statistics",
+                    id=','.join(chunk)
+                )
+                response = request.execute()
+                for item in response.get('items', []):
+                    try:
+                        dur = isodate.parse_duration(item['contentDetails']['duration'])
+                        duration = str(timedelta(seconds=int(dur.total_seconds())))
+                        if duration.startswith('0:'):
+                            duration = duration[2:]
+                    except Exception:
+                        duration = 'N/A'
+                    published = item.get('snippet', {}).get('publishedAt', '')
+                    views = item.get('statistics', {}).get('viewCount', '0')
+                    result[item['id']] = {
+                        'duration': duration,
+                        'published': published,
+                        'views': views
+                    }
             except Exception:
-                duration = 'N/A'
-            published = item.get('snippet', {}).get('publishedAt', '')
-            views = item.get('statistics', {}).get('viewCount', '0')
-            result[item['id']] = {
-                'duration': duration,
-                'published': published,
-                'views': views
-            }
+                pass
+                
         return result
 
     def get_channel_playlists(self, channel_id, max_results=10):

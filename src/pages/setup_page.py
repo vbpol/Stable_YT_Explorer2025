@@ -16,6 +16,7 @@ class SetupPage(tk.Frame):
         self.controller = controller
         self._api_valid = False
         self.setup_gui()
+        self.after(1000, self._auto_select_key_startup)
 
     def setup_gui(self):
         """Set up the GUI components for the setup page."""
@@ -35,6 +36,7 @@ class SetupPage(tk.Frame):
         self.show_var = tk.BooleanVar(value=False)
         tk.Checkbutton(frame, text="Show", variable=self.show_var, command=self._toggle_show).pack(side="left")
         tk.Button(self, text="Validate API Key", command=self.validate_api_key).pack(pady=5)
+        tk.Button(self, text="Auto Select Valid Key", command=self._auto_select_key_btn).pack(pady=2)
 
         keys = ConfigManager.get_available_api_keys()
         if keys:
@@ -113,19 +115,52 @@ class SetupPage(tk.Frame):
         if not api_key:
             messagebox.showerror("Error", "Please enter a YouTube API key.")
             return
+        
+        is_valid = False
+        is_quota_exceeded = False
+        
         try:
-            Playlist(api_key).search_playlists("test", 1)
-            ok = True
+            # Use cheap validation (1 unit) instead of search (100 units)
+            Playlist(api_key).validate_key()
+            is_valid = True
+        except HttpError as err:
+            try:
+                data = json.loads(err.content.decode())
+                reason = data.get("error", {}).get("errors", [{}])[0].get("reason", "unknown")
+                
+                if reason == "quotaExceeded":
+                    is_valid = True
+                    is_quota_exceeded = True
+                else:
+                    messagebox.showerror("Error", f"API key invalid or error ({reason}).")
+                    return
+            except Exception:
+                messagebox.showerror("Error", "API key invalid or quota exceeded.")
+                return
+        except Exception:
+            messagebox.showerror("Error", "Network error during validation.")
+            return
+
+        if is_valid:
             try:
                 self._api_valid = True
                 if hasattr(self, 'start_btn'):
                     self.start_btn["state"] = "normal"
             except Exception:
                 pass
+                
+            if is_quota_exceeded:
+                msg = "API key is VALID, but daily quota is exhausted.\nSave it to .env anyway?"
+                title = "Quota Warning"
+            else:
+                msg = "API key is valid.\nSave it to .env and add to dropdown?"
+                title = "Success"
+                
             try:
-                ask = messagebox.askyesno("Success", "API key is valid.\nSave it to .env and add to dropdown?")
+                ask = messagebox.askyesno(title, msg)
             except Exception:
                 ask = True
+                
             if ask:
                 try:
                     ConfigManager.save_env_api_keys([api_key])
@@ -139,15 +174,6 @@ class SetupPage(tk.Frame):
                     messagebox.showinfo("Saved", "API key saved to .env and added to list.")
                 except Exception:
                     pass
-        except HttpError as err:
-            try:
-                data = json.loads(err.content.decode())
-                reason = data.get("error", {}).get("errors", [{}])[0].get("reason", "unknown")
-                messagebox.showerror("Error", f"API key invalid or quota issue ({reason}).")
-            except Exception:
-                messagebox.showerror("Error", "API key invalid or quota exceeded.")
-        except Exception:
-            messagebox.showerror("Error", "Network error during validation.")
 
     def start_app(self):
         """Start the main app once API key is validated and folder selected."""
@@ -242,3 +268,78 @@ class SetupPage(tk.Frame):
                 self._create_api_key_section()
             except Exception:
                 pass
+
+    def _auto_select_key_startup(self):
+        """Run auto-select silently on startup."""
+        self._run_auto_select(silent=True)
+
+    def _auto_select_key_btn(self):
+        """Run auto-select via button."""
+        self._run_auto_select(silent=False)
+
+    def _run_auto_select(self, silent=False):
+        """
+        Iterate through registered API keys and select the first valid one.
+        If silent is True, only show warning if no valid keys found.
+        """
+        keys = ConfigManager.get_available_api_keys()
+        if not keys:
+            if not silent:
+                messagebox.showinfo("Info", "No API keys found in configuration.")
+            return
+
+        found_valid_key = None
+        fallback_key = None # Valid but quota exhausted
+        quota_exhausted_keys = []
+        
+        for key in keys:
+            try:
+                Playlist(key).validate_key()
+                found_valid_key = key
+                break
+            except HttpError as err:
+                try:
+                    data = json.loads(err.content.decode())
+                    reason = data.get("error", {}).get("errors", [{}])[0].get("reason", "unknown")
+                    if reason == "quotaExceeded":
+                        quota_exhausted_keys.append(key)
+                        if not fallback_key:
+                            fallback_key = key
+                except Exception:
+                    pass
+                continue
+            except Exception:
+                continue
+        
+        final_key = found_valid_key or fallback_key
+        
+        if final_key:
+            try:
+                self.api_key_entry.delete(0, tk.END)
+                self.api_key_entry.insert(0, final_key)
+                self._api_valid = True
+                if hasattr(self, 'start_btn'):
+                    self.start_btn["state"] = "normal"
+                
+                if hasattr(self, 'selected_key'):
+                    self.selected_key.set(final_key)
+                
+                if not silent:
+                    if found_valid_key:
+                         messagebox.showinfo("Success", f"Auto-selected valid key: {final_key[:10]}...")
+                    else:
+                         messagebox.showwarning("Quota Warning", f"Selected fallback key (Quota Exhausted): {final_key[:10]}...\nYou can use the app, but some API features may fail.")
+            except Exception as e:
+                if not silent:
+                    messagebox.showerror("Error", f"Error updating UI: {e}")
+        else:
+            if quota_exhausted_keys:
+                # Should be covered by fallback_key logic, but safe fallback
+                msg = f"Checked {len(keys)} keys.\nAll {len(quota_exhausted_keys)} are quota exhausted."
+            else:
+                msg = "No valid API keys found among registered keys."
+            
+            if silent:
+                 messagebox.showwarning("API Key Check", msg)
+            else:
+                 messagebox.showerror("Error", msg)

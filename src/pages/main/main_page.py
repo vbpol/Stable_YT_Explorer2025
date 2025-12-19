@@ -24,6 +24,7 @@ try:
     from src.services.results_mapper import build_index_map as _rm_build_index_map, rebuild_video_playlist_cache as _rm_rebuild_cache, link_media_index as _rm_link_index
     from src.services.playlist_search import search_enriched_playlists as _ps_search
     from src.services.video_search import search_videos as _vs_search
+    from src.services.playlist_matcher import PlaylistMatcher
 except ModuleNotFoundError:
     from services.video_playlist_scanner import VideoPlaylistScanner
     from services.media_index import MediaIndex
@@ -31,6 +32,7 @@ except ModuleNotFoundError:
     from services.results_mapper import build_index_map as _rm_build_index_map, rebuild_video_playlist_cache as _rm_rebuild_cache, link_media_index as _rm_link_index
     from services.playlist_search import search_enriched_playlists as _ps_search
     from services.video_search import search_videos as _vs_search
+    from services.playlist_matcher import PlaylistMatcher
 
 class MainPage(tk.Frame):
     def __init__(self, parent, controller):
@@ -39,6 +41,7 @@ class MainPage(tk.Frame):
         self.current_videos = []
         self.current_playlist_info = {}
         self.current_page_token = None
+        self.playlist_matcher = PlaylistMatcher()
         self._initialize_components()
 
     def _safe_ui(self, fn):
@@ -65,6 +68,7 @@ class MainPage(tk.Frame):
                     pass
                 self.search_mode = 'videos'
                 self._load_last_search('Videos')
+                self._update_results_ids()
                 try:
                     self.video.update_mode_ui(True)
                 except Exception:
@@ -702,6 +706,18 @@ class MainPage(tk.Frame):
                     video_next = data.get('nextPageToken')
                     ids = data.get('videoIds') or []
                     video_ids = set([i for i in ids if i])
+                    
+                    # Load cached playlist mappings
+                    try:
+                        pl_ids_map = data.get('playlistIds') or {}
+                        self.playlist_video_ids = {k: set(v) for k, v in pl_ids_map.items()}
+                    except Exception:
+                        self.playlist_video_ids = {}
+
+                    try:
+                        self.playlist_videos_cache = data.get('playlistPages') or {}
+                    except Exception:
+                        self.playlist_videos_cache = {}
 
                     try:
                         self.after(0, lambda: self.search.search_entry.delete(0, 'end'))
@@ -1885,36 +1901,28 @@ class MainPage(tk.Frame):
                         pi = None
             except Exception:
                 pi = None
+            
             try:
                 vids = set(self.video_results_ids or set())
             except Exception:
                 vids = set()
+
+            # Use centralized PlaylistMatcher service
             try:
-                hits = self._pl_hits_cache.get(playlist_id)
-                if hits is None:
-                    ids = set()
+                def _fallback_fetch(pid, vid):
                     try:
-                        if self.media_index:
-                            ids = set(list(self.media_index.get_playlist_video_ids(playlist_id) or []))
-                        else:
-                            ids = set(list(self.playlist_video_ids.get(playlist_id, set()) or set()))
+                        return self.controller.playlist_handler.playlist_contains_video(pid, vid)
                     except Exception:
-                        ids = set(list(self.playlist_video_ids.get(playlist_id, set()) or set()))
-                    hits = vids.intersection(ids)
-                    if not hits:
-                        lim = min(30, len(self.current_videos or []))
-                        tmp = set()
-                        for i in range(lim):
-                            try:
-                                v = self.current_videos[i]
-                                vid = v.get('videoId')
-                                if vid and self.controller.playlist_handler.playlist_contains_video(playlist_id, vid):
-                                    tmp.add(vid)
-                            except Exception:
-                                pass
-                        if tmp:
-                            hits = tmp
-                    self._pl_hits_cache[playlist_id] = hits
+                        return False
+
+                hits = self.playlist_matcher.get_intersection(
+                    playlist_id=playlist_id,
+                    current_video_ids=vids,
+                    media_index=self.media_index,
+                    known_playlist_video_ids=self.playlist_video_ids,
+                    fetch_fallback=_fallback_fetch,
+                    current_videos_list=self.current_videos
+                )
             except Exception:
                 hits = set()
         except Exception:
@@ -2027,12 +2035,17 @@ class MainPage(tk.Frame):
             vids = set()
         hits = 0
         try:
-            ids = set()
-            if self.media_index:
-                ids = set(list(self.media_index.get_playlist_video_ids(playlist_id) or []))
-            else:
-                ids = set(list(self.playlist_video_ids.get(playlist_id, set()) or set()))
-            hits = len(vids.intersection(ids))
+            # Use cached intersection from PlaylistMatcher
+            # Since we likely just called highlight_videos_for_playlist, this should be fast
+            res = self.playlist_matcher.get_intersection(
+                playlist_id=playlist_id,
+                current_video_ids=vids,
+                media_index=self.media_index,
+                known_playlist_video_ids=self.playlist_video_ids,
+                fetch_fallback=None, # No fallback needed for reporting, should be already cached/loaded
+                current_videos_list=self.current_videos
+            )
+            hits = len(res)
         except Exception:
             hits = 0
         try:
@@ -2043,6 +2056,9 @@ class MainPage(tk.Frame):
 
     def _invalidate_hits_cache(self):
         try:
+            if hasattr(self, 'playlist_matcher'):
+                self.playlist_matcher.invalidate_cache()
+            # Also clear local dict if it still exists (legacy safety)
             self._pl_hits_cache = {}
         except Exception:
             pass
