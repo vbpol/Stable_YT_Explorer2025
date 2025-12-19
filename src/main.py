@@ -75,14 +75,27 @@ def main():
             apply_security_tag("src")
         except Exception:
             pass
-        print("[Launcher] Starting current runtime (stable disabled)")
+        try:
+            from src.logger import setup_logger
+            logger = setup_logger()
+            logger.info("[Launcher] Starting current runtime (stable disabled)")
+        except Exception:
+            print("[Launcher] Starting current runtime (stable disabled)")
         _start_current_runtime()
         return
     try:
-        print(f"[Launcher] Starting stable runtime at {backup_root}")
+        try:
+            from src.logger import setup_logger
+            logger = setup_logger()
+            logger.info(f"[Launcher] Starting stable runtime at {backup_root}")
+        except Exception:
+            print(f"[Launcher] Starting stable runtime at {backup_root}")
         proc = subprocess.Popen(cmd, cwd=backup_root)
         rc = proc.wait()
-        print(f"[Launcher] Stable runtime exited with code {rc}")
+        try:
+            logger.info(f"[Launcher] Stable runtime exited with code {rc}")
+        except Exception:
+            print(f"[Launcher] Stable runtime exited with code {rc}")
         if rc != 0:
             try:
                 apply_security_tag("src")
@@ -93,9 +106,15 @@ def main():
             try:
                 from src.config_manager import ConfigManager
                 m = ConfigManager.load_last_mode() or ''
-                print(f"[Launcher] Stable runtime crashed; switching to current runtime (mode: {m or 'auto'})")
+                try:
+                    logger.warning(f"[Launcher] Stable runtime crashed; switching to current runtime (mode: {m or 'auto'})")
+                except Exception:
+                    print(f"[Launcher] Stable runtime crashed; switching to current runtime (mode: {m or 'auto'})")
             except Exception:
-                print("[Launcher] Stable runtime crashed; switching to current runtime")
+                try:
+                    logger.warning("[Launcher] Stable runtime crashed; switching to current runtime")
+                except Exception:
+                    print("[Launcher] Stable runtime crashed; switching to current runtime")
             root = tk.Tk()
             YouTubeApp(root)
             try:
@@ -106,7 +125,12 @@ def main():
                 except Exception:
                     pass
     except Exception as e:
-        print(f"[Launcher] Failed to start stable runtime: {e}. Falling back to current runtime.")
+        try:
+            from src.logger import setup_logger
+            logger = setup_logger()
+            logger.error(f"[Launcher] Failed to start stable runtime: {e}. Falling back to current runtime.")
+        except Exception:
+            print(f"[Launcher] Failed to start stable runtime: {e}. Falling back to current runtime.")
         try:
             apply_security_tag("src")
         except Exception:

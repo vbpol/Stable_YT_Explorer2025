@@ -72,6 +72,11 @@ class VideosModeMappingTests(unittest.TestCase):
             {'videoId': 'v3', 'title': 'T3', 'channelTitle': 'C1'},
         ]
 
+        mp.playlist_video_ids = {
+            'plA': {'v1', 'v3'},
+            'plB': {'v2'}
+        }
+        mp.media_index = None
         collected = mp.map_videos_to_playlists(videos)
 
         self.assertEqual(set([p['playlistId'] for p in collected]), {'plA', 'plB'})

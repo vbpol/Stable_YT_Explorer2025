@@ -1,17 +1,26 @@
 import json
 import os
-from typing import List
+import json
+import os
+from typing import List, Dict, Any, Optional
 try:
     from dotenv import load_dotenv
 except Exception:
     load_dotenv = None
+
+try:
+    from src.logger import setup_logger
+    logger = setup_logger()
+except ImportError:
+    import logging
+    logger = logging.getLogger("ConfigManager")
 
 CONFIG_FILE = "config.json"
 ENV_FILE = ".env"
 
 class ConfigManager:
     @staticmethod
-    def load_config():
+    def load_config() -> Dict[str, Any]:
         try:
             data = {}
             try:
@@ -27,11 +36,26 @@ class ConfigManager:
                 "default_folder": data.get("default_folder", ""),
                 "ui": data.get("ui", {})
             }
-        except Exception:
+            return {
+                "api_key": api_key,
+                "default_folder": data.get("default_folder", ""),
+                "ui": data.get("ui", {})
+            }
+        except Exception as e:
+            logger.error(f"Error loading config: {e}")
             return {"api_key": "", "default_folder": "", "ui": {}}
 
     @staticmethod
-    def save_config(api_key, default_folder):
+    @staticmethod
+    def save_config(api_key: str, default_folder: str) -> None:
+        """
+        Save configuration values to the config file.
+        Validates inputs before writing.
+        """
+        if not isinstance(api_key, str) or not api_key:
+            raise ValueError("api_key must be a non-empty string")
+        if not isinstance(default_folder, str):
+            raise ValueError("default_folder must be a string")
         try:
             data = {}
             try:
@@ -39,12 +63,14 @@ class ConfigManager:
                     data = json.load(file) or {}
             except Exception:
                 data = {}
-            data["api_key"] = ""
+            data["api_key"] = api_key
             data["default_folder"] = default_folder
             with open(CONFIG_FILE, "w") as file:
                 json.dump(data, file, indent=4)
-        except Exception:
-            pass
+            with open(CONFIG_FILE, "w") as file:
+                json.dump(data, file, indent=4)
+        except Exception as e:
+            logger.error(f"Error saving config: {e}")
 
     @staticmethod
     def get_available_api_keys() -> List[str]:
@@ -58,8 +84,10 @@ class ConfigManager:
                 keys.extend([k.strip() for k in env_multi.split(",") if k.strip()])
             if env_single:
                 keys.append(env_single.strip())
-        except Exception:
-            pass
+            if env_single:
+                keys.append(env_single.strip())
+        except Exception as e:
+            logger.error(f"Error loading env keys: {e}")
 
         try:
             import importlib
@@ -70,8 +98,10 @@ class ConfigManager:
                 val = getattr(mod, "API_KEY", "")
                 if val:
                     keys.append(str(val).strip())
-        except Exception:
-            pass
+                if val:
+                    keys.append(str(val).strip())
+        except Exception as e:
+            logger.error(f"Error loading settings.py keys: {e}")
 
         seen = set()
         unique = []
@@ -91,7 +121,7 @@ class ConfigManager:
             pass
 
     @staticmethod
-    def get_data_dir():
+    def get_data_dir() -> str:
         try:
             base = os.getcwd()
             data_dir = os.path.join(base, "data")
@@ -101,12 +131,12 @@ class ConfigManager:
             return os.getcwd()
 
     @staticmethod
-    def get_last_search_path(kind: str):
+    def get_last_search_path(kind: str) -> str:
         name = "last_" + (kind or "playlists") + "_search.json"
         return os.path.join(ConfigManager.get_data_dir(), name)
 
     @staticmethod
-    def save_json(path: str, data):
+    def save_json(path: str, data: Any) -> None:
         try:
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
@@ -114,7 +144,7 @@ class ConfigManager:
             pass
 
     @staticmethod
-    def load_json(path: str):
+    def load_json(path: str) -> Any:
         try:
             with open(path, "r", encoding="utf-8") as f:
                 return json.load(f)
@@ -130,7 +160,7 @@ class ConfigManager:
             return "last_mode.json"
 
     @staticmethod
-    def save_last_mode(mode: str):
+    def save_last_mode(mode: str) -> None:
         try:
             path = ConfigManager.get_last_mode_path()
             with open(path, "w", encoding="utf-8") as f:
@@ -181,7 +211,7 @@ class ConfigManager:
             return 10
 
     @staticmethod
-    def set_cookie_source(source: str):
+    def set_cookie_source(source: str) -> None:
         try:
             src = (source or "").strip().lower()
             data = {}
@@ -211,7 +241,7 @@ class ConfigManager:
         return "firefox"
 
     @staticmethod
-    def set_use_channel_title_fallback(value: bool):
+    def set_use_channel_title_fallback(value: bool) -> None:
         try:
             data = {}
             try:

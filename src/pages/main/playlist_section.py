@@ -138,7 +138,7 @@ class PlaylistSection(BaseSection):
                     self.main_page.show_playlist_videos_stable(selected_playlist)
                 else:
                     try:
-                        self.main_page.on_videos_mode_playlist_click(selected_playlist)
+                        self.main_page.populate_videos_table_preview(selected_playlist)
                     except Exception:
                         pass
                     try:
@@ -157,7 +157,28 @@ class PlaylistSection(BaseSection):
         try:
             if getattr(self.main_page, '_preview_active', False):
                 try:
-                    messagebox.showinfo("Preview Active", "Use Back to Results to change playlist.")
+                    item = self.playlist_tree.identify_row(event.y)
+                except Exception:
+                    item = None
+                try:
+                    col = self.playlist_tree.identify_column(event.x)
+                except Exception:
+                    col = None
+                try:
+                    if self.main_page.search_mode == 'videos' and item and str(col) != "#6":
+                        try:
+                            self.main_page.back_to_video_results()
+                        except Exception:
+                            pass
+                        try:
+                            self.playlist_tree.selection_set(item)
+                        except Exception:
+                            pass
+                        try:
+                            self.main_page.on_videos_mode_playlist_click(item)
+                        except Exception:
+                            pass
+                        return "break"
                 except Exception:
                     pass
                 return "break"
