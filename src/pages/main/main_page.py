@@ -118,6 +118,10 @@ class MainPage(tk.Frame):
             self.media_index = None
         
         self.search_persistence = SearchPersistenceHandler(self)
+        try:
+            self.video_scanner = VideoPlaylistScanner(self.controller.api_key)
+        except Exception:
+            self.video_scanner = None
         
         try:
             self._load_media_index_snapshot()
@@ -193,7 +197,7 @@ class MainPage(tk.Frame):
                     if self.playlist.playlist_tree.exists(pid):
                         vals = self.playlist.playlist_tree.item(pid).get('values', [])
                         ttl = vals[1] if len(vals) > 1 else ''
-                    return os.path.join(self.controller.default_folder, f"Playlist - {ttl or 'Unknown'}")
+                    return os.path.join(self.controller.default_folder, ttl or 'Unknown Playlist')
                 except Exception:
                     pass
             try:
@@ -214,8 +218,8 @@ class MainPage(tk.Frame):
                         q = getattr(self, 'video_search_query', '') or 'Misc'
                 else:
                     q = getattr(self, 'video_search_query', '') or 'Misc'
-                return os.path.join(self.controller.default_folder, f"Videos - {q}")
-            return os.path.join(self.controller.default_folder, "Playlist - Unknown")
+                return os.path.join(self.controller.default_folder, q)
+            return os.path.join(self.controller.default_folder, 'Unknown Playlist')
         except Exception:
             return self.controller.default_folder
 
@@ -789,7 +793,13 @@ class MainPage(tk.Frame):
                     self._safe_ui(lambda t=len(videos): self.video.show_scan(t))
                     self._safe_ui(lambda t=len(videos): self.show_mid_scan(t))
                     collected_local = []
-                    scanner = VideoPlaylistScanner(self.controller.api_key)
+                    scanner = self.video_scanner
+                    if not scanner:
+                        try:
+                            scanner = VideoPlaylistScanner(self.controller.api_key)
+                        except Exception:
+                            return
+                    
                     def _on_pl(pl):
                         plid = pl.get('playlistId')
                         try:
@@ -804,13 +814,10 @@ class MainPage(tk.Frame):
                             pass
                         collected_local.append(pl)
                         return pi
+                    
                     def _prefetch(pid):
                         try:
-                            from src.playlist import Playlist as _Pl
-                        except ModuleNotFoundError:
-                            from playlist import Playlist as _Pl
-                        try:
-                            ph2 = _Pl(self.controller.api_key)
+                            ph2 = scanner._get_service()
                             resp_pf = ph2.get_videos(pid, None, max_results=10)
                             self._cache_playlist_videos(pid, None, resp_pf)
                             try:
@@ -820,10 +827,12 @@ class MainPage(tk.Frame):
                                 pass
                         except Exception:
                             pass
+                    
                     def _progress(done, total):
                         self._safe_ui(lambda x=done, t=total: self.status_bar.configure(text=f"Collecting playlists from videos... {x}/{t}"))
                         self._safe_ui(lambda x=done, t=total: self.video.update_scan_progress(x, t))
                         self._safe_ui(lambda x=done, t=total: self.update_mid_scan_progress(x, t))
+                    
                     def _index(vid, pid, idx):
                         self._safe_ui(lambda v_id=vid, p_id=pid: self._update_video_row_by_vid(v_id, p_id))
                         try:

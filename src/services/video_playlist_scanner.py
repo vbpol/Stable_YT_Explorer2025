@@ -19,8 +19,15 @@ class VideoPlaylistScanner:
         self.channel_playlist_limit = channel_playlist_limit
         self.prefetch_page_size = prefetch_page_size
         self._query_cache: Dict[str, List[Dict[str, Any]]] = {}
+        self._channel_cache: Dict[str, List[Dict[str, Any]]] = {}
         self._search_calls: int = 0
-        self._max_search_calls: int = 20
+        self._max_search_calls: int = 40  # Increased default
+        self._playlist_service = None
+
+    def _get_service(self):
+        if self._playlist_service is None:
+            self._playlist_service = Playlist(self.api_key)
+        return self._playlist_service
 
     def scan(
         self,
@@ -30,112 +37,90 @@ class VideoPlaylistScanner:
         on_progress: Callable[[int, int], None],
         on_video_index: Callable[[str, str, int], None],
     ) -> List[Dict[str, Any]]:
-        """Scan playlists for a list of videos and report findings.
-
-        Parameters:
-        - videos: list of video dicts
-        - on_playlist_found: callback when a playlist contains the video; returns assigned index
-        - on_prefetch_page: callback to prefetch first page for a discovered playlist
-        - on_progress: callback with (processed, total)
-        - on_video_index: callback to update the video's playlist assignment (vid, pid, index)
-
-        Returns: list of discovered unique playlists
-        """
         total = len(videos or [])
         collected: List[Dict[str, Any]] = []
         seen: set[str] = set()
+        ph = self._get_service()
 
         def _scan_one(v: Dict[str, Any]):
-            ph = Playlist(self.api_key)
             vid = v.get('videoId')
+            cid = v.get('channelId')
             title = (v.get('title') or '').strip()
             channel = (v.get('channelTitle') or '').strip()
             if not vid:
                 return None
+
+            # Optimization 1: Try channel-level playlists first if we have channelId
+            if cid:
+                try:
+                    chan_pls = []
+                    if cid in self._channel_cache:
+                        chan_pls = self._channel_cache[cid]
+                    else:
+                        chan_pls = ph.get_channel_playlists(cid, max_results=self.channel_playlist_limit)
+                        self._channel_cache[cid] = chan_pls
+                    
+                    for pl in chan_pls:
+                        plid = pl.get('playlistId')
+                        if plid and ph.playlist_contains_video(plid, vid):
+                            return self._process_found_playlist(pl, vid, on_playlist_found, on_prefetch_page, on_video_index, seen, collected)
+                except Exception:
+                    pass
+
+            # Optimization 2: Keyword search (original logic)
             queries = []
-            try:
-                if title:
-                    queries.append(title)
-                if channel and title:
-                    queries.append(f"{channel} {title}")
-                if channel and not title:
-                    queries.append(channel)
-            except Exception:
-                pass
-            if not queries:
-                return None
-            first_index = None
-            first_plid = None
+            if title: queries.append(title)
+            if channel and title: queries.append(f"{channel} {title}")
+            
             for q in queries:
                 pls = []
-                try:
-                    if q in self._query_cache:
-                        pls = self._query_cache[q]
-                    elif self._search_calls < self._max_search_calls:
+                if q in self._query_cache:
+                    pls = self._query_cache[q]
+                elif self._search_calls < self._max_search_calls:
+                    try:
                         pls = ph.search_playlists(q, max_results=5)
                         self._query_cache[q] = pls
                         self._search_calls += 1
-                    else:
+                    except Exception:
                         pls = []
-                except Exception:
-                    pls = []
+                
                 for pl in pls:
                     plid = pl.get('playlistId')
-                    if not plid:
-                        continue
-                    try:
-                        has = ph.playlist_contains_video(plid, vid)
-                    except Exception:
-                        has = False
-                    if not has:
-                        continue
-                    idx = on_playlist_found(pl)
-                    try:
-                        pid = plid
-                        if pid and pid not in seen:
-                            seen.add(pid)
-                            collected.append(pl)
-                    except Exception:
-                        pass
-                    try:
-                        on_prefetch_page(plid)
-                    except Exception:
-                        pass
-                    if first_index is None and isinstance(idx, int):
-                        first_index = idx
-                        first_plid = plid
-                    break
-                if first_plid:
-                    break
-            if first_index and first_plid:
-                try:
-                    on_video_index(vid, first_plid, first_index)
-                except Exception:
-                    pass
+                    if plid and ph.playlist_contains_video(plid, vid):
+                        return self._process_found_playlist(pl, vid, on_playlist_found, on_prefetch_page, on_video_index, seen, collected)
             return True
 
+        self._run_parallel(videos, _scan_one, on_progress)
+        return collected
+
+    def _process_found_playlist(self, pl, vid, on_playlist_found, on_prefetch_page, on_video_index, seen, collected):
+        plid = pl.get('playlistId')
+        idx = on_playlist_found(pl)
+        if plid not in seen:
+            seen.add(plid)
+            collected.append(pl)
+        try:
+            on_prefetch_page(plid)
+        except Exception:
+            pass
+        if isinstance(idx, (int, str)):
+            on_video_index(vid, plid, idx)
+        return True
+
+    def _run_parallel(self, videos, scan_fn, on_progress):
+        total = len(videos or [])
         try:
             with ThreadPoolExecutor(max_workers=self.max_workers) as ex:
-                futs = [ex.submit(_scan_one, v) for v in (videos or [])]
-                processed = 0
-                for _ in as_completed(futs):
-                    processed += 1
-                    try:
-                        on_progress(processed, total)
-                    except Exception:
-                        pass
+                futs = [ex.submit(scan_fn, v) for v in (videos or [])]
+                for i, _ in enumerate(as_completed(futs), 1):
+                    # Potential optimization: batch progress updates?
+                    on_progress(i, total)
         except Exception:
-            # Fallback sequential
-            processed = 0
-            for v in (videos or []):
+            for i, v in enumerate(videos or [], 1):
                 try:
-                    _scan_one(v)
+                    scan_fn(v)
                 except Exception:
                     pass
-                processed += 1
-                try:
-                    on_progress(processed, total)
-                except Exception:
-                    pass
+                on_progress(i, total)
 
         return collected
