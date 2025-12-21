@@ -123,7 +123,9 @@ class DownloadManager:
                     return self.download_folder
                 vid = v.get('videoId')
                 try:
-                    pid = v.get('playlistId') or self.parent.video_playlist_cache.get(vid)
+                    pid = v.get('playlistId')
+                    if not pid and getattr(self.parent, 'media_index', None):
+                        pid = self.parent.media_index.get_video_playlist(vid)
                 except Exception:
                     pid = v.get('playlistId')
                 if not pid:
@@ -198,7 +200,8 @@ class DownloadManager:
                     pid = video.get('playlistId')
                     if not pid:
                         try:
-                            pid = self.parent.video_playlist_cache.get(video.get('videoId'))
+                            if getattr(self.parent, 'media_index', None):
+                                pid = self.parent.media_index.get_video_playlist(video.get('videoId'))
                         except Exception:
                             pid = None
                     if pid:

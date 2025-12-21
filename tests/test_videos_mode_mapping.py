@@ -72,11 +72,13 @@ class VideosModeMappingTests(unittest.TestCase):
             {'videoId': 'v3', 'title': 'T3', 'channelTitle': 'C1'},
         ]
 
-        mp.playlist_video_ids = {
-            'plA': {'v1', 'v3'},
-            'plB': {'v2'}
-        }
-        mp.media_index = None
+        from src.services.media_index import MediaIndex
+        mp.media_index = MediaIndex()
+        mp.media_index.add_playlists([{'playlistId': 'plA'}, {'playlistId': 'plB'}])
+        mp.media_index.link_video_to_playlist('plA', 'v1')
+        mp.media_index.link_video_to_playlist('plA', 'v3')
+        mp.media_index.link_video_to_playlist('plB', 'v2')
+        
         collected = mp.map_videos_to_playlists(videos)
 
         self.assertEqual(set([p['playlistId'] for p in collected]), {'plA', 'plB'})

@@ -1,5 +1,6 @@
 from typing import Callable, List, Dict, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
 
 # VideoPlaylistScanner centralizes the logic that scans channel playlists
 # for each video result, maps videos to playlists, and reports progress.
@@ -20,7 +21,10 @@ class VideoPlaylistScanner:
         self.prefetch_page_size = prefetch_page_size
         self._query_cache: Dict[str, List[Dict[str, Any]]] = {}
         self._search_calls: int = 0
-        self._max_search_calls: int = 20
+        # Increased limit slightly as we have persistent caching now, 
+        # but kept safe to prevent massive token usage on fresh runs.
+        self._max_search_calls: int = 50 
+        self._lock = threading.Lock()
 
     def scan(
         self,
@@ -44,6 +48,7 @@ class VideoPlaylistScanner:
         total = len(videos or [])
         collected: List[Dict[str, Any]] = []
         seen: set[str] = set()
+        seen_lock = threading.Lock()
 
         def _scan_one(v: Dict[str, Any]):
             ph = Playlist(self.api_key)
@@ -66,19 +71,30 @@ class VideoPlaylistScanner:
                 return None
             first_index = None
             first_plid = None
+            
             for q in queries:
                 pls = []
-                try:
+                # Thread-safe cache access
+                with self._lock:
                     if q in self._query_cache:
                         pls = self._query_cache[q]
                     elif self._search_calls < self._max_search_calls:
-                        pls = ph.search_playlists(q, max_results=5)
-                        self._query_cache[q] = pls
+                        # Release lock during API call to avoid blocking other threads
+                        do_search = True
                         self._search_calls += 1
                     else:
+                        do_search = False
+                
+                if 'do_search' in locals() and do_search:
+                    try:
+                        pls = ph.search_playlists(q, max_results=5)
+                        with self._lock:
+                            self._query_cache[q] = pls
+                    except Exception:
                         pls = []
-                except Exception:
+                elif q not in self._query_cache:
                     pls = []
+
                 for pl in pls:
                     plid = pl.get('playlistId')
                     if not plid:
@@ -89,24 +105,31 @@ class VideoPlaylistScanner:
                         has = False
                     if not has:
                         continue
+                    
+                    # Found match
                     idx = on_playlist_found(pl)
+                    
                     try:
-                        pid = plid
-                        if pid and pid not in seen:
-                            seen.add(pid)
-                            collected.append(pl)
+                        with seen_lock:
+                            pid = plid
+                            if pid and pid not in seen:
+                                seen.add(pid)
+                                collected.append(pl)
                     except Exception:
                         pass
+                        
                     try:
                         on_prefetch_page(plid)
                     except Exception:
                         pass
+                        
                     if first_index is None and isinstance(idx, int):
                         first_index = idx
                         first_plid = plid
                     break
                 if first_plid:
                     break
+            
             if first_index and first_plid:
                 try:
                     on_video_index(vid, first_plid, first_index)

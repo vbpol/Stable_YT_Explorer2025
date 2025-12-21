@@ -100,20 +100,30 @@ class PaginationBar(ttk.Frame):
         except Exception:
             total_pages = 1
         self._total_pages = total_pages
+        
+        # Use provided flags if available, otherwise fallback to index logic
+        enable_prev = has_prev if has_prev is not None else (self._page_index > 1)
+        # For next, if has_next is explicit, use it. 
+        # Note: sometimes total_pages is an estimate, so has_next is more reliable for APIs.
+        enable_next = has_next if has_next is not None else (self._page_index < total_pages)
+
         try:
-            self.set_prev_enabled(self._page_index > 1)
+            self.set_prev_enabled(enable_prev)
         except Exception:
             pass
         try:
-            self.set_next_enabled(self._page_index < total_pages)
+            self.set_next_enabled(enable_next)
         except Exception:
             pass
         try:
-            self.page_indicator.configure(text=f"Page {self._page_index} of {total_pages}")
+            # Format numbers with commas for readability
+            total_pages_str = f"{total_pages:,}"
+            total_items_str = f"{self._total_items:,}"
+            self.page_indicator.configure(text=f"Page {self._page_index} of {total_pages_str}")
         except Exception:
             pass
         try:
-            self.total_label.configure(text=f"Total: {self._total_items}")
+            self.total_label.configure(text=f"Total: {total_items_str}")
         except Exception:
             pass
         try:

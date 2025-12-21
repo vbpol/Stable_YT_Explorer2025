@@ -101,3 +101,52 @@ class MediaIndex:
     def get_playlist(self, playlist_id: str) -> Optional[PlaylistModel]:
         return self.playlists.get(playlist_id)
 
+    def to_dict(self) -> Dict:
+        """Serialize the index to a dictionary."""
+        return {
+            "videos": {
+                k: {
+                    "videoId": v.videoId,
+                    "title": v.title,
+                    "channelTitle": v.channelTitle,
+                    "channelId": v.channelId,
+                    "duration": v.duration,
+                    "published": v.published,
+                    "views": v.views,
+                    "playlistId": v.playlistId,
+                    "playlistIndex": v.playlistIndex
+                } for k, v in self.videos.items()
+            },
+            "playlists": {
+                k: {
+                    "playlistId": p.playlistId,
+                    "title": p.title,
+                    "channelTitle": p.channelTitle,
+                    "video_count": p.video_count,
+                    "video_ids": list(p.video_ids)
+                } for k, p in self.playlists.items()
+            }
+        }
+
+    def load_from_dict(self, data: Dict) -> None:
+        """Load the index from a dictionary."""
+        if not data:
+            return
+            
+        # Load videos
+        videos_data = data.get("videos", {})
+        for vid, v_data in videos_data.items():
+            if vid:
+                self.videos[vid] = VideoModel.from_dict(v_data)
+                
+        # Load playlists
+        playlists_data = data.get("playlists", {})
+        for pid, p_data in playlists_data.items():
+            if pid:
+                pl = PlaylistModel.from_dict(p_data)
+                # Restore video_ids set
+                vids = p_data.get("video_ids")
+                if vids:
+                    pl.video_ids = set(vids)
+                self.playlists[pid] = pl
+

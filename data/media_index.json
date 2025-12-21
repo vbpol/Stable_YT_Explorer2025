@@ -7,7 +7,7 @@
       "channelId": "UCCS6ZRelvETSbA53xFEsa6w",
       "duration": "12:58",
       "published": "2025-03-22T15:00:08Z",
-      "views": "53552",
+      "views": "53956",
       "playlistId": "PLRwCMRF27F6mRtTXldm1WWXDoFPFxZu3f",
       "playlistIndex": 1
     },
@@ -18,7 +18,7 @@
       "channelId": "UC0dAmlls1hyU_OcoQCmFzRg",
       "duration": "01:42",
       "published": "2016-08-05T08:19:05Z",
-      "views": "60320",
+      "views": "60339",
       "playlistId": "PL6R1NSqvpNrtJ1tAryIcidF3YN1WeNoeZ",
       "playlistIndex": 2
     },
@@ -29,9 +29,9 @@
       "channelId": "UCEtWIysVwp6s7spxA7uTD2g",
       "duration": "02:05",
       "published": "2022-06-30T09:55:25Z",
-      "views": "50718",
+      "views": "50851",
       "playlistId": "PLMNq4CGnXT34Qz6NVPnLguF-ku6KZHIhP",
-      "playlistIndex": 5
+      "playlistIndex": 3
     },
     "COjMOM6xo6M": {
       "videoId": "COjMOM6xo6M",
@@ -40,7 +40,7 @@
       "channelId": "UCgJ--Jf41qf62AS5wmqSZWQ",
       "duration": "01:00",
       "published": "2024-11-08T06:43:20Z",
-      "views": "8040",
+      "views": "8195",
       "playlistId": null,
       "playlistIndex": null
     },
@@ -51,9 +51,9 @@
       "channelId": "UCI2HDanVxEp54l5AQqZor3g",
       "duration": "00:42",
       "published": "2022-02-22T10:04:33Z",
-      "views": "61135",
+      "views": "61248",
       "playlistId": "PLFzp67K2qiUv30Du9SSdy7Vj29Aina5Fg",
-      "playlistIndex": 3
+      "playlistIndex": 4
     },
     "uEs7kcbughY": {
       "videoId": "uEs7kcbughY",
@@ -62,9 +62,9 @@
       "channelId": "UC6QckhILSqdl3K0TWPWrDdg",
       "duration": "15:10",
       "published": "2025-12-05T18:16:38Z",
-      "views": "15658",
+      "views": "16654",
       "playlistId": "PLU5lZZLWyxXAFW97C5rCKfSzziacfcmyC",
-      "playlistIndex": 4
+      "playlistIndex": 5
     },
     "5T1wr_Bgwgg": {
       "videoId": "5T1wr_Bgwgg",
@@ -73,7 +73,7 @@
       "channelId": "UCmCW2lJ6Q0-xc1VtKxdK9MQ",
       "duration": "00:16",
       "published": "2021-11-08T17:49:45Z",
-      "views": "21671",
+      "views": "21810",
       "playlistId": null,
       "playlistIndex": null
     },
@@ -84,9 +84,9 @@
       "channelId": "UCMvNnP9oAQl5IApL8XBQIkQ",
       "duration": "00:32",
       "published": "2023-03-04T19:48:16Z",
-      "views": "44058",
+      "views": "44495",
       "playlistId": "PLTqXGUR7SoBW9GT-rOR7BePrGCfzYHqA0",
-      "playlistIndex": 7
+      "playlistIndex": 6
     },
     "iBV5NGrLvPo": {
       "videoId": "iBV5NGrLvPo",
@@ -97,17 +97,17 @@
       "published": "2015-04-02T15:43:41Z",
       "views": "22141",
       "playlistId": "PLFzp67K2qiUvWSpyB_PqZiBQYVCsJgbz9",
-      "playlistIndex": 6
+      "playlistIndex": 7
     },
-    "y7FQ6V77PX4": {
-      "videoId": "y7FQ6V77PX4",
-      "title": "Aveva E3D Piping Modeling Tutorial for Beginners",
-      "channelTitle": "Aveva E3D Tutorials",
-      "channelId": "UC0QptDLfta_RC5ELsWhyTFQ",
-      "duration": "18:25",
-      "published": "2024-11-17T04:59:31Z",
-      "views": "13875",
-      "playlistId": "PLLD0AXRDg5kR3Jf8RNeBqafAxQSqrHKEF",
+    "9mrCouzZ8sw": {
+      "videoId": "9mrCouzZ8sw",
+      "title": "Top 10 Must-See 3D Printers at FORMNEXT 2025",
+      "channelTitle": "Nathan Builds Robots",
+      "channelId": "UCaNh1YtSETrKihL8DitpFig",
+      "duration": "50:41",
+      "published": "2025-11-24T02:22:09Z",
+      "views": "46814",
+      "playlistId": "PLCSkCxP8FvzLRXPRgS5Xo0ZBbRl5RMiCO",
       "playlistIndex": 8
     }
   },
@@ -120,10 +120,10 @@
       "video_ids": [
         "mPh1b2EOOz0",
         "G6RWfkICkss",
-        "79r5D9nCQfM",
+        "Kx4VfzS_V6c",
         "6b8DWEpVo74",
         "crT1QBAfgNU",
-        "Kx4VfzS_V6c"
+        "79r5D9nCQfM"
       ]
     },
     "PL6R1NSqvpNrtJ1tAryIcidF3YN1WeNoeZ": {
@@ -132,17 +132,35 @@
       "channelTitle": "R DEY",
       "video_count": "N/A",
       "video_ids": [
-        "f4K9S0IgkUk",
-        "1JfJ3Sbd9BY",
-        "wXlzKjEbypc",
+        "hxv1dOwZENU",
         "OyhjFrilDPs",
         "DeWCX3HvADs",
+        "f4K9S0IgkUk",
+        "1JfJ3Sbd9BY",
         "gENFmVVuQaY",
+        "wXlzKjEbypc",
         "y6WrID5pdb0",
         "uSsOVRqgSnk",
-        "hxv1dOwZENU",
         "5VeWbfS9Gbk",
         "0UKcrKJnYPE"
+      ]
+    },
+    "PLMNq4CGnXT34Qz6NVPnLguF-ku6KZHIhP": {
+      "playlistId": "PLMNq4CGnXT34Qz6NVPnLguF-ku6KZHIhP",
+      "title": "Engineer, Procure, Construct",
+      "channelTitle": "AVEVA Group",
+      "video_count": "N/A",
+      "video_ids": [
+        "oew3oAgdWxk",
+        "FKWthuEYrpA",
+        "GfiSUTvU1o4",
+        "JFnPsW6Fvio",
+        "4Vi6HkCMfCc",
+        "cbmKTPC5Ys4",
+        "irLFn7VYjsE",
+        "CKwDLfeqpR4",
+        "mPIWbAnul0c",
+        "-kxy94WCY7M"
       ]
     },
     "PLFzp67K2qiUv30Du9SSdy7Vj29Aina5Fg": {
@@ -152,14 +170,14 @@
       "video_count": "N/A",
       "video_ids": [
         "X-re_Exl84c",
+        "GQ7E7oQ1ETY",
         "junWm5yGITU",
-        "JI9fthDbBGs",
-        "T2Maw8uxCnA",
         "IOjEZkaDvg8",
         "h3pLiXQAmiM",
-        "GQ7E7oQ1ETY",
         "E3tvowJ-XNI",
         "GyywneflQcs",
+        "JI9fthDbBGs",
+        "T2Maw8uxCnA",
         "wBrmu7AWKu4"
       ]
     },
@@ -169,53 +187,16 @@
       "channelTitle": "My Tech Fun",
       "video_count": "N/A",
       "video_ids": [
-        "6qOrv_r-rKU",
-        "SCcnsdMzNOw",
-        "ZmYj3GvS_B8",
-        "92yerrd9A7o",
-        "jMb9sBVWvrs",
         "b_51SMUE80I",
-        "nm_gL9Zw5KY",
+        "ZmYj3GvS_B8",
+        "6qOrv_r-rKU",
         "U-aTEslkqco",
+        "dALuVjdvS8w",
+        "SCcnsdMzNOw",
+        "nm_gL9Zw5KY",
+        "jMb9sBVWvrs",
         "uEs7kcbughY",
-        "dALuVjdvS8w"
-      ]
-    },
-    "PLMNq4CGnXT34Qz6NVPnLguF-ku6KZHIhP": {
-      "playlistId": "PLMNq4CGnXT34Qz6NVPnLguF-ku6KZHIhP",
-      "title": "Engineer, Procure, Construct",
-      "channelTitle": "AVEVA Group",
-      "video_count": "N/A",
-      "video_ids": [
-        "JFnPsW6Fvio",
-        "irLFn7VYjsE",
-        "mPIWbAnul0c",
-        "GfiSUTvU1o4",
-        "-kxy94WCY7M",
-        "4Vi6HkCMfCc",
-        "cbmKTPC5Ys4",
-        "FKWthuEYrpA",
-        "oew3oAgdWxk",
-        "CKwDLfeqpR4"
-      ]
-    },
-    "PLFzp67K2qiUvWSpyB_PqZiBQYVCsJgbz9": {
-      "playlistId": "PLFzp67K2qiUvWSpyB_PqZiBQYVCsJgbz9",
-      "title": "Our Products",
-      "channelTitle": "E3D",
-      "video_count": "N/A",
-      "video_ids": [
-        "iBV5NGrLvPo",
-        "RQzG58v9dNo",
-        "nVDMla23neM",
-        "2NYIblbyz3Q",
-        "0Po0HxMOHmM",
-        "W6GxPZUM0k4",
-        "kgESq21sftw",
-        "xiY1qk9qPRg",
-        "Id854vc2gTY",
-        "3y3uMEw5ecU",
-        "C7wYfaHT1g0"
+        "92yerrd9A7o"
       ]
     },
     "PLTqXGUR7SoBW9GT-rOR7BePrGCfzYHqA0": {
@@ -224,36 +205,52 @@
       "channelTitle": "MihaiDesigns",
       "video_count": "N/A",
       "video_ids": [
-        "vrWAUkfrgqk",
-        "hfmrlF0iiCs",
-        "E13J5wJ4mU8",
-        "BwSdC7kLAdk",
-        "xvrZeSYptnk",
-        "0GZnXjfCZGI",
         "yKntMTRXVkQ",
         "4oLhFohVCag",
-        "cg1j7cPHv8M",
         "RlnCLSr5oHw",
-        "PpLJRHUkRNQ"
+        "0GZnXjfCZGI",
+        "BwSdC7kLAdk",
+        "vrWAUkfrgqk",
+        "E13J5wJ4mU8",
+        "hfmrlF0iiCs",
+        "cg1j7cPHv8M",
+        "PpLJRHUkRNQ",
+        "xvrZeSYptnk"
       ]
     },
-    "PLLD0AXRDg5kR3Jf8RNeBqafAxQSqrHKEF": {
-      "playlistId": "PLLD0AXRDg5kR3Jf8RNeBqafAxQSqrHKEF",
-      "title": "Aveva E3D piping",
-      "channelTitle": "Aveva E3D Tutorials",
+    "PLFzp67K2qiUvWSpyB_PqZiBQYVCsJgbz9": {
+      "playlistId": "PLFzp67K2qiUvWSpyB_PqZiBQYVCsJgbz9",
+      "title": "Our Products",
+      "channelTitle": "E3D",
       "video_count": "N/A",
       "video_ids": [
-        "R0WOLdu3lLk",
-        "1zbN8b7INC0",
-        "EFCxlo9SHFM",
-        "krUFEUQthuA",
-        "6DJBY8GI6cc",
-        "hVhvkzSTG4Q",
-        "nbsW8JbF4N4",
-        "aPDvOTx_-10",
-        "y7FQ6V77PX4",
-        "srF10fTo51U",
-        "NyR1c478JFw"
+        "Id854vc2gTY",
+        "RQzG58v9dNo",
+        "kgESq21sftw",
+        "2NYIblbyz3Q",
+        "3y3uMEw5ecU",
+        "nVDMla23neM",
+        "C7wYfaHT1g0",
+        "xiY1qk9qPRg",
+        "0Po0HxMOHmM",
+        "iBV5NGrLvPo",
+        "W6GxPZUM0k4"
+      ]
+    },
+    "PLCSkCxP8FvzLRXPRgS5Xo0ZBbRl5RMiCO": {
+      "playlistId": "PLCSkCxP8FvzLRXPRgS5Xo0ZBbRl5RMiCO",
+      "title": "3D printing",
+      "channelTitle": "Jerry Sessions",
+      "video_count": "N/A",
+      "video_ids": [
+        "LqIX_HtcIT8",
+        "vaulsZ-qUOk",
+        "9mrCouzZ8sw",
+        "9pAgCnHRCpM",
+        "GVDhAKxNcJA",
+        "QuYVQ5i94AI",
+        "Mrd8yIOS9Sg",
+        "gCXL7N9NNq8"
       ]
     }
   }

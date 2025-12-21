@@ -1,5 +1,23 @@
 # Changelog
 
+## 2025-12-16 (v1.1.0)
+
+### New Features
+
+- **Popup Notification**: Added a popup dialog on search completion showing the total number of videos found for the keyword.
+  - Code: `src/pages/main/main_page.py`
+
+### Bug Fixes & Improvements
+
+- **Pagination Counts**: Fixed "crazy" pagination counts (e.g., "Page 2 of 100000") by correctly interpreting YouTube API `totalResults` as an estimate and formatting it with commas for readability.
+  - Code: `src/ui/pagination_bar.py`, `src/pages/main/videos_mode_handler.py`
+- **Video Marks**: Fixed issue where video selection marks (stars/highlights) were lost during pagination or view switching.
+  - Code: `src/pages/main/video_section.py`
+- **Playlist Numbers**: Fixed missing playlist numbers in the videos panel when navigating Next/Previous pages.
+  - Code: `src/pages/main/videos_mode_handler.py` (`_enrich_videos_with_metadata`)
+- **Page Index Drift**: Fixed page index not resetting to 1 on new searches.
+- **Cache Persistence**: Ensured `video_total_results` is correctly saved to and loaded from cache.
+
 ## 2025-12-03
 
 ### UI

@@ -1,45 +1,36 @@
 # Validation Checklist
 
-## Interaction
-- Double-click in `Videos` mode does not navigate; pins, prints, highlights
-- Single-click in `Videos` mode pins + prints + highlights; no UI restart
-- Right-click shows context menu: Popup, Print, Populate (preview)
-- During playlist preview, Playlists table selection is disabled and clicks show reminder popup
+## 1. File System Structure
+- [ ] **App Root Cleanliness**:
+    - Ensure no `Video - *` or `Playlist - *` folders exist in the application root directory.
+    - Check that `Legacy_Downloads` folder contains previously moved items (if any).
+- [ ] **Download Targets**:
+    - Perform a download of a video belonging to a playlist.
+    - Verify it saves to `[Default_Download_Folder]/Playlist - [Playlist_Title]/`.
+    - Perform a download of a video NOT in a playlist.
+    - Verify it saves to `[Default_Download_Folder]/Channel - [Channel_Title]/` or `Videos - [Query]/`.
 
-## Marking Logic
-- Stars mark only intersection of selected playlist videos and current search results
-- Popup marks only intersection; non-matching titles have no star
-- Terminal listing includes star prefix only for intersection items
+## 2. API Token Usage (Caching)
+- [ ] **Cache Creation**:
+    - Run a search.
+    - Verify `src/data/api_cache.sqlite3` file exists and size > 0.
+- [ ] **Quota Savings**:
+    - Run the same search term twice.
+    - Observe that the second search loads instantly and does not increment API quota (if verifiable via console).
+    - Disconnect internet and try to load previously searched term (should work from cache).
+- [ ] **Scanner Efficiency**:
+    - Run "Map Playlists" on a set of videos.
+    - Rerun it. The second run should be much faster and hit the database instead of the API.
 
-## Persistence
-- `playlistPages` and `playlistIds` saved in last videos search JSON
-- Restore loads pages and ID sets for fast mapping and highlight
+## 3. Functionality
+- [ ] **Video Scanning**:
+    - Ensure `VideoPlaylistScanner` correctly identifies playlists for videos.
+    - Verify thread safety: no crashes during rapid scanning.
+- [ ] **Playback**:
+    - Ensure downloaded videos play correctly (paths are valid).
 
-## Performance
-- Mapping uses cached ID sets; avoids per-video network membership checks
-- Preview uses cached first page when available; otherwise minimal fetch
-
-## UI Stability
-- No UI restart on playlist interactions in `Videos` mode
-- Back button restores search results after preview
-- Double-click and single-click event handlers return "break" where needed
-
-## Downloads
-- Playlist download opens options dialog and progress window
-- Right-click on Videos list shows "Download Selected" and downloads chosen items
-- Progress bars update for total and current video; cancel works
-
-## Data Consistency
-- Playlist 'Videos' column auto-fills when 'N/A' via async `get_details`
-
-## Error Handling
-- Timeout/SSL retry in terminal printing; fallback to highlight when fetch fails
-- Missing playlist row is inserted before open
-
-- Videos mode search loads and preserves results
-- Double-click first playlist uses cache and prints to terminal
-- Double-click while busy queues and runs next open
-- Status bar shows progress during highlight scanning
-- Network errors fall back to highlighting; no error dialog
-- Playlist numbers populate via `assign_playlist_index`
-- Video numbering appears in titles consistently
+## 4. Regression Testing
+- [ ] **UI Responsiveness**:
+    - Ensure UI does not freeze during scanning (threading check).
+- [ ] **Startup**:
+    - Ensure app starts without errors related to DB locking or missing paths.
