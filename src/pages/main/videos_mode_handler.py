@@ -21,7 +21,7 @@ class VideosModeHandler:
                 pi = self.parent.playlist_index_map.get(playlist_id)
                 if pi is None:
                     try:
-                        vals = self.parent.playlist.playlist_tree.item(playlist_id).get('values', [])
+                        vals = self.parent.playlist.get_playlist_values(playlist_id) or []
                         if vals:
                             n = vals[0]
                             try:
@@ -98,7 +98,7 @@ class VideosModeHandler:
         except Exception:
             pass
         try:
-            vals = self.parent.playlist.playlist_tree.item(playlist_id).get('values', [])
+            vals = list(self.parent.playlist.get_playlist_values(playlist_id) or [])
             if vals:
                 new_vals = (
                     vals[0] if len(vals)>0 else "",
@@ -108,7 +108,7 @@ class VideosModeHandler:
                     f"Intersecting: {len(hits)}",
                     vals[5] if len(vals)>5 else "❌",
                 )
-                self.parent.playlist.playlist_tree.item(playlist_id, values=new_vals)
+                self.parent.playlist.update_playlist_item(playlist_id, tuple(new_vals))
         except Exception:
             pass
 
@@ -226,7 +226,7 @@ class VideosModeHandler:
         # Renders selected playlist videos into Videos table without changing mode
         # Sets _preview_only_hits so stars/tags apply only to search result intersection
         try:
-            vals = self.parent.playlist.playlist_tree.item(playlist_id).get('values', [])
+            vals = self.parent.playlist.get_playlist_values(playlist_id) or []
         except Exception:
             vals = []
         try:
@@ -296,7 +296,7 @@ class VideosModeHandler:
                 self.parent._preview_only_hits = True
                 self.parent._preview_active = True
                 try:
-                    self.parent.playlist.playlist_tree.configure(selectmode='none')
+                    self.parent.playlist.set_selection_mode('none')
                 except Exception:
                     pass
             except Exception:
@@ -351,7 +351,7 @@ class VideosModeHandler:
             # Restore playlists table
             self.parent.collected_playlists = playlists
             try:
-                self.parent.playlist.playlist_tree.delete(*self.parent.playlist.playlist_tree.get_children())
+                self.parent.playlist.clear_playlists()
                 def _ins_pl_chunk(s=0):
                     try:
                         ch = 30
@@ -381,7 +381,7 @@ class VideosModeHandler:
                 self.parent._preview_only_hits = False
                 self.parent._preview_active = False
                 try:
-                    self.parent.playlist.playlist_tree.configure(selectmode='browse')
+                    self.parent.playlist.set_selection_mode('browse')
                 except Exception:
                     pass
                 self.parent.video.update_back_button_state(False)
@@ -407,83 +407,48 @@ class VideosModeHandler:
         try:
             # Rebuild playlist index map from current collected playlists
             playlists = getattr(self.parent, 'collected_playlists', []) or []
-            if not playlists:
-                return
-
+            
             # Rebuild index map if needed or ensure it's up to date
-            # We use the existing map if available, or build new one
             index_map = getattr(self.parent, 'playlist_index_map', {})
-            if not index_map:
-                try:
-                    # Build a simple map from collected playlists
-                    # Format: {playlist_id: index}
-                    # We assume collected_playlists are already in order or have indices
-                    # But wait, main_page uses assign_playlist_index which is incremental.
-                    # Let's try to recover indices from the UI tree if possible, or collected list.
-                    
-                    # Better approach: Use results_mapper logic if available, or simple iteration
-                    index_map = {}
-                    for i, pl in enumerate(playlists):
-                         pid = pl.get('playlistId')
-                         if pid:
-                             # Try to get existing index from tree item if possible
-                             try:
-                                 item_vals = self.parent.playlist.playlist_tree.item(pid).get('values', [])
+            
+            # If map is empty or doesn't match playlists count roughly
+            if not index_map and playlists:
+                index_map = {}
+                for i, pl in enumerate(playlists):
+                    pid = pl.get('playlistId')
+                    if pid:
+                         # Try to preserve existing indices if possible from tree
+                         try:
+                             if self.parent.playlist.playlist_exists(pid):
+                                 item_vals = self.parent.playlist.get_playlist_values(pid) or []
                                  if item_vals:
                                      idx = int(item_vals[0])
                                      index_map[pid] = idx
                                      continue
-                             except Exception:
-                                 pass
-                             # Fallback to simple enumeration if not in tree
-                             index_map[pid] = i + 1
-                    self.parent.playlist_index_map = index_map
-                except Exception:
-                    pass
+                         except Exception:
+                             pass
+                         # Fallback to simple enumeration
+                         index_map[pid] = i + 1
+                self.parent.playlist_index_map = index_map
 
             # Now enrich videos
-            # We need to know which video belongs to which playlist.
-            # This requires checking MediaIndex or checking playlist contents.
-            # If we don't have this info locally, we can't easily populate it without API calls.
-            # However, MediaIndex should have been linked during search or load.
-            
             if self.parent.media_index:
                 # Add new videos to MediaIndex so they can be queried
                 self.parent.media_index.add_videos(videos)
                 
-                # Check for intersections
-                # For each video, check if it is in any of the collected playlists
-                # This uses the MediaIndex cache
-                
-                # Reverse index map for lookup
-                # actually we need to find which playlist contains the video
-                
+                # Check for intersections using MediaIndex
                 for v in videos:
                     vid = v.get('videoId')
                     if not vid:
                         continue
                         
-                    # Check if this video is in any known playlist
-                    # We iterate over known playlists in the map
-                    found_pid = None
-                    for pid, idx in index_map.items():
-                        # Check if linked in MediaIndex
-                        # MediaIndex.is_video_in_playlist might be expensive if not cached
-                        # But MediaIndex is optimized for this.
-                        try:
-                            if self.parent.media_index.is_video_in_playlist(pid, vid):
-                                found_pid = pid
-                                v['playlistIndex'] = idx
-                                break
-                        except Exception:
-                            pass
+                    # 1. Check if MediaIndex already knows the playlist for this video
+                    # This is O(1)
+                    found_pid = self.parent.media_index.get_video_playlist(vid)
                     
-                    # If found, ensure link is reinforced
-                    if found_pid:
-                        try:
-                            self.parent.media_index.link_video_to_playlist(found_pid, vid)
-                        except Exception:
-                            pass
+                    if found_pid and found_pid in index_map:
+                        v['playlistIndex'] = index_map[found_pid]
+                    # No fallback iteration needed as MediaIndex is SSOT for linked videos
 
         except Exception:
             pass
@@ -498,7 +463,6 @@ class VideosModeHandler:
         try:
             vs = getattr(self.parent, 'video_search_ids', set())
             preview_only = getattr(self.parent, '_preview_only_hits', False)
-            ql = (getattr(self.parent, 'video_search_query', '') or '').strip().lower()
 
             def _ins_chunk(s=0):
                 try:
@@ -513,30 +477,17 @@ class VideosModeHandler:
                                 if preview_only:
                                     is_hit = bool(vid) and (vid in vs)
                                 else:
-                                    # Standard search mode logic
-                                    # "Search hit" tag is generic for result presence
                                     is_hit = bool(vid) and (vid in vs)
                                 
                                 if is_hit:
                                     tags.append('search_hit')
                             
-                            # Check for transient highlight (Star)
-                            # The highlight_videos_for_playlist logic modifies the row value directly (adding ★)
-                            # But if we are repopulating, we might lose it if we don't re-apply.
-                            # We should rely on the caller to re-trigger highlight_videos_for_playlist
-                            # OR we can check if there's a pinned playlist and current video intersects.
-                            
                             row = self.parent._video_row(v)
                             
                             # Inline highlight check if pinned playlist exists
-                            # This fixes "lost marks on pagination"
                             pinned = getattr(self.parent, 'pinned_playlist_id', None)
                             if pinned and not preview_only and apply_marks:
-                                # Check intersection
                                 try:
-                                    # Use cached intersection logic if possible or quick check
-                                    # But highlight_videos_for_playlist is the robust way.
-                                    # We can just apply the star if we know it intersects
                                     if self.parent.media_index and self.parent.media_index.is_video_in_playlist(pinned, vid):
                                         row = (f"★ {row[0]}",) + row[1:]
                                         tags.append('search_hit')
@@ -651,101 +602,117 @@ class VideosModeHandler:
 
     def _update_pagination_state(self):
         try:
-            has_prev = bool(getattr(self.parent, 'video_prev_page_token', None))
-            has_next = bool(getattr(self.parent, 'video_next_page_token', None))
-            self.parent.video.prev_page_btn["state"] = "normal" if has_prev else "disabled"
-            self.parent.video.next_page_btn["state"] = "normal" if has_next else "disabled"
-            
+            mode = 'videos' if getattr(self.parent, 'search_mode', '') == 'videos' else 'playlists'
             try:
-                idx = int(getattr(self.parent, 'video_search_page_index', 1) or 1)
+                self.parent.video._pagination.set_mode(mode)
             except Exception:
-                idx = 1
+                pass
+            
+            # CRITICAL: If we are in 'playlists' mode, pagination is handled by main_page.show_playlist_videos
+            # via API tokens. We MUST NOT overwrite it with local slicing logic based on current_videos count.
+            if mode != 'videos':
+                return
+        except Exception:
+            pass
+        
+        try:
+            # Use local slicing for pagination (Search Results only)
+            videos = getattr(self.parent, 'current_videos', []) or []
+            total_loaded = len(videos)
+            
             try:
                 ps = int(self.parent.video.page_size_var.get())
             except Exception:
                 ps = 10
             
+            # Calculate total pages
+            import math
+            total_pages = math.ceil(total_loaded / ps) if ps > 0 else 1
+            
             try:
+                idx = int(getattr(self.parent, 'video_search_page_index', 1) or 1)
+            except Exception:
+                idx = 1
+                
+            # Bound check
+            if idx < 1: idx = 1
+            if idx > total_pages: idx = total_pages
+            self.parent.video_search_page_index = idx
+
+            has_prev = (idx > 1)
+            has_next = (idx < total_pages)
+            
+            # Use unified pagination update
+            try:
+                self.parent.video.update_pagination(idx, total_loaded, has_prev=has_prev, has_next=has_next)
+            except Exception:
+                pass
+            
+            try:
+                # Show global total but emphasize loaded subset
                 total_res = getattr(self.parent, 'video_total_results', None)
                 if total_res is not None:
-                    est_total = int(total_res)
+                    # e.g. "Total: 1,000,000 (Loaded 40)"
+                    est_total = f"Total: {int(total_res):,} (Loaded {total_loaded})"
                 else:
-                    est_total = ps * idx + (ps if has_next else 0)
-            except Exception:
-                est_total = len(self.parent.current_videos or [])
-
-            try:
-                self.parent.video._panel.update_pages(index=idx, has_prev=has_prev, has_next=has_next, total_items=est_total)
+                    est_total = f"Total: {total_loaded}"
+                
+                # Direct update to label to support custom text format
+                self.parent.video._panel.pagination.set_total_text(est_total)
             except Exception:
                 pass
         except Exception:
             pass
 
     def show_videos_search_page(self, page_token=None, direction=None):
-        if self.parent.search_mode != 'videos' or not self.parent.video_search_query:
+        """
+        Actually renders the current page slice from self.parent.current_videos.
+        Does NOT fetch from API unless explicitly needed (which we moved to main_page search).
+        """
+        if self.parent.search_mode != 'videos':
             return
-        try:
-            self.parent.controller.ensure_playlist_handler()
-        except Exception:
-            pass
-        try:
-            prev_before = getattr(self.parent, 'video_prev_page_token', None)
-            next_before = getattr(self.parent, 'video_next_page_token', None)
-            max_results = int(self.parent.video.page_size_var.get())
-            try:
-                resp = self.parent.controller.playlist_handler.search_videos(self.parent.video_search_query, max_results=max_results, page_token=page_token)
-            except Exception as e:
-                try:
-                    self.parent.status_bar.configure(text="API quota/error — loading last saved page")
-                except Exception:
-                    pass
-                try:
-                    path = ConfigManager.get_last_search_path('videos')
-                    data = ConfigManager.load_json(path) or {}
-                    videos = data.get('videos', [])
-                    self.parent.current_videos = videos
-                    self.parent.video_next_page_token = data.get('nextPageToken')
-                    self.parent.video_prev_page_token = data.get('prevPageToken')
-                    self.parent.video_search_ids = set([v.get('videoId') for v in videos if v.get('videoId')])
-                    self.parent.video_total_results = data.get('totalResults')
-                    
-                    self.populate_video_table(videos, clear=True, apply_marks=True)
-                    return
-                except Exception:
-                    messagebox.showerror("Error", f"Failed to fetch videos page: {e}")
-                    return
-            videos = resp.get('videos', [])
-            self.parent.current_videos = videos
-            self.parent.video_next_page_token = resp.get('nextPageToken')
-            self.parent.video_prev_page_token = resp.get('prevPageToken')
-            self.parent.video_total_results = resp.get('totalResults')
-            
-            self.parent.video_search_ids = set([v.get('videoId') for v in videos if v.get('videoId')])
-            self.parent.video_total_results = resp.get('totalResults')
-            
-            # Enrich and Populate
-            self._enrich_videos_with_metadata(videos)
-            self.populate_video_table(videos, clear=True, apply_marks=True)
 
+        try:
+            # 1. Determine new page index
             try:
-                self._update_results_ids()
+                current_idx = int(getattr(self.parent, 'video_search_page_index', 1) or 1)
             except Exception:
-                pass
-            try:
-                if page_token is None:
-                    # Reset page index for new searches
-                    self.parent.video_search_page_index = 1
-                elif page_token == next_before:
-                    self.parent.video_search_page_index = int(getattr(self.parent, 'video_search_page_index', 1) or 1) + 1
-                elif page_token == prev_before:
-                    self.parent.video_search_page_index = max(1, int(getattr(self.parent, 'video_search_page_index', 1) or 1) - 1)
+                current_idx = 1
                 
-                # Update page indicator manually if needed, but pagination bar handles it
-                # self.parent.video.page_indicator["text"] = f"Results page {int(getattr(self.parent, 'video_search_page_index', 1) or 1)}"
-            except Exception:
-                pass
+            if direction == 'next':
+                current_idx += 1
+            elif direction == 'prev':
+                current_idx = max(1, current_idx - 1)
+            elif direction == 'reset':
+                current_idx = 1
             
+            # 2. Update page size and slice
+            try:
+                ps = int(self.parent.video.page_size_var.get())
+            except Exception:
+                ps = 10
+                
+            videos = getattr(self.parent, 'current_videos', []) or []
+            total = len(videos)
+            
+            # Bound check
+            import math
+            total_pages = math.ceil(total / ps) if ps > 0 else 1
+            if current_idx > total_pages: current_idx = total_pages
+            if current_idx < 1: current_idx = 1
+            
+            self.parent.video_search_page_index = current_idx
+            
+            # Slice
+            start = (current_idx - 1) * ps
+            end = start + ps
+            page_videos = videos[start:end]
+            
+            # 3. Populate
+            self.populate_video_table(page_videos, clear=True, apply_marks=True)
+            
+            # 4. Update Pagination UI
             self._update_pagination_state()
             
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to fetch videos: {e}")
+            messagebox.showerror("Error", f"Failed to render video page: {e}")

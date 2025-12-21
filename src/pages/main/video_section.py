@@ -23,6 +23,10 @@ class VideoSection(BaseSection):
             pass
         self._create_video_tree_styles()
         self._pagination = self._panel.pagination
+        self._pagination.set_total_template("Total videos: {}")
+        
+        # Expose properties for legacy compatibility (MainPage uses them)
+        # TODO: Refactor MainPage to use update_pagination() instead
         self.prev_page_btn = self._pagination.prev_btn
         self.next_page_btn = self._pagination.next_btn
         self.page_indicator = self._pagination.page_indicator
@@ -69,6 +73,17 @@ class VideoSection(BaseSection):
         self.video_tree.bind("<Motion>", self._on_motion)
         self.video_tree.bind("<Leave>", self._on_leave)
 
+    def update_pagination(self, page_index, total_items, has_prev=None, has_next=None):
+        """Update pagination state wrapper."""
+        self._pagination.update_state(page_index, total_items, has_prev, has_next)
+
+    def set_total_videos(self, total):
+        """Legacy wrapper for total label."""
+        try:
+            self.update_pagination(getattr(self._pagination, '_page_index', 1), total)
+        except Exception:
+            pass
+
     def _create_page_controls(self):
         def _prev():
             try:
@@ -90,12 +105,30 @@ class VideoSection(BaseSection):
         self._pagination.bind_next(_next)
         def _on_size(val):
             try:
-                q = getattr(self.main_page, 'video_search_query', '')
-            except Exception:
-                q = ''
-            try:
-                if q:
-                    self.main_page.execute_search_stable(q, 'Videos')
+                # When page size changes, just re-render the local page
+                if getattr(self.main_page, 'search_mode', 'playlists') == 'videos':
+                    # Reset to page 1 to avoid out-of-bounds
+                    self.main_page.video_search_page_index = 1
+                    self.main_page.videos_mode_handler.show_videos_search_page(direction='reset')
+                else:
+                    # For playlist detail view, we might still want to re-fetch or re-render
+                    # Assuming playlist detail is also paginated locally or via API?
+                    # The original code called execute_search_stable which is heavy.
+                    # If playlist detail uses API pagination, we might need to reset.
+                    # For now, let's keep original behavior for playlists mode if it's not the search view.
+                    # But wait, 'search_mode' == 'playlists' means the *Search Results* for playlists.
+                    # 'search_mode' == 'videos' means Search Results for videos.
+                    # The other case is "Inside a Playlist" (View Playlist).
+                    
+                    # If we are viewing a playlist content:
+                    if getattr(self.main_page, 'current_playlist_id', None):
+                         # We are inside a playlist
+                         self.main_page.show_playlist_videos(page_token=None) # Reset to page 1
+                    else:
+                        # We are in search results for playlists? 
+                        # Actually video_section is only for Video Table.
+                        # Playlist Table is separate.
+                        pass
             except Exception:
                 pass
         self._pagination.bind_page_size(lambda v: _on_size(v))

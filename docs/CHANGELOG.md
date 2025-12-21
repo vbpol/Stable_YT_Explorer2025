@@ -1,5 +1,12 @@
 # Changelog
 
+## 2025-12-21 (v1.1.1)
+
+### Improvements
+
+- **Search Consistency**: Updated search results popup to clarify that large result counts (e.g., 1,000,000) are API estimates, reducing confusion when actual exportable results are fewer.
+  - Code: `src/pages/main/main_page.py`
+
 ## 2025-12-16 (v1.1.0)
 
 ### New Features
@@ -48,37 +55,3 @@
 - Page indicator and visibility now use count-based pages regardless of API tokens:
   - Total pages = `ceil(total_items / page_size)`.
   - Indicator shows `Page X of Y`.
-  - Bar hides when `Y == 1`.
-  - Code: `src/ui/table_panel.py:29`.
-- Total label reflects the actual number of rows in the visible table to avoid races:
-  - Code: `src/pages/main/main_page.py:556`, `src/pages/main/main_page.py:655`, `src/pages/main/main_page.py:931`.
-- Default indicator updated to avoid `0/0` pre-search state:
-  - Code: `src/ui/pagination_bar.py:18`.
-- Videos page-size combobox triggers Videos search, not playlists:
-  - Code: `src/pages/main/video_section.py:134`.
-
-### Before/After Highlights
-
-- Before: `Page 0 of 0`, `Total: 0` could appear after search due to timing.
-- After: `Page 1 of 1` and `Total: <actual rows>`, bar hidden when only one page.
-- Before: Changing videos page size didn’t refresh videos.
-- After: Changing videos page size re-runs the videos search with the new size.
-
-### Scanning & Stability
-
-- Refactored videos→playlists scanning into `src/services/video_playlist_scanner.py` (thread pool, per-worker client).
-  - Integration: `src/pages/main/main_page.py:432`
-- Removed duplicate progress bars; mid-row is the single indicator.
-  - Videos progress forwarding: `src/pages/main/video_section.py:141`
-  - StatusBar simplified: `src/pages/main/status_bar.py`
-
-### CI
-
-- Added basic GitHub Actions workflow for compile and tests: `.github/workflows/ci.yml`
-
-### Settings
-
-- New settings in `config.json` (under `ui`):
-  - `window_size`: e.g., `"1100x720"`
-  - `pagination_min_rows`: default `10`
-  - Environment override: `PAGINATION_MIN_ROWS`

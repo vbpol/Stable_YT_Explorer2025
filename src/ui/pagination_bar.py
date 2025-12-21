@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 
 class PaginationBar(ttk.Frame):
-    def __init__(self, parent, show_page_size=True, size_label="Videos per page:", sizes=("5","10","20","50")):
+    def __init__(self, parent, show_page_size=True, size_label="Items per page:", sizes=("5","10","20","50")):
         super().__init__(parent)
         # Start hidden; becomes visible only when total_pages > 1
         self.page_size_var = tk.StringVar(value=sizes[1] if sizes else "10")
@@ -28,6 +28,7 @@ class PaginationBar(ttk.Frame):
         self._page_index = 1
         self._total_pages = 1
         self._total_items = 0
+        self._total_template = "Total: {}"
 
     def bind_prev(self, fn):
         self._on_prev = fn
@@ -77,9 +78,14 @@ class PaginationBar(ttk.Frame):
         except Exception:
             pass
 
-    def set_page_info(self, index: int, has_prev: bool, has_next: bool, total_items: int):
+    def set_total_template(self, template: str):
+        """Set template for total count, e.g. 'Total videos: {}'"""
+        self._total_template = template
+
+    def update_state(self, page_index: int, total_items: int, has_prev: bool = None, has_next: bool = None):
+        """Update the pagination state comprehensively."""
         try:
-            self._page_index = max(int(index or 1), 1)
+            self._page_index = max(int(page_index or 1), 1)
         except Exception:
             self._page_index = 1
         try:
@@ -103,8 +109,6 @@ class PaginationBar(ttk.Frame):
         
         # Use provided flags if available, otherwise fallback to index logic
         enable_prev = has_prev if has_prev is not None else (self._page_index > 1)
-        # For next, if has_next is explicit, use it. 
-        # Note: sometimes total_pages is an estimate, so has_next is more reliable for APIs.
         enable_next = has_next if has_next is not None else (self._page_index < total_pages)
 
         try:
@@ -119,14 +123,25 @@ class PaginationBar(ttk.Frame):
             # Format numbers with commas for readability
             total_pages_str = f"{total_pages:,}"
             total_items_str = f"{self._total_items:,}"
-            self.page_indicator.configure(text=f"Page {self._page_index} of {total_pages_str}")
+            
+            # If we have next page but total is small (API mode), don't show "of 1"
+            if has_next and total_pages <= 1:
+                self.page_indicator.configure(text=f"Page {self._page_index}")
+            else:
+                self.page_indicator.configure(text=f"Page {self._page_index} of {total_pages_str}")
         except Exception:
             pass
         try:
-            self.total_label.configure(text=f"Total: {total_items_str}")
+            self.total_label.configure(text=self._total_template.format(total_items_str))
         except Exception:
             pass
         try:
-            self.set_visible(bool(total > max(ps, 1)))
+            # Visible if we have multiple pages, OR if we have explicit navigation available
+            should_be_visible = (total > max(ps, 1)) or enable_prev or enable_next
+            self.set_visible(bool(should_be_visible))
         except Exception:
             pass
+
+    def set_page_info(self, index: int, has_prev: bool, has_next: bool, total_items: int):
+        self.update_state(index, total_items, has_prev, has_next)
+

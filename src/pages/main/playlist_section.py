@@ -11,12 +11,18 @@ class PlaylistSection(BaseSection):
     def __init__(self, main_page):
         super().__init__(main_page, text="Playlists")
         self.controller = main_page.controller
+        self._playlist_map = {}
+        self._playlist_order = []
+        self._current_page = 1
+        self._filter_column = None
+        self._filter_query = None
 
     def setup_gui(self):
         """Initialize playlist section GUI components."""
-        panel = TablePanel(self, columns=("No", "Title", "Channel", "Videos", "Status", "Actions"), show_page_size=False, size_label="Rows per page:")
+        panel = TablePanel(self, columns=("No", "Title", "Channel", "Videos", "Status", "Actions"), show_page_size=True, size_label="Rows per page:")
         self._panel = panel
         self.playlist_tree = panel.tree
+        self._pagination = panel.pagination
         try:
             self.playlist_tree.configure(selectmode='extended')
         except Exception:
@@ -28,8 +34,6 @@ class PlaylistSection(BaseSection):
         self.playlist_tree.column("Status", width=120, anchor="center")
         self.playlist_tree.column("Actions", width=80, anchor="center")
 
-        # Refresh is handled by mid controls in MainPage; no local button here
-
         # Bind events
         self.playlist_tree.bind("<Double-1>", self.on_playlist_select)
         self.playlist_tree.bind("<Button-1>", self.handle_click)
@@ -39,8 +43,7 @@ class PlaylistSection(BaseSection):
             self._ctx.add_command(label="Clear Video Highlights", command=self.main_page.clear_video_playlist_highlights)
             def _popup_show():
                 pid = getattr(self, "_rc_item", None)
-                if not pid:
-                    return
+                if not pid: return
                 try:
                     cached = self.main_page._get_cached_playlist_page(pid, None)
                 except Exception:
@@ -71,16 +74,14 @@ class PlaylistSection(BaseSection):
                     pass
             def _print_dataset():
                 pid = getattr(self, "_rc_item", None)
-                if not pid:
-                    return
+                if not pid: return
                 try:
                     self.main_page.print_playlist_videos_to_terminal(pid)
                 except Exception:
                     pass
             def _populate_table():
                 pid = getattr(self, "_rc_item", None)
-                if not pid:
-                    return
+                if not pid: return
                 try:
                     self.main_page.populate_videos_table_preview(pid)
                 except Exception:
@@ -95,7 +96,81 @@ class PlaylistSection(BaseSection):
         except Exception:
             pass
 
-    
+        # Pagination callbacks
+        self._pagination.prev_btn.configure(command=self._prev_page)
+        self._pagination.next_btn.configure(command=self._next_page)
+        self._pagination.page_size_var.trace("w", self._on_page_size_change)
+        
+        # Initial template setup
+        try:
+             self._pagination.set_total_template("Total playlists: {}")
+        except Exception:
+             pass
+
+    def _prev_page(self):
+        if self._current_page > 1:
+            self._current_page -= 1
+            self._refresh_table()
+
+    def _next_page(self):
+        self._current_page += 1
+        self._refresh_table()
+
+    def _on_page_size_change(self, *args):
+        self._current_page = 1
+        self._refresh_table()
+
+    def _refresh_table(self):
+        try:
+            for item in self.playlist_tree.get_children():
+                self.playlist_tree.delete(item)
+            
+            try:
+                ps = int(self._pagination.page_size_var.get())
+            except Exception:
+                ps = 10
+            
+            # Apply filter
+            filtered_order = []
+            if self._filter_query and self._filter_column:
+                idx_map = {"No": 0, "Title": 1, "Channel": 2, "Videos": 3, "Status": 4, "Actions": 5}
+                idx = idx_map.get(self._filter_column)
+                q = self._filter_query.lower()
+                for pid in self._playlist_order:
+                    vals = self._playlist_map.get(pid)
+                    if not vals: continue
+                    s = str(vals[idx]) if idx is not None and idx < len(vals) else ''
+                    if q in s.lower():
+                        filtered_order.append(pid)
+            else:
+                filtered_order = list(self._playlist_order)
+            
+            total = len(filtered_order)
+            
+            # Adjust page
+            total_pages = (total + ps - 1) // max(ps, 1)
+            if self._current_page > total_pages and total_pages > 0:
+                self._current_page = total_pages
+            if self._current_page < 1:
+                self._current_page = 1
+                
+            start_idx = (self._current_page - 1) * ps
+            end_idx = start_idx + ps
+            
+            page_items = filtered_order[start_idx:end_idx]
+            
+            for pid in page_items:
+                vals = self._playlist_map.get(pid)
+                if vals:
+                    self.playlist_tree.insert("", "end", iid=pid, values=vals)
+                    try:
+                        self.playlist_tree.set(pid, "No", str(vals[0] or ""))
+                    except Exception:
+                        pass
+            
+            self._pagination.update_state(self._current_page, total)
+        except Exception:
+            pass
 
     def on_playlist_select(self, event):
         try:
@@ -107,9 +182,7 @@ class PlaylistSection(BaseSection):
                 return "break"
         except Exception:
             pass
-        """Handle double-click on playlist row.
-        In Videos mode: consume event and only pin/print/highlight (no navigation)
-        In Playlists mode: open playlist videos normally"""
+        """Handle double-click on playlist row."""
         region = self.playlist_tree.identify_region(event.x, event.y)
         if region == "heading":
             col = self.playlist_tree.identify_column(event.x)
@@ -120,7 +193,7 @@ class PlaylistSection(BaseSection):
                     import tkinter.simpledialog as simpledialog
                     q = simpledialog.askstring("Filter", f"Filter {name} contains:")
                     if q is not None:
-                        self.main_page.on_playlist_header_double_click(name, q)
+                        self.set_filter(name, q)
                 except Exception:
                     pass
             return
@@ -130,10 +203,6 @@ class PlaylistSection(BaseSection):
             if str(column) != "#6":
                 self.playlist_tree.selection_set(item)
                 selected_playlist = self.get_selected_playlist()
-                try:
-                    print(f"[UI] Double-click playlist item={selected_playlist} mode={self.main_page.search_mode}")
-                except Exception:
-                    pass
                 if self.main_page.search_mode == 'playlists':
                     self.main_page.show_playlist_videos_stable(selected_playlist)
                 else:
@@ -151,7 +220,7 @@ class PlaylistSection(BaseSection):
         selected_items = self.playlist_tree.selection()
         if not selected_items:
             return None
-        return selected_items[0]  # Return the playlist ID
+        return selected_items[0]
 
     def handle_click(self, event):
         try:
@@ -184,8 +253,7 @@ class PlaylistSection(BaseSection):
                 return "break"
         except Exception:
             pass
-        """Handle single-click in playlists table.
-        In Videos mode: pin + terminal print + highlight; consume event"""
+        """Handle single-click in playlists table."""
         region = self.playlist_tree.identify_region(event.x, event.y)
         if region == "heading":
             col = self.playlist_tree.identify_column(event.x)
@@ -215,7 +283,7 @@ class PlaylistSection(BaseSection):
                     pass
 
     def _on_right_click(self, event):
-        """Show context menu with popup/print/populate actions on right-click."""
+        """Show context menu."""
         try:
             item = self.playlist_tree.identify_row(event.y)
             if item:
@@ -238,18 +306,20 @@ class PlaylistSection(BaseSection):
 
     def remove_playlist(self, playlist_id):
         """Remove playlist from the tree."""
-        if messagebox.askyesno("Confirm Removal", 
-                             "Remove this playlist from the list?"):
-            self.playlist_tree.delete(playlist_id)
+        if messagebox.askyesno("Confirm Removal", "Remove this playlist from the list?"):
+            if playlist_id in self._playlist_map:
+                del self._playlist_map[playlist_id]
+            if playlist_id in self._playlist_order:
+                self._playlist_order.remove(playlist_id)
+            self._refresh_table()
 
     def check_download_status(self, playlist_id, video_count):
-        """Check playlist download status via shared logic in MainPage."""
+        """Check playlist download status."""
         try:
             return self.main_page._playlist_download_status(playlist_id, video_count)
         except Exception:
             try:
-                # Fallback to direct computation
-                playlist_values = self.playlist_tree.item(playlist_id)["values"]
+                playlist_values = self._playlist_map.get(playlist_id)
                 playlist_title = playlist_values[1] if playlist_values else "Unknown"
                 folder = os.path.join(self.controller.default_folder, f"Playlist - {playlist_title}")
                 if not os.path.exists(folder):
@@ -271,12 +341,8 @@ class PlaylistSection(BaseSection):
                 return "Unknown"
 
     def update_playlist(self, playlist_data):
-        """Update or add a playlist to the tree."""
         playlist_id = playlist_data["playlistId"]
-        
-        # Use a default status of "Unknown" if we can't get details
         try:
-            # Ensure video_count is enriched when missing
             vc = playlist_data.get("video_count")
             if vc in (None, "N/A"):
                 try:
@@ -300,42 +366,25 @@ class PlaylistSection(BaseSection):
             status,
             "❌"
         )
-
-        if self.playlist_tree.exists(playlist_id):
-            self.playlist_tree.item(playlist_id, values=values)
-        else:
-            self.playlist_tree.insert("", "end", iid=playlist_id, values=values)
-        try:
-            self.playlist_tree.set(playlist_id, "No", str(pi or ""))
-        except Exception:
-            pass
-        try:
-            cnt = len(self.playlist_tree.get_children())
-            if hasattr(self, '_panel'):
-                self._panel.update_pages(index=1, has_prev=False, has_next=False, total_items=cnt, row_count=cnt)
-        except Exception:
-            pass
+        
+        self._playlist_map[playlist_id] = values
+        if playlist_id not in self._playlist_order:
+            self._playlist_order.append(playlist_id)
+        
+        self._refresh_table()
 
     def normalize_numbers(self):
-        try:
-            for iid in self.playlist_tree.get_children():
-                # Only show numbers for playlists that were matched in this session
-                pi = self.main_page.playlist_index_map.get(iid)
-                try:
-                    vals = self.playlist_tree.item(iid).get('values', [])
-                    new_vals = ((pi or ""),) + tuple(vals[1:]) if vals else ((pi or ""),)
-                    self.playlist_tree.item(iid, values=new_vals)
-                    self.playlist_tree.set(iid, "No", str(pi or ""))
-                except Exception:
-                    pass
-        except Exception:
-            pass
+        for pid in self._playlist_order:
+             pi = self.main_page.playlist_index_map.get(pid)
+             if pid in self._playlist_map:
+                 vals = list(self._playlist_map[pid])
+                 vals[0] = pi or ""
+                 self._playlist_map[pid] = tuple(vals)
+        self._refresh_table()
 
     def refresh_all_statuses(self):
-        """Refresh download status for all playlists with progress in status bar."""
         try:
-            items = list(self.playlist_tree.get_children())
-            total = len(items)
+            total = len(self._playlist_order)
             done = 0
             try:
                 self.main_page.status_bar.configure(text="Refreshing download statuses")
@@ -343,11 +392,15 @@ class PlaylistSection(BaseSection):
                 self.main_page.show_mid_scan(total)
             except Exception:
                 pass
-            for playlist_id in items:
+            
+            for playlist_id in self._playlist_order:
                 try:
-                    current_values = self.playlist_tree.item(playlist_id)["values"]
+                    current_values = self._playlist_map.get(playlist_id)
+                    if not current_values:
+                        continue
                 except Exception:
-                    current_values = []
+                    continue
+                
                 try:
                     vc = int(current_values[3])
                 except Exception:
@@ -356,6 +409,7 @@ class PlaylistSection(BaseSection):
                     status = self.check_download_status(playlist_id, vc)
                 except Exception:
                     status = "Unknown"
+                
                 try:
                     new_values = (
                         current_values[0] if len(current_values)>0 else "",
@@ -365,7 +419,7 @@ class PlaylistSection(BaseSection):
                         status,
                         current_values[5] if len(current_values)>5 else "❌"
                     )
-                    self.playlist_tree.item(playlist_id, values=new_values)
+                    self._playlist_map[playlist_id] = new_values
                 except Exception:
                     pass
                 done += 1
@@ -373,6 +427,9 @@ class PlaylistSection(BaseSection):
                     self.main_page.update_mid_scan_progress(done, total)
                 except Exception:
                     pass
+            
+            self._refresh_table()
+            
             try:
                 self.main_page.status_bar.configure(text="Statuses refreshed")
                 self.main_page.finish_mid_scan()
@@ -388,3 +445,79 @@ class PlaylistSection(BaseSection):
                 self.main_page.status_bar.configure(text="Failed to refresh statuses")
             except Exception:
                 pass
+
+    def clear_playlists(self):
+        self._playlist_map.clear()
+        self._playlist_order.clear()
+        self._current_page = 1
+        self._refresh_table()
+
+    def playlist_exists(self, playlist_id):
+        return playlist_id in self._playlist_map
+
+    def get_playlist_values(self, playlist_id):
+        return self._playlist_map.get(playlist_id)
+
+    def bring_to_top(self, playlist_id):
+        if playlist_id in self._playlist_order:
+            self._playlist_order.remove(playlist_id)
+            self._playlist_order.insert(0, playlist_id)
+            self._current_page = 1
+            self._refresh_table()
+
+    def update_playlist_item(self, playlist_id, values):
+        if playlist_id in self._playlist_map:
+            self._playlist_map[playlist_id] = values
+            self._refresh_table()
+    
+    def sort_playlists(self, column_name, ascending=True):
+        idx_map = {"No": 0, "Title": 1, "Channel": 2, "Videos": 3, "Status": 4, "Actions": 5}
+        idx = idx_map.get(column_name)
+        if idx is None: return
+        def _key(pid):
+            vals = self._playlist_map.get(pid)
+            if not vals: return ""
+            v = vals[idx] if idx < len(vals) else ''
+            if column_name == 'Videos' or column_name == 'No':
+                try: return int(v)
+                except: return -1
+            return str(v).lower()
+        self._playlist_order.sort(key=_key, reverse=not ascending)
+        self._current_page = 1
+        self._refresh_table()
+
+    def get_focused_playlist(self):
+        return self.playlist_tree.focus()
+
+    def set_selection_mode(self, mode):
+        try: self.playlist_tree.configure(selectmode=mode)
+        except: pass
+
+    def set_playlist_filter(self, ordered_ids, index_map):
+        self._playlist_order = list(ordered_ids)
+        for pid, idx in index_map.items():
+            if pid in self._playlist_map:
+                vals = list(self._playlist_map[pid])
+                vals[0] = idx
+                self._playlist_map[pid] = tuple(vals)
+        self._current_page = 1
+        self._refresh_table()
+
+    def get_all_playlist_ids(self):
+        return list(self._playlist_order)
+
+    def set_filter(self, column_name, query):
+        self._filter_column = column_name
+        self._filter_query = query
+        self._current_page = 1
+        self._refresh_table()
+
+    def select_playlist(self, playlist_id):
+        if playlist_id in self._playlist_map:
+            try: self.playlist_tree.selection_set(playlist_id)
+            except: pass
+
+    def see_playlist(self, playlist_id):
+        if playlist_id in self._playlist_map:
+            try: self.playlist_tree.see(playlist_id)
+            except: pass

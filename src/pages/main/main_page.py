@@ -59,6 +59,118 @@ class MainPage(tk.Frame):
         except Exception:
             pass
 
+    def _show_search_results_dialog(self, total_count, query):
+        try:
+            import tkinter as _tk
+            from tkinter import ttk as _ttk
+            win = _tk.Toplevel(self)
+            win.title("Search Results")
+            try:
+                win.geometry("400x150")
+            except Exception:
+                pass
+            
+            # YouTube API often returns estimated counts (e.g. 1,000,000) for large result sets.
+            # We clarify this to the user to avoid confusion when actual fetch count is lower.
+            if total_count >= 1000:
+                msg = f"Found approx. {total_count:,} videos for keyword '{query}'\n(API Estimate)"
+            else:
+                msg = f"Found {total_count} videos for keyword '{query}'"
+            
+            _ttk.Label(win, text=msg, font=("Arial", 10, "bold")).pack(pady=20, padx=20)
+            
+            btn_frame = _ttk.Frame(win)
+            btn_frame.pack(fill="x", pady=10)
+            
+            _ttk.Button(btn_frame, text="Fetch & Export All Found Results (CSV)", command=self._export_current_videos_csv).pack(side="left", expand=True, padx=5)
+            _ttk.Button(btn_frame, text="OK", command=win.destroy).pack(side="left", expand=True, padx=5)
+        except Exception:
+            pass
+
+    def _export_current_videos_csv(self):
+        try:
+            is_search = (self.search_mode == 'videos')
+            total = int(getattr(self, 'video_total_results', 0) or 0)
+            current_count = len(self.current_videos)
+            
+            videos_to_export = list(self.current_videos)
+
+            if is_search and total > current_count:
+                # Automatically fetch more results if available, up to a limit
+                max_fetch = 2000
+                fetched = current_count
+                next_token = getattr(self, 'video_next_page_token', None)
+                query = getattr(self, 'video_search_query', '')
+                
+                prog_win = tk.Toplevel(self)
+                prog_win.title("Fetching Videos...")
+                try:
+                    prog_win.geometry("300x100")
+                    x = self.winfo_rootx() + self.winfo_width()//2 - 150
+                    y = self.winfo_rooty() + self.winfo_height()//2 - 50
+                    prog_win.geometry(f"+{x}+{y}")
+                except Exception:
+                    pass
+                
+                lbl = ttk.Label(prog_win, text="Fetching more videos from API...")
+                lbl.pack(pady=20)
+                prog = ttk.Progressbar(prog_win, mode='indeterminate')
+                prog.pack(fill='x', padx=20)
+                prog.start()
+                
+                try:
+                    while next_token and fetched < max_fetch:
+                        lbl.configure(text=f"Fetched {fetched} / {min(total, max_fetch)}...")
+                        prog_win.update()
+                        
+                        try:
+                            resp = self.controller.playlist_handler.search_videos(query, max_results=50, page_token=next_token)
+                            new_vids = resp.get('videos', [])
+                            if not new_vids:
+                                break
+                            videos_to_export.extend(new_vids)
+                            fetched += len(new_vids)
+                            next_token = resp.get('nextPageToken')
+                        except Exception:
+                            break
+                finally:
+                    prog_win.destroy()
+            
+            if not videos_to_export:
+                messagebox.showerror("Error", "No videos to export.")
+                return
+            
+            path = filedialog.asksaveasfilename(
+                defaultextension=".csv",
+                filetypes=[("CSV Files", "*.csv"), ("All Files", "*.*")],
+                title="Export Search Results"
+            )
+            if not path:
+                return
+            
+            try:
+                with open(path, 'w', newline='', encoding='utf-8-sig') as f:
+                    writer = csv.writer(f)
+                    writer.writerow(["Video ID", "Title", "Channel", "Duration", "Published", "Views", "Playlist ID"])
+                    for v in videos_to_export:
+                        try:
+                            writer.writerow([
+                                v.get('videoId', ''),
+                                v.get('title', ''),
+                                v.get('channelTitle', ''),
+                                v.get('duration', ''),
+                                v.get('published', ''),
+                                v.get('views', ''),
+                                v.get('playlistId', '')
+                            ])
+                        except Exception:
+                            pass
+                messagebox.showinfo("Success", f"Exported {len(videos_to_export)} videos to {os.path.basename(path)}")
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to write file: {e}")
+        except Exception:
+            pass
+
     def _initialize_components(self):
         """Initialize and pack GUI components."""
         self._create_sections()
@@ -215,8 +327,8 @@ class MainPage(tk.Frame):
             
             if pid:
                 video_info['playlistId'] = pid
-                if self.playlist.playlist_tree.exists(pid):
-                    vals = self.playlist.playlist_tree.item(pid).get('values', [])
+                if self.playlist.playlist_exists(pid):
+                    vals = self.playlist.get_playlist_values(pid) or []
                     if len(vals) > 1:
                         video_info['playlist_title'] = vals[1]
             
@@ -286,8 +398,8 @@ class MainPage(tk.Frame):
     def _playlist_folder_by_id(self, playlist_id):
         try:
             ttl = ''
-            if self.playlist.playlist_tree.exists(playlist_id):
-                vals = self.playlist.playlist_tree.item(playlist_id).get('values', [])
+            if self.playlist.playlist_exists(playlist_id):
+                vals = self.playlist.get_playlist_values(playlist_id) or []
                 ttl = vals[1] if len(vals) > 1 else ''
             return os.path.join(self.controller.default_folder, f"Playlist - {ttl or 'Unknown'}")
         except Exception:
@@ -376,24 +488,23 @@ class MainPage(tk.Frame):
 
     def _bring_playlist_to_top(self, playlist_id):
         try:
-            self.playlist.playlist_tree.move(playlist_id, '', 0)
-            self.playlist.playlist_tree.see(playlist_id)
+            self.playlist.bring_to_top(playlist_id)
         except Exception:
             pass
 
     def _set_pinned_playlist(self, playlist_id):
         try:
-            if self.pinned_playlist_id and self.playlist.playlist_tree.exists(self.pinned_playlist_id):
-                vals = self.playlist.playlist_tree.item(self.pinned_playlist_id).get('values', [])
+            if self.pinned_playlist_id and self.playlist.playlist_exists(self.pinned_playlist_id):
+                vals = list(self.playlist.get_playlist_values(self.pinned_playlist_id) or [])
                 if len(vals) >= 5 and isinstance(vals[4], str):
-                    vals = (vals[0], vals[1], vals[2], vals[3], vals[4].replace(' • Pinned', ''), vals[5] if len(vals) > 5 else "❌")
-                    self.playlist.playlist_tree.item(self.pinned_playlist_id, values=vals)
+                    vals[4] = vals[4].replace(' • Pinned', '')
+                    self.playlist.update_playlist_item(self.pinned_playlist_id, tuple(vals))
             self.pinned_playlist_id = playlist_id
-            if self.playlist.playlist_tree.exists(playlist_id):
-                vals = self.playlist.playlist_tree.item(playlist_id).get('values', [])
+            if self.playlist.playlist_exists(playlist_id):
+                vals = list(self.playlist.get_playlist_values(playlist_id) or [])
                 if len(vals) >= 5 and isinstance(vals[4], str) and ' • Pinned' not in vals[4]:
-                    vals = (vals[0], vals[1], vals[2], vals[3], f"{vals[4]} • Pinned", vals[5] if len(vals) > 5 else "❌")
-                    self.playlist.playlist_tree.item(playlist_id, values=vals)
+                    vals[4] = f"{vals[4]} • Pinned"
+                    self.playlist.update_playlist_item(playlist_id, tuple(vals))
             self._bring_playlist_to_top(playlist_id)
         except Exception:
             pass
@@ -513,7 +624,7 @@ class MainPage(tk.Frame):
 
     def clear_panels(self):
         try:
-            self.playlist.playlist_tree.delete(*self.playlist.playlist_tree.get_children())
+            self.playlist.clear_playlists()
         except Exception:
             pass
         try:
@@ -618,7 +729,7 @@ class MainPage(tk.Frame):
                         pass
                     try:
                         # Clear and insert in chunks to keep UI responsive
-                        self.after(0, lambda: self.playlist.playlist_tree.delete(*self.playlist.playlist_tree.get_children()))
+                        self.after(0, lambda: self.playlist.clear_playlists())
                         def _ins_pl_chunk_playlists(s=0):
                             try:
                                 ch = 30
@@ -667,6 +778,14 @@ class MainPage(tk.Frame):
         if not query:
             messagebox.showerror("Error", "Please enter a keyword.")
             return
+            
+        try:
+            if getattr(self.search, 'exact_match_var', None) and self.search.exact_match_var.get():
+                if not (query.startswith('"') and query.endswith('"')):
+                    query = f'"{query}"'
+        except Exception:
+            pass
+            
         try:
             self.controller.ensure_playlist_handler()
         except Exception:
@@ -747,12 +866,43 @@ class MainPage(tk.Frame):
                 self.video._panel.pagination.set_visible(False)
             except Exception:
                 pass
+            
             try:
-                max_results = int(self.video.page_size_var.get())
+                # Use configured limit (e.g. 40, 100) from Settings
+                target_limit = ConfigManager.get_max_search_results()
             except Exception:
-                max_results = 10
+                target_limit = 40
+
+            all_videos = []
+            next_token = None
+            total_found = 0
+            
             try:
-                resp = _vs_search(self.controller.playlist_handler, query, max_results=max_results)
+                # Fetch first page
+                # We use 50 (API max) to be efficient, even if limit is 40
+                resp = _vs_search(self.controller.playlist_handler, query, max_results=50)
+                
+                vids = resp.get('videos', [])
+                all_videos.extend(vids)
+                next_token = resp.get('nextPageToken')
+                total_found = resp.get('totalResults')
+                
+                # Fetch more if needed to reach target_limit
+                while len(all_videos) < target_limit and next_token:
+                    # Safety break
+                    if len(all_videos) >= 2000:
+                        break
+                        
+                    try:
+                        resp = _vs_search(self.controller.playlist_handler, query, max_results=50, page_token=next_token)
+                        new_vids = resp.get('videos', [])
+                        if not new_vids:
+                            break
+                        all_videos.extend(new_vids)
+                        next_token = resp.get('nextPageToken')
+                    except Exception:
+                        break
+                        
             except Exception as e:
                 try:
                     self.status_bar.configure(text="API quota/error — loading last saved results")
@@ -792,58 +942,50 @@ class MainPage(tk.Frame):
                 except Exception:
                     messagebox.showerror("Error", f"Failed to fetch videos: {e}")
                     return
-            videos = resp.get('videos', [])
-            self.current_videos = videos
-            self.video_next_page_token = resp.get('nextPageToken')
-            self.video_prev_page_token = resp.get('prevPageToken')
-            self.video_total_results = resp.get('totalResults')
+
+            # Trim to exact limit
+            all_videos = all_videos[:target_limit]
+            
+            self.current_videos = all_videos
+            self.video_next_page_token = next_token
+            self.video_prev_page_token = None # Search always starts at beginning
+            self.video_total_results = total_found
+            
             try:
                 # Show popup with total count as requested
                 total_val = int(self.video_total_results or 0)
-                if total_val > 0:
-                     self.after(100, lambda t=total_val, q=query: messagebox.showinfo("Search Results", f"Found {t:,} videos for keyword '{q}'"))
+                # Show custom dialog to allow CSV export
+                self.after(100, lambda t=total_val, q=query: self._show_search_results_dialog(t, q))
             except Exception:
                 pass
+            
+            # Initial render of first page (local)
             try:
                 self.video_search_page_index = 1
-                self.video.page_indicator["text"] = f"Results page {self.video_search_page_index}"
+                self.videos_mode_handler.show_videos_search_page(direction='reset')
             except Exception:
                 pass
+
             try:
-                self.video_search_ids = set([v.get('videoId') for v in videos if v.get('videoId')])
+                self.video_search_ids = set([v.get('videoId') for v in self.current_videos if v.get('videoId')])
             except Exception:
                 self.video_search_ids = set()
-            self.video.video_tree.delete(*self.video.video_tree.get_children())
-            def _ins_chunk_vs(s):
-                try:
-                    ch = 50
-                    e = min(s + ch, len(videos))
-                    vs = getattr(self, 'video_search_ids', set())
-                    for i in range(s, e):
-                        v = videos[i]
-                        try:
-                            vid = v.get('videoId')
-                            tags = ('search_hit',) if vid in vs else ()
-                            self.video.video_tree.insert('', 'end', values=self._video_row(v), tags=tags)
-                        except Exception:
-                            self.video.video_tree.insert('', 'end', values=self._video_row(v))
-                    if e < len(videos):
-                        self.after(0, lambda st=e: _ins_chunk_vs(st))
-                except Exception:
-                    pass
-            _ins_chunk_vs(0)
+
             try:
                 self._update_results_ids()
             except Exception:
                 pass
+            
             try:
                 if self.media_index:
-                    self.media_index.add_videos(videos)
+                    self.media_index.add_videos(self.current_videos)
             except Exception:
                 pass
 
             def _fetch_playlists():
                     self._safe_ui(lambda: self.set_mid_job_title('Mapping playlists'))
+                    # ... existing logic ...
+                    videos = self.current_videos # Use full list
                     self._safe_ui(lambda t=len(videos): self.video.show_scan(t))
                     self._safe_ui(lambda t=len(videos): self.show_mid_scan(t))
                     collected_local = []
@@ -1415,30 +1557,8 @@ class MainPage(tk.Frame):
         except Exception:
             pass
         try:
-            # Keep only intersecting playlists visible and update numbering to stable map values
-            existing = list(self.playlist.playlist_tree.get_children())
-            for iid in existing:
-                if iid not in index_map:
-                    try:
-                        self.playlist.playlist_tree.detach(iid)
-                    except Exception:
-                        pass
-                else:
-                    try:
-                        vals = self.playlist.playlist_tree.item(iid).get('values', [])
-                        new_vals = ((index_map.get(iid) or ""),) + tuple(vals[1:]) if vals else ((index_map.get(iid) or ""),)
-                        self.playlist.playlist_tree.item(iid, values=new_vals)
-                        self.playlist.playlist_tree.set(iid, 'No', str(index_map.get(iid)))
-                    except Exception:
-                        pass
-            try:
-                for pid in sorted(index_map.keys(), key=lambda k: index_map[k]):
-                    try:
-                        self.playlist.playlist_tree.reattach(pid, '', 'end')
-                    except Exception:
-                        pass
-            except Exception:
-                pass
+            ordered = sorted(index_map.keys(), key=lambda k: index_map[k])
+            self.playlist.set_playlist_filter(ordered, index_map)
         except Exception:
             pass
         try:
@@ -1540,9 +1660,7 @@ class MainPage(tk.Frame):
 
         try:
             # Clear existing items
-            self.playlist.playlist_tree.delete(
-                *self.playlist.playlist_tree.get_children()
-            )
+            self.playlist.clear_playlists()
 
             # Search for playlists
             playlists = self.controller.playlist_handler.search_playlists(query)
@@ -1577,12 +1695,12 @@ class MainPage(tk.Frame):
 
         playlist_id = selected_item
         try:
-            if not self.playlist.playlist_tree.exists(playlist_id):
+            if not self.playlist.playlist_exists(playlist_id):
                 info = self.controller.playlist_handler.get_playlist_info(playlist_id)
                 self.playlist.update_playlist(info)
         except Exception:
             pass
-        playlist_values = self.playlist.playlist_tree.item(selected_item)["values"]
+        playlist_values = self.playlist.get_playlist_values(selected_item)
         try:
             self._set_pinned_playlist(playlist_id)
             self._log(f"Opening playlist {playlist_id} page_token={page_token}")
@@ -1843,19 +1961,7 @@ class MainPage(tk.Frame):
             except Exception:
                 pass
             try:
-                self.video.set_total_videos(total_videos)
-            except Exception:
-                self.video.total_label["text"] = f"Total videos: {total_videos}"
-            self.video.page_indicator["text"] = f"Page {self.current_page} of {total_pages}"
-            
-            # Update pagination buttons
-            self.video.next_page_btn["state"] = "normal" if self.current_page_token else "disabled"
-            self.video.prev_page_btn["state"] = "normal" if self.prev_page_token else "disabled"
-            self.video.update_back_button_state(True)
-            try:
-                has_prev = bool(self.prev_page_token)
-                has_next = bool(self.current_page_token)
-                self.video._panel.update_pages(index=int(getattr(self, 'current_page', 1) or 1), has_prev=has_prev, has_next=has_next, total_items=total_videos)
+                self.video.update_back_button_state(True)
             except Exception:
                 pass
 
@@ -1908,23 +2014,31 @@ class MainPage(tk.Frame):
             self.status_bar.configure(text=f"Highlighted {hit_count} matched videos in playlist")
         except Exception:
             pass
+        
+        # Calculate pages
         try:
             max_results = int(self.video.page_size_var.get())
         except Exception:
             max_results = 10
         total_pages = (total_videos + max_results - 1) // max_results
-        if not hasattr(self, 'current_page') or self.prev_page_token is None and self.current_page_token is None:
+        
+        if not hasattr(self, 'current_page') or (self.prev_page_token is None and self.current_page_token is None):
             self.current_page = 1
+
+        # Update Pagination Bar
         try:
-            self.video.set_total_videos(total_videos)
-        except Exception:
-            self.video.total_label["text"] = f"Total videos: {total_videos}"
-        self.video.page_indicator["text"] = f"Page {self.current_page} of {total_pages}"
-        try:
-            self.video.next_page_btn["state"] = "normal" if self.current_page_token else "disabled"
-            self.video.prev_page_btn["state"] = "normal" if self.prev_page_token else "disabled"
-            self.video.prev_page_btn.configure(command=lambda: self.show_playlist_videos(page_token=self.prev_page_token))
-            self.video.next_page_btn.configure(command=lambda: self.show_playlist_videos(page_token=self.current_page_token))
+            has_prev = bool(self.prev_page_token)
+            has_next = bool(self.current_page_token)
+            
+            # If we are not in API mode (no tokens), fall back to index-based logic
+            if not has_prev and not has_next and total_pages > 1:
+                # Local pagination? current_videos usually has ALL videos if no tokens?
+                # If total_videos > len(current_videos), then we are in API mode but maybe first page?
+                # If tokens are None but total > len, it implies we might be on page 1 of many, or just have all.
+                # But show_playlist_videos usually sets tokens.
+                pass
+
+            self.video.update_pagination(self.current_page, total_videos, has_prev=has_prev, has_next=has_next)
             self.video.update_back_button_state(True)
         except Exception:
             pass
@@ -2028,58 +2142,10 @@ class MainPage(tk.Frame):
             self.video.video_tree.insert('', 'end', values=self._video_row(v))
 
     def sort_playlists_by(self, column_name):
-        idx_map = {"No": 0, "Title": 1, "Channel": 2, "Videos": 3, "Status": 4, "Actions": 5}
-        idx = idx_map.get(column_name)
-        if idx is None:
-            return
-        asc = self.playlist_sort_state.get(column_name, False)
-        rows = []
-        for item in self.playlist.playlist_tree.get_children(''):
-            vals = self.playlist.playlist_tree.item(item).get('values', [])
-            rows.append((item, vals))
-        def _key(row):
-            v = row[1][idx] if idx < len(row[1]) else ''
-            if column_name == 'Videos':
-                try:
-                    return int(v)
-                except Exception:
-                    return -1
-            if column_name == 'No':
-                try:
-                    return int(v)
-                except Exception:
-                    return -1
-            return str(v).lower()
-        rows.sort(key=_key, reverse=not asc)
-        for item, _ in rows:
-            try:
-                self.playlist.playlist_tree.detach(item)
-                self.playlist.playlist_tree.reattach(item, '', 'end')
-            except Exception:
-                pass
-        self.playlist_sort_state[column_name] = not asc
         try:
-            for iid in self.playlist.playlist_tree.get_children():
-                try:
-                    pi = self.playlist_index_map.get(iid)
-                except Exception:
-                    pi = None
-                if pi is None:
-                    continue
-                try:
-                    vals = self.playlist.playlist_tree.item(iid).get('values', [])
-                except Exception:
-                    vals = []
-                try:
-                    new_vals = ((pi or ""),) + tuple(vals[1:]) if vals else ((pi or ""),)
-                except Exception:
-                    new_vals = vals
-                try:
-                    self.playlist.playlist_tree.item(iid, values=new_vals)
-                    self.playlist.playlist_tree.set(iid, 'No', str(pi))
-                except Exception:
-                    pass
-            self.playlist.normalize_numbers()
+            asc = self.playlist_sort_state.get(column_name, False)
+            self.playlist.sort_playlists(column_name, not asc)
+            self.playlist_sort_state[column_name] = not asc
         except Exception:
             pass
 
@@ -2111,7 +2177,7 @@ class MainPage(tk.Frame):
 
     def open_playlist(self, event):
         """Open the selected playlist in YouTube."""
-        selected_item = self.playlist.playlist_tree.focus()
+        selected_item = self.playlist.get_focused_playlist()
         if not selected_item:
             return
 
