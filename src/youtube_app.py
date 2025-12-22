@@ -13,6 +13,11 @@ class YouTubeApp:
         self.api_key = self.config.get("api_key", "")
         self.default_folder = self.config.get("default_folder", "")
         self.playlist_handler = None
+        try:
+            from src.data.sqlite_store import SqliteStore
+            self.datastore = SqliteStore()
+        except Exception:
+            self.datastore = None
         self._initialize_gui()
 
     def _initialize_gui(self):

@@ -27,6 +27,24 @@ class SqliteStore:
         cur.execute('CREATE INDEX IF NOT EXISTS idx_last_playlists_last_id ON last_result_playlists(last_id)')
         cur.execute('CREATE INDEX IF NOT EXISTS idx_playlist_videos_playlist ON playlist_videos(playlist_id)')
         cur.execute('CREATE INDEX IF NOT EXISTS idx_playlist_videos_video ON playlist_videos(video_id)')
+
+        # Migrations
+        try:
+            cur.execute('ALTER TABLE last_result_videos ADD COLUMN sequence_number INTEGER')
+        except Exception as e:
+            print(f"Migration warning (last_result_videos): {e}")
+            pass
+        try:
+            cur.execute('ALTER TABLE last_result_playlists ADD COLUMN sequence_number INTEGER')
+        except Exception as e:
+            print(f"Migration warning (last_result_playlists seq): {e}")
+            pass
+        try:
+            cur.execute('ALTER TABLE last_result_playlists ADD COLUMN intersect_video_ids TEXT')
+        except Exception as e:
+            print(f"Migration warning (last_result_playlists intersect): {e}")
+            pass
+            
         self.conn.commit()
 
     def upsert_playlist(self, pl: Dict):
@@ -82,9 +100,15 @@ class SqliteStore:
         cur = self.conn.cursor()
         cur.execute('INSERT INTO last_results (mode, query) VALUES (?,?)', ('playlists', query))
         last_id = cur.lastrowid
-        for p in playlists:
+        import json
+        for i, p in enumerate(playlists):
             self.upsert_playlist(p)
-            cur.execute('INSERT INTO last_result_playlists (last_id, playlist_id) VALUES (?,?)', (last_id, p.get('playlistId')))
+            seq = p.get('sequence_number')
+            if seq is None:
+                seq = i + 1
+            intersects = p.get('intersect_video_ids')
+            intersects_json = json.dumps(list(intersects)) if intersects else '[]'
+            cur.execute('INSERT INTO last_result_playlists (last_id, playlist_id, sequence_number, intersect_video_ids) VALUES (?,?,?,?)', (last_id, p.get('playlistId'), seq, intersects_json))
         self.conn.commit()
 
     def load_last_playlists_result(self) -> Dict:
@@ -97,10 +121,21 @@ class SqliteStore:
         cur.execute('SELECT query FROM last_results WHERE id=?', (last_id,))
         qrow = cur.fetchone()
         query = qrow[0] if qrow else ''
-        cur.execute('SELECT p.playlist_id, p.title, p.channel_title, p.video_count FROM last_result_playlists r JOIN playlists p ON p.playlist_id=r.playlist_id WHERE r.last_id=?', (last_id,))
+        cur.execute('SELECT p.playlist_id, p.title, p.channel_title, p.video_count, r.sequence_number, r.intersect_video_ids FROM last_result_playlists r JOIN playlists p ON p.playlist_id=r.playlist_id WHERE r.last_id=? ORDER BY r.sequence_number', (last_id,))
         playlists = []
+        import json
         for pr in cur.fetchall():
-            playlists.append({'playlistId': pr[0], 'title': pr[1], 'channelTitle': pr[2], 'video_count': pr[3]})
+            intersects = []
+            try:
+                if pr[5]:
+                    intersects = json.loads(pr[5])
+            except Exception:
+                pass
+            playlists.append({
+                'playlistId': pr[0], 'title': pr[1], 'channelTitle': pr[2], 
+                'video_count': pr[3], 'sequence_number': pr[4],
+                'intersect_video_ids': intersects
+            })
         return {'playlists': playlists, 'query': query}
 
     def get_playlist_videos(self, playlist_id: str, limit: int, offset: int) -> List[Dict]:

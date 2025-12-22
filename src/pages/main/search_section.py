@@ -19,9 +19,19 @@ class SearchSection(BaseSection):
         # Add Exact Match Checkbox
         self.exact_match_var = tk.BooleanVar(value=False)
         ttk.Checkbutton(row, text="Exact Match", variable=self.exact_match_var).pack(side="left", padx=(8, 0))
+
+        # Add Pagination Toggle
+        self.pagination_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(row, text="Pagination", variable=self.pagination_var, command=self.on_pagination_toggle).pack(side="left", padx=(8, 0))
         
         self.search_btn = tk.Button(row, text="Search", command=lambda: self.main_page.execute_search_stable(self.search_entry.get(), self.mode_var.get()))
         self.search_btn.pack(side="left", padx=(12, 0))
+
+    def on_pagination_toggle(self):
+        try:
+            self.main_page.on_pagination_toggle(self.pagination_var.get())
+        except Exception:
+            pass
 
     def update_search_button_color(self, status):
         """

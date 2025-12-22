@@ -148,5 +148,9 @@ class MediaIndex:
                 vids = p_data.get("video_ids")
                 if vids:
                     pl.video_ids = set(vids)
+                # Restore intersect_video_ids set
+                ivids = p_data.get("intersect_video_ids")
+                if ivids:
+                    pl.intersect_video_ids = set(ivids)
                 self.playlists[pid] = pl
 

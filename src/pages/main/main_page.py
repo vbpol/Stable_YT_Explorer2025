@@ -82,7 +82,7 @@ class MainPage(tk.Frame):
             btn_frame = _ttk.Frame(win)
             btn_frame.pack(fill="x", pady=10)
             
-            _ttk.Button(btn_frame, text="Fetch & Export All Found Results (CSV)", command=self._export_current_videos_csv).pack(side="left", expand=True, padx=5)
+            _ttk.Button(btn_frame, text="Fetch More & Export (Max 2000)", command=self._export_current_videos_csv).pack(side="left", expand=True, padx=5)
             _ttk.Button(btn_frame, text="OK", command=win.destroy).pack(side="left", expand=True, padx=5)
         except Exception:
             pass
@@ -94,7 +94,8 @@ class MainPage(tk.Frame):
             current_count = len(self.current_videos)
             
             videos_to_export = list(self.current_videos)
-
+            
+            # If we have a huge total (API estimate) but only few loaded, try to fetch more
             if is_search and total > current_count:
                 # Automatically fetch more results if available, up to a limit
                 max_fetch = 2000
@@ -165,7 +166,10 @@ class MainPage(tk.Frame):
                             ])
                         except Exception:
                             pass
-                messagebox.showinfo("Success", f"Exported {len(videos_to_export)} videos to {os.path.basename(path)}")
+                msg = f"Exported {len(videos_to_export)} videos to {os.path.basename(path)}"
+                if len(videos_to_export) < total and len(videos_to_export) < 2000:
+                     msg += "\n\nNote: The 'Total' count (e.g. 1M) is an API estimate.\nThe YouTube API limits accessible results to a few hundred."
+                messagebox.showinfo("Success", msg)
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to write file: {e}")
         except Exception:
@@ -315,6 +319,20 @@ class MainPage(tk.Frame):
             pass
         try:
             self._create_mid_controls()
+        except Exception:
+            pass
+
+    def on_pagination_toggle(self, enabled):
+        try:
+            # Show/Hide pagination bar
+            self.video._panel.pagination.set_visible(enabled)
+            
+            # Refresh current view
+            if self.search_mode == 'videos':
+                # If pagination is OFF, reset to page 1 but show ALL
+                if not enabled:
+                    self.video_search_page_index = 1
+                self.videos_mode_handler.show_videos_search_page(direction='reset')
         except Exception:
             pass
 
@@ -782,7 +800,17 @@ class MainPage(tk.Frame):
                         pass
                 else:
                     try:
-                        self.after(0, lambda: self.videos_mode_handler.load_last_search())
+                        # Load data in background thread
+                        data = self.videos_mode_handler.load_last_search_data()
+                        
+                        if getattr(self, '_last_load_token', 0) != token:
+                            return
+                            
+                        # Schedule UI update on main thread
+                        self._safe_ui(lambda: self.status_bar.configure(text="Rendering video history..."))
+                        self.after(0, lambda: self.videos_mode_handler.populate_from_last_search(data))
+                        
+                        # Status update will be visible after rendering starts
                         self._safe_ui(lambda: self.status_bar.configure(text="Mode: Videos — history loaded"))
                     except Exception:
                         pass
@@ -982,6 +1010,14 @@ class MainPage(tk.Frame):
             self.video_prev_page_token = None # Search always starts at beginning
             self.video_total_results = total_found
             
+            # Update total count to reflect REAL fetched count if less than API total
+            # This is less confusing for the user
+            if len(all_videos) > 0 and len(all_videos) < (int(total_found or 0)):
+                 # Keep the API total in a separate var if needed, but for UI use loaded count?
+                 # No, user wants to see "Found 781" if 781 exists.
+                 # But we only loaded 40.
+                 pass
+
             try:
                 # Show popup with total count as requested
                 total_val = int(self.video_total_results or 0)
@@ -1014,9 +1050,18 @@ class MainPage(tk.Frame):
                 pass
 
             def _fetch_playlists():
+                    # Reset numbering for fresh scan
+                    self.playlist_index_map = {}
+                    self._safe_ui(lambda: self.playlist.clear_playlists())
+                    
                     self._safe_ui(lambda: self.set_mid_job_title('Mapping playlists'))
                     # ... existing logic ...
-                    videos = self.current_videos # Use full list
+                    
+                    # OPTIMIZATION: Scan only currently loaded videos (target_limit)
+                    # This prevents scanning 2000 videos if user only requested 40.
+                    # If user clicks "Fetch More", we should ideally scan those too, but for now this fixes the "slowness"
+                    videos = self.current_videos 
+                    
                     self._safe_ui(lambda t=len(videos): self.video.show_scan(t))
                     self._safe_ui(lambda t=len(videos): self.show_mid_scan(t))
                     collected_local = []
@@ -1103,6 +1148,40 @@ class MainPage(tk.Frame):
                                     pids_map[pid] = list(pm.video_ids)
                     except Exception:
                         pids_map = {}
+                    try:
+                        # Update playlistIndex on videos and sort
+                        if self.media_index:
+                            for v in videos:
+                                vid = v.get('videoId')
+                                if vid:
+                                    pid = self.media_index.get_video_playlist(vid)
+                                    if pid:
+                                        idx = self.playlist_index_map.get(pid)
+                                        if idx:
+                                            v['playlistIndex'] = idx
+                        
+                        # Sort videos by playlistIndex (ascending)
+                        videos.sort(key=lambda v: int(v.get('playlistIndex') or 999999))
+                        
+                        # Refresh UI with sorted videos
+                        self._safe_ui(lambda: self.videos_mode_handler.populate_video_table(videos, clear=True, apply_marks=True))
+
+                        # Assign sequence numbers to videos if missing
+                        for i, v in enumerate(videos):
+                            if 'sequence_number' not in v:
+                                v['sequence_number'] = i + 1
+
+                        if getattr(self.controller, 'datastore', None):
+                             self.controller.datastore.save_last_videos_result(
+                                query=query,
+                                videos=videos,
+                                playlists=collected_local,
+                                next_token=self.video_next_page_token,
+                                prev_token=self.video_prev_page_token,
+                                video_ids=list(self.video_search_ids)
+                             )
+                    except Exception:
+                        pass
                     try:
                         ConfigManager.save_json(ConfigManager.get_last_search_path('videos'), {
                             'query': query,

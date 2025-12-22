@@ -89,7 +89,9 @@ class TestVideosModeFullFlow(unittest.TestCase):
         self.mp.playlist_matcher.get_intersection.return_value = {'v1', 'v3'}
         
         # Mock playlist item values so update logic triggers
-        self.mp.playlist.playlist_tree.item.return_value = {'values': ['1', 'Title', 'Channel', '10', 'Status', 'X']}
+        # We need to mock get_playlist_values because the handler uses it, 
+        # and since self.mp.playlist is a Mock, we must define its return value.
+        self.mp.playlist.get_playlist_values.return_value = ['1', 'Title', 'Channel', '10', 'Status', 'X']
         
         # Call highlight
         self.handler.highlight_videos_for_playlist(playlist_id)
@@ -111,9 +113,8 @@ class TestVideosModeFullFlow(unittest.TestCase):
         self.mp.video.video_tree.item.assert_any_call('i3', values=ANY, tags=('search_hit',))
         
         # Verify playlist tree update (intersection count)
-        # item() is called first to get values, then to set values. 
-        # assert_called_with checks the most recent call.
-        self.mp.playlist.playlist_tree.item.assert_called_with(playlist_id, values=ANY)
+        # We assert that update_playlist_item was called on the playlist section
+        self.mp.playlist.update_playlist_item.assert_called_with(playlist_id, ANY)
         
     def test_on_videos_mode_playlist_click(self):
         # Mock highlight call

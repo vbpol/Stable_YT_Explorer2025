@@ -2,7 +2,20 @@
 
 ## 2025-12-22 (v1.1.3)
 
-### Improvements
+### Features & UI
+- **Pagination Toggle**: Added a "Pagination" checkbox in the search bar.
+    - **Enabled (Default)**: Shows paginated results (e.g., 10 per page) with navigation controls.
+    - **Disabled**: Hides pagination bar and shows ALL loaded videos in one scrollable list.
+- **Search Flow Optimization**:
+    - "Fetch More & Export" clarifies API limits vs. estimates.
+    - Reduced startup lag by loading history asynchronously in the background.
+    - Fixed "Not Responding" state during app launch.
+
+### Fixes
+- **Playlist Sorting**: Fixed non-continuous and disordered playlist numbers in the Videos table. Videos are now consistently sorted by their associated Playlist Index.
+- **Data Consistency**: ensured `playlistIndex` mapping uses the global playlist list (Source of Truth) rather than just the visible page, preventing "renumbering" glitches when navigating pages.
+
+### Technical Improvements
 - **Startup Checks**: Implemented API key validation on startup with visual feedback (Search button color: Green/Orange/Red).
 - **Performance**: Optimized playlist scanning (`VideoPlaylistScanner`) using channel-based batching to significantly reduce API calls.
 - **Stability**: Fixed history loss and lag when switching between Videos and Playlists modes.

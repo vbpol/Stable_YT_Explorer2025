@@ -169,6 +169,9 @@ class VideoPlaylistScanner:
                     except Exception:
                         has = False
                     if has:
+                        # Attach intersection for fallback case too
+                        pl['intersect_video_ids'] = [vid]
+                        
                         idx = on_playlist_found(pl)
                         with seen_lock:
                             if plid not in seen:

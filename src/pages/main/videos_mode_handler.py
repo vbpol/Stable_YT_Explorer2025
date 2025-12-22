@@ -406,27 +406,27 @@ class VideosModeHandler:
         """
         try:
             # Rebuild playlist index map from current collected playlists
+            # We must use the full collected list, not just what's in the UI tree (which might be paginated)
             playlists = getattr(self.parent, 'collected_playlists', []) or []
             
             # Rebuild index map if needed or ensure it's up to date
             index_map = getattr(self.parent, 'playlist_index_map', {})
             
-            # If map is empty or doesn't match playlists count roughly
-            if not index_map and playlists:
+            # Always rebuild map from source of truth (collected_playlists) to ensure consistency
+            if playlists:
                 index_map = {}
                 for i, pl in enumerate(playlists):
                     pid = pl.get('playlistId')
                     if pid:
-                         # Try to preserve existing indices if possible from tree
-                         try:
-                             if self.parent.playlist.playlist_exists(pid):
-                                 item_vals = self.parent.playlist.get_playlist_values(pid) or []
-                                 if item_vals:
-                                     idx = int(item_vals[0])
-                                     index_map[pid] = idx
-                                     continue
-                         except Exception:
-                             pass
+                         # Use persisted sequence number if available (Best Source)
+                         seq = pl.get('sequence_number')
+                         if seq:
+                             try:
+                                 index_map[pid] = int(seq)
+                                 continue
+                             except Exception:
+                                 pass
+                         
                          # Fallback to simple enumeration
                          index_map[pid] = i + 1
                 self.parent.playlist_index_map = index_map
@@ -505,13 +505,28 @@ class VideosModeHandler:
         except Exception:
             pass
 
-    def load_last_search(self):
+    def load_last_search_data(self):
+        """
+        Loads the last search data from disk.
+        Safe to run in a background thread (no UI calls).
+        """
+        try:
+            path = ConfigManager.get_last_search_path('videos')
+            data = ConfigManager.load_json(path) or {}
+            return data
+        except Exception:
+            return {}
+
+    def populate_from_last_search(self, data):
+        """
+        Populates the UI with the loaded search data.
+        MUST be run on the main thread.
+        """
         try:
             self.parent.video._panel.pagination.set_visible(False)
         except Exception:
             pass
-        path = ConfigManager.get_last_search_path('videos')
-        data = ConfigManager.load_json(path) or {}
+
         videos = data.get('videos', [])
         playlists = data.get('playlists', [])
         q = data.get('query', '')
@@ -561,6 +576,8 @@ class VideosModeHandler:
             self.parent.collected_playlists = playlists
             
             # Enrich videos with playlist metadata BEFORE populating
+            # Note: access to parent.playlist_index_map happens here.
+            # Since this method is on main thread, it is safe.
             self._enrich_videos_with_metadata(videos)
             
             # Use new populate method
@@ -599,6 +616,11 @@ class VideosModeHandler:
                 self.parent.after(500, lambda: self.on_videos_mode_playlist_click(pinned_pl_id))
             except Exception:
                 pass
+
+    def load_last_search(self):
+        """Legacy method: Loads and populates on current thread (blocking if main)."""
+        data = self.load_last_search_data()
+        self.populate_from_last_search(data)
 
     def _update_pagination_state(self):
         try:
@@ -673,6 +695,12 @@ class VideosModeHandler:
             return
 
         try:
+            # Check pagination toggle
+            try:
+                use_pagination = self.parent.search.pagination_var.get()
+            except Exception:
+                use_pagination = True
+
             # 1. Determine new page index
             try:
                 current_idx = int(getattr(self.parent, 'video_search_page_index', 1) or 1)
@@ -693,21 +721,45 @@ class VideosModeHandler:
                 ps = 10
                 
             videos = getattr(self.parent, 'current_videos', []) or []
+            
+            # Ensure sorting is consistent BEFORE slicing
+            # Sort by playlist index to keep groups together
+            try:
+                 # Helper to get sort key safely
+                def _sort_key(v):
+                    try:
+                        # Use enriched playlistIndex if available, else huge number
+                        idx = v.get('playlistIndex')
+                        if idx in (None, ''):
+                            return 999999
+                        return int(idx)
+                    except Exception:
+                        return 999999
+                
+                videos.sort(key=_sort_key)
+            except Exception:
+                pass
+
             total = len(videos)
             
-            # Bound check
-            import math
-            total_pages = math.ceil(total / ps) if ps > 0 else 1
-            if current_idx > total_pages: current_idx = total_pages
-            if current_idx < 1: current_idx = 1
-            
-            self.parent.video_search_page_index = current_idx
-            
-            # Slice
-            start = (current_idx - 1) * ps
-            end = start + ps
-            page_videos = videos[start:end]
-            
+            if use_pagination:
+                # Bound check
+                import math
+                total_pages = math.ceil(total / ps) if ps > 0 else 1
+                if current_idx > total_pages: current_idx = total_pages
+                if current_idx < 1: current_idx = 1
+                
+                self.parent.video_search_page_index = current_idx
+                
+                # Slice
+                start = (current_idx - 1) * ps
+                end = start + ps
+                page_videos = videos[start:end]
+            else:
+                # No pagination: show all
+                self.parent.video_search_page_index = 1
+                page_videos = videos
+
             # 3. Populate
             self.populate_video_table(page_videos, clear=True, apply_marks=True)
             
