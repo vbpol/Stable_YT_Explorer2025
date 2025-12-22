@@ -77,6 +77,18 @@ Codified rules for deterministic, error‑resistant AI changes in this project.
 
 ---
 
+## tool.ai_performance_protocol
+**Description:** Ensures high-quality, error-free AI implementation.
+
+**Rules:**
+- **Verify Codebase:** Identify all impacted code blocks before modification.
+- **Refactor First:** Refactor complex or tangled code into separate files/methods before debugging or modifying functionality.
+- **Implementation Plan:** Prepare a clear plan before executing changes.
+- **Full Functionality Testing:** Verify that changes do not break existing features (regression testing).
+- **Runtime Validation:** Ensure the app runs without errors after changes.
+
+---
+
 # 🧭 Output Requirements
 - Deterministic
 - Minimal and correct diffs

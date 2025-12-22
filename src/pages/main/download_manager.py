@@ -137,8 +137,8 @@ class DownloadManager:
                     try:
                         ttl = ''
                         try:
-                            if self.parent.playlist.playlist_tree.exists(pid):
-                                vals = self.parent.playlist.playlist_tree.item(pid).get('values', [])
+                            if self.parent.playlist.playlist_exists(pid):
+                                vals = self.parent.playlist.get_playlist_values(pid) or []
                                 ttl = vals[1] if len(vals) > 1 else ''
                         except Exception:
                             ttl = ''
@@ -206,8 +206,8 @@ class DownloadManager:
                             pid = None
                     if pid:
                         try:
-                            if self.parent.playlist.playlist_tree.exists(pid):
-                                vals = self.parent.playlist.playlist_tree.item(pid).get('values', [])
+                            if self.parent.playlist.playlist_exists(pid):
+                                vals = self.parent.playlist.get_playlist_values(pid) or []
                                 pl_title = vals[1] if len(vals) > 1 else ''
                             else:
                                 pl_title = pid

@@ -171,10 +171,36 @@ class MainPage(tk.Frame):
         except Exception:
             pass
 
+    def check_api_status_on_startup(self):
+        def _check():
+            try:
+                self.controller.ensure_playlist_handler()
+                if self.controller.playlist_handler:
+                    try:
+                        # Basic validation (costs 1 unit)
+                        self.controller.playlist_handler.validate_key()
+                        self._safe_ui(lambda: self.search.update_search_button_color('valid'))
+                    except Exception as e:
+                        if 'quota' in str(e).lower():
+                             self._safe_ui(lambda: self.search.update_search_button_color('warning'))
+                        else:
+                             self._safe_ui(lambda: self.search.update_search_button_color('invalid'))
+                else:
+                    self._safe_ui(lambda: self.search.update_search_button_color('invalid'))
+            except Exception:
+                self._safe_ui(lambda: self.search.update_search_button_color('invalid'))
+        
+        import threading
+        threading.Thread(target=_check, daemon=True).start()
+
     def _initialize_components(self):
         """Initialize and pack GUI components."""
         self._create_sections()
         self._pack_sections()
+        try:
+            self.check_api_status_on_startup()
+        except Exception:
+            pass
         try:
             lm = (ConfigManager.load_last_mode() or '').strip().lower()
             if lm == 'videos':
@@ -692,22 +718,23 @@ class MainPage(tk.Frame):
             mode = 'playlists'
 
         try:
-            if getattr(self, '_last_load_in_progress', False):
-                return
-        except Exception:
-            pass
-        try:
-            self._last_load_in_progress = True
-        except Exception:
-            pass
-        try:
             self._last_load_token = int(getattr(self, '_last_load_token', 0)) + 1
         except Exception:
             self._last_load_token = 1
         token = self._last_load_token
 
+        try:
+            self._last_load_in_progress = True
+        except Exception:
+            pass
+
         def _load_thread():
             try:
+                if getattr(self, '_last_load_token', 0) != token:
+                    return
+                
+                self._safe_ui(lambda: self.status_bar.configure(text=f"Loading {mode} history..."))
+
                 if mode == 'playlists':
                     path = ConfigManager.get_last_search_path('playlists')
                     raw = ConfigManager.load_json(path)
@@ -742,6 +769,8 @@ class MainPage(tk.Frame):
                                     if getattr(self, '_last_load_token', 0) != token:
                                         return
                                     self.after(10, lambda st=e: _ins_pl_chunk_playlists(st))
+                                else:
+                                    self._safe_ui(lambda: self.status_bar.configure(text=f"Mode: Playlists — history loaded ({len(data_list)} items)"))
                             except Exception:
                                 pass
                         self.after(0, _ins_pl_chunk_playlists)
@@ -754,13 +783,15 @@ class MainPage(tk.Frame):
                 else:
                     try:
                         self.after(0, lambda: self.videos_mode_handler.load_last_search())
+                        self._safe_ui(lambda: self.status_bar.configure(text="Mode: Videos — history loaded"))
                     except Exception:
                         pass
             except Exception:
                 pass
             finally:
                 try:
-                    self.after(0, lambda: setattr(self, '_last_load_in_progress', False))
+                    if getattr(self, '_last_load_token', 0) == token:
+                        self.after(0, lambda: setattr(self, '_last_load_in_progress', False))
                 except Exception:
                     pass
 

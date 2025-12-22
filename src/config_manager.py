@@ -285,7 +285,17 @@ class ConfigManager:
         return "firefox"
 
     @staticmethod
-    def set_use_channel_title_fallback(value: bool):
+    def get_max_search_results() -> int:
+        try:
+            cfg = ConfigManager.load_config() or {}
+            ui = cfg.get("ui", {}) or {}
+            v = int(ui.get("max_search_results", 40))
+            return max(10, v)
+        except Exception:
+            return 40
+
+    @staticmethod
+    def set_max_search_results(value: int):
         try:
             data = {}
             try:
@@ -294,7 +304,7 @@ class ConfigManager:
             except Exception:
                 data = {}
             ui = dict(data.get("ui", {}) or {})
-            ui["use_channel_title_fallback"] = bool(value)
+            ui["max_search_results"] = max(10, int(value))
             data["ui"] = ui
             with open(CONFIG_FILE, "w") as file:
                 json.dump(data, file, indent=4)

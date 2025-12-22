@@ -15,4 +15,26 @@ class SearchSection(BaseSection):
         ttk.Label(row, text="Enter keyword:").pack(side="left", padx=(0, 6))
         self.search_entry = tk.Entry(row, width=40)
         self.search_entry.pack(side="left")
-        ttk.Button(row, text="Search", command=lambda: self.main_page.execute_search_stable(self.search_entry.get(), self.mode_var.get())).pack(side="left", padx=(12, 0))
+        
+        # Add Exact Match Checkbox
+        self.exact_match_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(row, text="Exact Match", variable=self.exact_match_var).pack(side="left", padx=(8, 0))
+        
+        self.search_btn = tk.Button(row, text="Search", command=lambda: self.main_page.execute_search_stable(self.search_entry.get(), self.mode_var.get()))
+        self.search_btn.pack(side="left", padx=(12, 0))
+
+    def update_search_button_color(self, status):
+        """
+        Update search button color based on API key status.
+        status: 'valid' (green), 'warning' (orange), 'invalid' (red)
+        """
+        color_map = {
+            'valid': '#90EE90',  # Light Green
+            'warning': '#FFB347', # Pastel Orange
+            'invalid': '#FF6961'  # Pastel Red
+        }
+        bg_color = color_map.get(status, 'SystemButtonFace')
+        try:
+            self.search_btn.configure(bg=bg_color)
+        except Exception:
+            pass

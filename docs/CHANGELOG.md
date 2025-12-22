@@ -1,5 +1,13 @@
 # Changelog
 
+## 2025-12-22 (v1.1.3)
+
+### Improvements
+- **Startup Checks**: Implemented API key validation on startup with visual feedback (Search button color: Green/Orange/Red).
+- **Performance**: Optimized playlist scanning (`VideoPlaylistScanner`) using channel-based batching to significantly reduce API calls.
+- **Stability**: Fixed history loss and lag when switching between Videos and Playlists modes.
+- **AI Protocols**: Added rigorous AI implementation rules to `project_rules.md`.
+
 ## 2025-12-21 (v1.1.1)
 
 ### Improvements

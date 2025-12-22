@@ -38,6 +38,23 @@ class MenuSection(BaseSection):
         download_menu.add_command(label="View Downloaded", command=self.main_page.view_downloaded_videos)
         menubar.add_cascade(label="Download", menu=download_menu)
 
+        # Settings menu
+        settings_menu = tk.Menu(menubar, tearoff=0)
+        
+        def _set_search_limit(limit):
+            ConfigManager.set_max_search_results(limit)
+            tk.messagebox.showinfo("Settings", f"Search result limit set to {limit}.\nPlease repeat your search to apply.")
+            
+        search_limit_menu = tk.Menu(settings_menu, tearoff=0)
+        search_limit_menu.add_command(label="40 Results", command=lambda: _set_search_limit(40))
+        search_limit_menu.add_command(label="50 Results", command=lambda: _set_search_limit(50))
+        search_limit_menu.add_command(label="100 Results", command=lambda: _set_search_limit(100))
+        search_limit_menu.add_command(label="200 Results", command=lambda: _set_search_limit(200))
+        search_limit_menu.add_command(label="500 Results", command=lambda: _set_search_limit(500))
+        
+        settings_menu.add_cascade(label="Max Search Results", menu=search_limit_menu)
+        menubar.add_cascade(label="Settings", menu=settings_menu)
+
         env = str(os.getenv("APP_ENV", "")).strip().lower()
         if env not in ("production", "prod", "release"):
             tools_menu = tk.Menu(menubar, tearoff=0)

@@ -35,51 +35,117 @@ class VideoPlaylistScanner:
         on_video_index: Callable[[str, str, int], None],
     ) -> List[Dict[str, Any]]:
         """Scan playlists for a list of videos and report findings.
-
-        Parameters:
-        - videos: list of video dicts
-        - on_playlist_found: callback when a playlist contains the video; returns assigned index
-        - on_prefetch_page: callback to prefetch first page for a discovered playlist
-        - on_progress: callback with (processed, total)
-        - on_video_index: callback to update the video's playlist assignment (vid, pid, index)
-
-        Returns: list of discovered unique playlists
+        
+        Optimized to batch by channelId to reduce API calls.
         """
         total = len(videos or [])
         collected: List[Dict[str, Any]] = []
         seen: set[str] = set()
         seen_lock = threading.Lock()
+        
+        # Group videos by channel
+        by_channel: Dict[str, List[Dict[str, Any]]] = {}
+        no_channel: List[Dict[str, Any]] = []
+        
+        for v in (videos or []):
+            cid = v.get('channelId')
+            if cid:
+                by_channel.setdefault(cid, []).append(v)
+            else:
+                no_channel.append(v)
+                
+        processed_count = 0
+        processed_lock = threading.Lock()
+        
+        def _update_progress(n=1):
+            nonlocal processed_count
+            with processed_lock:
+                processed_count += n
+                pc = processed_count
+            try:
+                on_progress(pc, total)
+            except Exception:
+                pass
 
-        def _scan_one(v: Dict[str, Any]):
+        def _process_channel_batch(cid: str, chan_videos: List[Dict[str, Any]]):
+            ph = Playlist(self.api_key)
+            try:
+                # 1. Fetch channel playlists (efficient batch)
+                # This returns playlists OWNED by the channel, which covers most official organization
+                playlists = ph.get_channel_playlists(cid, max_results=self.channel_playlist_limit)
+                
+                # 2. Check intersections locally
+                # We need to know which videos are in these playlists.
+                # Efficient approach: Fetch video list for each playlist and intersect IDs.
+                
+                chan_vid_ids = {v['videoId'] for v in chan_videos if v.get('videoId')}
+                
+                for pl in playlists:
+                    plid = pl.get('playlistId')
+                    if not plid: continue
+                    
+                    try:
+                        # Fetch first page of playlist videos (usually 50)
+                        # This is 1 API call per playlist found
+                        resp = ph.get_videos(plid, max_results=self.prefetch_page_size)
+                        pl_items = resp.get('videos', [])
+                        pl_vid_ids = {pv['videoId'] for pv in pl_items if pv.get('videoId')}
+                        
+                        # Check intersection
+                        matches = chan_vid_ids.intersection(pl_vid_ids)
+                        
+                        if matches:
+                            # Found relevant playlist
+                            idx = on_playlist_found(pl)
+                            
+                            with seen_lock:
+                                if plid not in seen:
+                                    seen.add(plid)
+                                    collected.append(pl)
+                            
+                            try:
+                                on_prefetch_page(plid)
+                            except Exception:
+                                pass
+                                
+                            # Update indices for matched videos
+                            for vid in matches:
+                                if isinstance(idx, int):
+                                    on_video_index(vid, plid, idx)
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+            finally:
+                _update_progress(len(chan_videos))
+
+        def _scan_one_fallback(v: Dict[str, Any]):
+            # Original logic for videos without channel ID
             ph = Playlist(self.api_key)
             vid = v.get('videoId')
             title = (v.get('title') or '').strip()
             channel = (v.get('channelTitle') or '').strip()
             if not vid:
-                return None
+                _update_progress(1)
+                return
+                
             queries = []
-            try:
-                if title:
-                    queries.append(title)
-                if channel and title:
-                    queries.append(f"{channel} {title}")
-                if channel and not title:
-                    queries.append(channel)
-            except Exception:
-                pass
+            if title: queries.append(title)
+            if channel: queries.append(channel)
+            
             if not queries:
-                return None
+                _update_progress(1)
+                return
+
             first_index = None
             first_plid = None
             
             for q in queries:
                 pls = []
-                # Thread-safe cache access
                 with self._lock:
                     if q in self._query_cache:
                         pls = self._query_cache[q]
                     elif self._search_calls < self._max_search_calls:
-                        # Release lock during API call to avoid blocking other threads
                         do_search = True
                         self._search_calls += 1
                     else:
@@ -94,71 +160,43 @@ class VideoPlaylistScanner:
                         pls = []
                 elif q not in self._query_cache:
                     pls = []
-
+                    
                 for pl in pls:
                     plid = pl.get('playlistId')
-                    if not plid:
-                        continue
+                    if not plid: continue
                     try:
                         has = ph.playlist_contains_video(plid, vid)
                     except Exception:
                         has = False
-                    if not has:
-                        continue
-                    
-                    # Found match
-                    idx = on_playlist_found(pl)
-                    
-                    try:
+                    if has:
+                        idx = on_playlist_found(pl)
                         with seen_lock:
-                            pid = plid
-                            if pid and pid not in seen:
-                                seen.add(pid)
+                            if plid not in seen:
+                                seen.add(plid)
                                 collected.append(pl)
-                    except Exception:
-                        pass
-                        
-                    try:
-                        on_prefetch_page(plid)
-                    except Exception:
-                        pass
-                        
-                    if first_index is None and isinstance(idx, int):
-                        first_index = idx
-                        first_plid = plid
-                    break
+                        try:
+                            on_prefetch_page(plid)
+                        except Exception:
+                            pass
+                        if first_index is None and isinstance(idx, int):
+                            first_index = idx
+                            first_plid = plid
+                        break
                 if first_plid:
                     break
             
             if first_index and first_plid:
-                try:
-                    on_video_index(vid, first_plid, first_index)
-                except Exception:
-                    pass
-            return True
+                on_video_index(vid, first_plid, first_index)
+            _update_progress(1)
 
-        try:
-            with ThreadPoolExecutor(max_workers=self.max_workers) as ex:
-                futs = [ex.submit(_scan_one, v) for v in (videos or [])]
-                processed = 0
-                for _ in as_completed(futs):
-                    processed += 1
-                    try:
-                        on_progress(processed, total)
-                    except Exception:
-                        pass
-        except Exception:
-            # Fallback sequential
-            processed = 0
-            for v in (videos or []):
-                try:
-                    _scan_one(v)
-                except Exception:
-                    pass
-                processed += 1
-                try:
-                    on_progress(processed, total)
-                except Exception:
-                    pass
+        # Execute batches
+        with ThreadPoolExecutor(max_workers=self.max_workers) as ex:
+            # Channel batches
+            futs = [ex.submit(_process_channel_batch, cid, vids) for cid, vids in by_channel.items()]
+            # Fallback for no-channel videos
+            futs.extend([ex.submit(_scan_one_fallback, v) for v in no_channel])
+            
+            for _ in as_completed(futs):
+                pass
 
         return collected

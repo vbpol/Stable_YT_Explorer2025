@@ -23,9 +23,9 @@ class YouTubeApp:
     def setup_window(self):
         """Configure the main window properties."""
         try:
-            ver = str(os.getenv("APP_VERSION", "1.1.0")).strip()
+            ver = str(os.getenv("APP_VERSION", "1.1.3")).strip()
         except Exception:
-            ver = "1.1.0"
+            ver = "1.1.3"
         try:
             env = str(os.getenv("APP_ENV", "development")).strip().lower()
         except Exception:
