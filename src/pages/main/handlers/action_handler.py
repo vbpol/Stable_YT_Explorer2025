@@ -287,19 +287,14 @@ class ActionHandler:
             logger.error(f"Error in on_video_select: {e}")
 
     def _pin_and_select_playlist(self, plid, vid, video, tree_item_id):
-        """Pin a playlist and update video row when playlist is known."""
+        """Pin a playlist and select it - does NOT change video's playlistIndex."""
         mp = self.main_page
         try:
-            # Update cache
+            # Update cache (for future lookups only)
             mp.video_playlist_cache[vid] = plid
-            video['playlistId'] = plid
             
-            # Assign/get index
-            pi = mp.assign_playlist_index(plid)
-            video['playlistIndex'] = pi
-            
-            # Update video row
-            mp.video.video_tree.item(tree_item_id, values=mp.video_ui_handler._video_row(video))
+            # Do NOT change video['playlistId'] or video['playlistIndex']
+            # The playlist index was set during initial scan and should remain stable
             
             # Pin and select playlist
             mp._set_pinned_playlist(plid)
@@ -311,7 +306,10 @@ class ActionHandler:
                 
                 # Report hits
                 mp.playlist_ui_handler._report_playlist_hits(plid)
-                mp.status_bar.configure(text=f"Playlist {pi} pinned")
+                
+                # Get display index from existing map (don't create new)
+                pi = mp.playlist_index_map.get(plid, '')
+                mp.status_bar.configure(text=f"Playlist {pi} pinned" if pi else "Playlist pinned")
             else:
                 mp.status_bar.configure(text=f"Playlist not in current results")
         except Exception as e:
@@ -632,19 +630,16 @@ class ActionHandler:
         try:
             self._enrich_video_playlist_info(videos)
             
+            # Import from new download package
             try:
-                from .download_options_dialog import DownloadOptionsDialog
-            except Exception:
-                from src.pages.main.download_options_dialog import DownloadOptionsDialog
+                from src.pages.main.download import DownloadOptionsDialog, DownloadManager
+            except ImportError:
+                from .download.options_dialog import DownloadOptionsDialog
+                from .download.manager import DownloadManager
                 
             dlg = DownloadOptionsDialog(self.main_page)
             if not getattr(dlg, 'result', None):
                 return
-                
-            try:
-                from .download_manager import DownloadManager
-            except Exception:
-                from src.pages.main.download_manager import DownloadManager
                 
             DownloadManager(self.main_page, list(videos or []), folder, dlg.result).start()
         except Exception as e:

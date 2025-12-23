@@ -403,6 +403,18 @@ class MainPage(tk.Frame):
                     self.video_search_query = q or self.video_search_query
                 except Exception:
                     pass
+                
+                # CRITICAL: Rebuild playlist_index_map from saved video data BEFORE rendering
+                # This ensures indices remain stable across app restarts
+                try:
+                    for v in videos:
+                        pi = v.get('playlistIndex')
+                        pid = v.get('playlistId')
+                        if pi and pid and pid not in self.playlist_index_map:
+                            self.playlist_index_map[pid] = pi
+                except Exception:
+                    pass
+                
                 for v in videos:
                     self.video.video_tree.insert('', 'end', values=self._video_row(v))
                 for pl in playlists:
@@ -789,6 +801,18 @@ class MainPage(tk.Frame):
                 except Exception:
                     pass
             open_btn.configure(command=_open_dist)
+            def _run_exe():
+                try:
+                    exe_path = os.path.join(dist_dir, "YouTubePlaylistExplorer.exe")
+                    if sys.platform == "win32":
+                        os.startfile(exe_path)
+                    elif sys.platform == "darwin":
+                        subprocess.run(["open", exe_path])
+                    else:
+                        subprocess.run([exe_path])
+                except Exception:
+                    pass
+            run_btn.configure(command=_run_exe)
             def _append(s):
                 try:
                     txt.insert("end", s)
