@@ -41,3 +41,6 @@ def setup_logger(name="AntiGravity"):
         logger.addHandler(console_handler)
         
     return logger
+
+# Module-level logger instance for direct import
+logger = setup_logger()

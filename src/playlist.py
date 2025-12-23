@@ -72,30 +72,49 @@ class Playlist:
             raise PlaylistError(f"YouTube API error getting details: {e}")
 
     def get_playlist_info(self, playlist_id: str) -> Dict[str, Any]:
-        if not playlist_id:
-            raise ValueError("playlist_id is required")
-        try:
-            request = self.youtube.playlists().list(
-                part="snippet,contentDetails",
-                id=playlist_id
-            )
-            response = request.execute()
-            items = response.get('items', [])
-            if not items:
-                return {'playlistId': playlist_id, 'title': '', 'channelTitle': '', 'video_count': 'N/A'}
-            it = items[0]
-            title = it.get('snippet', {}).get('title', '')
-            channel = it.get('snippet', {}).get('channelTitle', '')
-            count = it.get('contentDetails', {}).get('itemCount', 'N/A')
-            try:
-                count = int(count)
-            except Exception:
-                pass
-            return {'playlistId': playlist_id, 'title': title, 'channelTitle': channel, 'video_count': count}
+        infos = self.get_playlists_batch([playlist_id])
+        return infos[0] if infos else {'playlistId': playlist_id, 'title': '', 'channelTitle': '', 'video_count': 'N/A'}
 
-        except Exception as e:
-            logger.error(f"Error getting playlist info: {e}")
-            raise PlaylistError(f"Error getting playlist info: {e}")
+    def get_playlists_batch(self, playlist_ids: List[str]) -> List[Dict[str, Any]]:
+        """Fetch details for multiple playlists in a single API call."""
+        if not playlist_ids:
+            return []
+        
+        # Batch by 50 (API limit)
+        results = []
+        for i in range(0, len(playlist_ids), 50):
+            batch = playlist_ids[i:i+50]
+            try:
+                request = self.youtube.playlists().list(
+                    part="snippet,contentDetails",
+                    id=','.join(batch)
+                )
+                response = request.execute()
+                
+                # Order matters, keep same as input batch
+                items_map = {it['id']: it for it in response.get('items', [])}
+                
+                for pid in batch:
+                    it = items_map.get(pid)
+                    if not it:
+                        results.append({'playlistId': pid, 'title': '', 'channelTitle': '', 'video_count': 'N/A'})
+                        continue
+                        
+                    title = it.get('snippet', {}).get('title', '')
+                    channel = it.get('snippet', {}).get('channelTitle', '')
+                    count = it.get('contentDetails', {}).get('itemCount', 'N/A')
+                    try:
+                        count = int(count)
+                    except Exception:
+                        pass
+                    results.append({'playlistId': pid, 'title': title, 'channelTitle': channel, 'video_count': count})
+                    
+            except Exception as e:
+                logger.error(f"Error in batch playlist fetch: {e}")
+                for pid in batch:
+                    results.append({'playlistId': pid, 'title': '', 'channelTitle': '', 'video_count': 'N/A'})
+                    
+        return results
 
     def search_videos(self, query: str, max_results: int = 10, page_token: Optional[str] = None) -> Dict[str, Any]:
         if not query:

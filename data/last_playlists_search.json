@@ -1,8 +1,65 @@
-[
-  {
-    "playlistId": "t_pl",
-    "title": "P1",
-    "channelTitle": "CH",
-    "video_count": 1
-  }
-]
+{
+  "query": "E3D",
+  "playlists": [
+    {
+      "playlistId": "PLZYuulzjE1ABnmts7xHU31nuNvEPrIggR",
+      "title": "AVEVA E3D TUTORIAL",
+      "channelTitle": "XYZ DESIGNER ",
+      "video_count": 15
+    },
+    {
+      "playlistId": "PLjChkog_p_LEEwqxvdniWTK7JlEnDXUW_",
+      "title": "AVEVA E3D - Getting Started",
+      "channelTitle": "TDS Engr Solutions Pte Ltd",
+      "video_count": 12
+    },
+    {
+      "playlistId": "PLLD0AXRDg5kRTxg3aQaUmSRvMDxIIEjyM",
+      "title": "e3d piping modeling",
+      "channelTitle": "Aveva E3D Tutorials",
+      "video_count": 16
+    },
+    {
+      "playlistId": "PLjV5XTNQA1rz784U2gdMMwN1JAuooMrhT",
+      "title": "Projet Routier avec Civil 3D 2020",
+      "channelTitle": "walker baweni",
+      "video_count": 12
+    },
+    {
+      "playlistId": "PL1jTYwbsIqVoEeorq9Z-ONkoDQvS6NY4M",
+      "title": "Lessons of Aveva E3D",
+      "channelTitle": "SmartProject",
+      "video_count": 20
+    },
+    {
+      "playlistId": "PL75IZtNZuZ3tnyUCSdefbcD_FKB3KAn5Z",
+      "title": "CURSO AVEVA E3D TUBULAÇÃO INDUSTRIAL",
+      "channelTitle": "Jeverson Evangelista",
+      "video_count": 27
+    },
+    {
+      "playlistId": "PLjChkog_p_LFWXnasBK39_az2XMxt6XkN",
+      "title": "AVEVA E3D 3.1 - \"How To\"",
+      "channelTitle": "TDS Engr Solutions Pte Ltd",
+      "video_count": 22
+    },
+    {
+      "playlistId": "PLjChkog_p_LGhfPnFczX64gLhZsX6rxwx",
+      "title": "AVEVA E3D - PML",
+      "channelTitle": "TDS Engr Solutions Pte Ltd",
+      "video_count": 14
+    },
+    {
+      "playlistId": "PLFMJSepvX3NEQEnwnnDd7T1sZ-N7OSRL2",
+      "title": "AVEVA-Everything 3D-Equipment & Piping Basic",
+      "channelTitle": "Nazmul Hossain",
+      "video_count": 8
+    },
+    {
+      "playlistId": "PLeaIM0zUlEqswa6Pskg9uMq15LiWWYP39",
+      "title": "3D Slicer Tutorial",
+      "channelTitle": "Jan Witowski",
+      "video_count": 11
+    }
+  ]
+}

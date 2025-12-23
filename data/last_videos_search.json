@@ -161,17 +161,295 @@
   "nextPageToken": "CAoQAA",
   "prevPageToken": null,
   "videoIds": [
-    "y7FQ6V77PX4",
+    "wXlzKjEbypc",
+    "5T1wr_Bgwgg",
+    "uEs7kcbughY",
     "iBV5NGrLvPo",
+    "y7FQ6V77PX4",
     "0GZnXjfCZGI",
     "-kxy94WCY7M",
-    "wXlzKjEbypc",
-    "h3pLiXQAmiM",
     "COjMOM6xo6M",
     "6b8DWEpVo74",
-    "5T1wr_Bgwgg",
-    "uEs7kcbughY"
+    "h3pLiXQAmiM"
   ],
-  "playlistPages": {},
-  "playlistIds": {}
+  "playlistPages": {
+    "PLRwCMRF27F6mRtTXldm1WWXDoFPFxZu3f": {
+      "pages": {
+        "__first__": [
+          {
+            "videoId": "crT1QBAfgNU",
+            "title": "Turn Your Vise into a Press Brake with 3D Printed Tools",
+            "channelTitle": "Andrea Waite",
+            "duration": "N/A",
+            "published": "",
+            "views": "0"
+          },
+          {
+            "videoId": "Kx4VfzS_V6c",
+            "title": "CroXY Crossed Gantry 3D Printer",
+            "channelTitle": "Andrea Waite",
+            "duration": "N/A",
+            "published": "",
+            "views": "0"
+          },
+          {
+            "videoId": "G6RWfkICkss",
+            "title": "How to Change the side flat bearing of D6?",
+            "channelTitle": "Andrea Waite",
+            "duration": "N/A",
+            "published": "",
+            "views": "0"
+          },
+          {
+            "videoId": "79r5D9nCQfM",
+            "title": "3D Printing in a 100°C Heated Chamber - Lessons Learned",
+            "channelTitle": "Andrea Waite",
+            "duration": "N/A",
+            "published": "",
+            "views": "0"
+          },
+          {
+            "videoId": "mPh1b2EOOz0",
+            "title": "The Most Advanced Filaments You Can Print: Every Single Filament Part II",
+            "channelTitle": "Andrea Waite",
+            "duration": "N/A",
+            "published": "",
+            "views": "0"
+          },
+          {
+            "videoId": "6b8DWEpVo74",
+            "title": "Simplified Accurate Probing With Piezoelectric Sensors (E3D PZ Probe)",
+            "channelTitle": "Andrea Waite",
+            "duration": "N/A",
+            "published": "",
+            "views": "0"
+          }
+        ]
+      },
+      "tokens": {
+        "__first__": [
+          null,
+          null
+        ]
+      }
+    },
+    "PLU5lZZLWyxXAFW97C5rCKfSzziacfcmyC": {
+      "pages": {
+        "__first__": [
+          {
+            "videoId": "uEs7kcbughY",
+            "title": "E3D High-Flow ObXidian 500 Hotend Test (BambuLab H2D/P2S Version)",
+            "channelTitle": "My Tech Fun",
+            "duration": "15:10",
+            "published": "2025-12-05T18:16:38Z",
+            "views": "16304"
+          },
+          {
+            "videoId": "b_51SMUE80I",
+            "title": "BambuLab H2D Review – But Is It Finally Ready for Real Engineering Filaments?",
+            "channelTitle": "My Tech Fun",
+            "duration": "17:07",
+            "published": "2025-11-28T14:00:06Z",
+            "views": "14113"
+          },
+          {
+            "videoId": "ZmYj3GvS_B8",
+            "title": "Bambu Lab Vision Encoder tested and explained",
+            "channelTitle": "My Tech Fun",
+            "duration": "16:21",
+            "published": "2025-11-04T14:00:06Z",
+            "views": "19745"
+          },
+          {
+            "videoId": "92yerrd9A7o",
+            "title": "Printing and Drying at the Same Time? SUNLU AMS Heater Test!",
+            "channelTitle": "My Tech Fun",
+            "duration": "10:53",
+            "published": "2025-11-02T14:11:17Z",
+            "views": "7605"
+          },
+          {
+            "videoId": "jMb9sBVWvrs",
+            "title": "Bambu Lab P2S Review: Can It Replace the X1C?",
+            "channelTitle": "My Tech Fun",
+            "duration": "24:06",
+            "published": "2025-10-14T13:01:36Z",
+            "views": "21309"
+          },
+          {
+            "videoId": "dALuVjdvS8w",
+            "title": "Bambu Lab PPS-CF Filament Review: Better Than PET-CF or PPA-CF?",
+            "channelTitle": "My Tech Fun",
+            "duration": "12:07",
+            "published": "2025-09-14T13:00:06Z",
+            "views": "22373"
+          },
+          {
+            "videoId": "U-aTEslkqco",
+            "title": "Tough or Not? Bambu Lab PLA Tough+ Filament Review",
+            "channelTitle": "My Tech Fun",
+            "duration": "17:12",
+            "published": "2025-09-07T13:00:06Z",
+            "views": "18692"
+          },
+          {
+            "videoId": "nm_gL9Zw5KY",
+            "title": "Fixing Bambu Lab H2S Top Vent Doors",
+            "channelTitle": "My Tech Fun",
+            "duration": "06:28",
+            "published": "2025-08-27T16:28:44Z",
+            "views": "8787"
+          },
+          {
+            "videoId": "SCcnsdMzNOw",
+            "title": "BambuLab H2S review, is it good for technical filaments too?",
+            "channelTitle": "My Tech Fun",
+            "duration": "25:14",
+            "published": "2025-08-26T13:00:06Z",
+            "views": "22744"
+          },
+          {
+            "videoId": "6qOrv_r-rKU",
+            "title": "Best PET-CF Filament? I Tested 5 Brands",
+            "channelTitle": "My Tech Fun",
+            "duration": "21:56",
+            "published": "2025-08-10T11:43:32Z",
+            "views": "17823"
+          }
+        ]
+      },
+      "tokens": {
+        "__first__": [
+          null,
+          "EAAaHlBUOkNBb2lFRU5EUXpKRFJqZ3pPRFF6UlVZNFJqQQ"
+        ]
+      }
+    },
+    "PL6R1NSqvpNrtJ1tAryIcidF3YN1WeNoeZ": {
+      "pages": {
+        "__first__": [
+          {
+            "videoId": "f4K9S0IgkUk",
+            "title": "002 The Model Environment",
+            "channelTitle": "R DEY",
+            "duration": "N/A",
+            "published": "2016-04-08T07:16:34Z",
+            "views": "14620"
+          },
+          {
+            "videoId": "gENFmVVuQaY",
+            "title": "REFLUX DRUM SADDLE in Everything 3D",
+            "channelTitle": "R DEY",
+            "duration": "N/A",
+            "published": "2016-11-28T14:00:03Z",
+            "views": "4390"
+          },
+          {
+            "videoId": "1JfJ3Sbd9BY",
+            "title": "Clash Manager (E3D)",
+            "channelTitle": "R DEY",
+            "duration": "N/A",
+            "published": "2016-08-05T08:24:19Z",
+            "views": "6430"
+          },
+          {
+            "videoId": "OyhjFrilDPs",
+            "title": "Creating a Pipe Support (E3D)",
+            "channelTitle": "R DEY",
+            "duration": "N/A",
+            "published": "2016-06-02T06:22:22Z",
+            "views": "14337"
+          },
+          {
+            "videoId": "0UKcrKJnYPE",
+            "title": "Aveva E3D Piping Tutorial 2020 | How to do Piping Modelling In E3d Tutorial | Bounce Back",
+            "channelTitle": "R DEY",
+            "duration": "N/A",
+            "published": "2019-10-25T12:09:05Z",
+            "views": "27001"
+          },
+          {
+            "videoId": "uSsOVRqgSnk",
+            "title": "E3d Piping Tutorial Basic | Aveva E3d Piping Modelling 2020",
+            "channelTitle": "R DEY",
+            "duration": "N/A",
+            "published": "2019-11-23T11:52:46Z",
+            "views": "22954"
+          },
+          {
+            "videoId": "5VeWbfS9Gbk",
+            "title": "ORINOX Formation - AVEVA EVERYTHING 3D (E3D) Training course",
+            "channelTitle": "R DEY",
+            "duration": "N/A",
+            "published": "2016-03-01T07:48:53Z",
+            "views": "53342"
+          },
+          {
+            "videoId": "DeWCX3HvADs",
+            "title": "Private video",
+            "channelTitle": "R DEY",
+            "duration": "N/A",
+            "published": "",
+            "views": "0"
+          },
+          {
+            "videoId": "hxv1dOwZENU",
+            "title": "Pipe Support Drawing (E3D)",
+            "channelTitle": "R DEY",
+            "duration": "N/A",
+            "published": "2016-06-02T06:09:47Z",
+            "views": "9055"
+          },
+          {
+            "videoId": "y6WrID5pdb0",
+            "title": "Create and modify # pipe support on Aveva #Bocad steel in Aveva #E3D",
+            "channelTitle": "R DEY",
+            "duration": "N/A",
+            "published": "2019-08-05T00:23:26Z",
+            "views": "3228"
+          }
+        ]
+      },
+      "tokens": {
+        "__first__": [
+          null,
+          "EAAaHlBUOkNBb2lFRFV6T1RaQk1ERXhPVE0wT1Rnd09FVQ"
+        ]
+      }
+    }
+  },
+  "playlistIds": {
+    "PLRwCMRF27F6mRtTXldm1WWXDoFPFxZu3f": [
+      "79r5D9nCQfM",
+      "Kx4VfzS_V6c",
+      "mPh1b2EOOz0",
+      "G6RWfkICkss",
+      "crT1QBAfgNU",
+      "6b8DWEpVo74"
+    ],
+    "PLU5lZZLWyxXAFW97C5rCKfSzziacfcmyC": [
+      "jMb9sBVWvrs",
+      "uEs7kcbughY",
+      "6qOrv_r-rKU",
+      "ZmYj3GvS_B8",
+      "U-aTEslkqco",
+      "nm_gL9Zw5KY",
+      "92yerrd9A7o",
+      "SCcnsdMzNOw",
+      "dALuVjdvS8w",
+      "b_51SMUE80I"
+    ],
+    "PL6R1NSqvpNrtJ1tAryIcidF3YN1WeNoeZ": [
+      "OyhjFrilDPs",
+      "uSsOVRqgSnk",
+      "y6WrID5pdb0",
+      "f4K9S0IgkUk",
+      "1JfJ3Sbd9BY",
+      "gENFmVVuQaY",
+      "hxv1dOwZENU",
+      "DeWCX3HvADs",
+      "5VeWbfS9Gbk",
+      "0UKcrKJnYPE"
+    ]
+  }
 }
