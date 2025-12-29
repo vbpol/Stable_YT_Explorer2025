@@ -70,8 +70,11 @@ class VideoUIHandler:
             highlight_query = (highlight_query or '').strip().lower()
             
             # Use chunked insertion to avoid freezing UI
+            session_id = self.main_page._search_session
             def _ins_chunk(s):
                 try:
+                    if self.main_page._search_session != session_id:
+                        return
                     ch = 50
                     e = min(s + ch, len(videos))
                     for i in range(s, e):
@@ -161,8 +164,13 @@ class VideoUIHandler:
                 for v in self.main_page.current_videos:
                     try:
                         vid = v.get('videoId')
-                        if vid and (vid in getattr(self.main_page, 'video_search_ids', set())):
-                            self.main_page.video_playlist_cache[vid] = playlist_id
+                        if vid:
+                            if playlist_id not in self.main_page.playlist_video_ids:
+                                self.main_page.playlist_video_ids[playlist_id] = set()
+                            self.main_page.playlist_video_ids[playlist_id].add(vid)
+                            
+                            if vid in getattr(self.main_page, 'video_search_ids', set()):
+                                self.main_page.video_playlist_cache[vid] = playlist_id
                         if pi is not None:
                             v['playlistIndex'] = pi
                     except Exception:
@@ -253,27 +261,41 @@ class VideoUIHandler:
     def update_video_row_by_vid(self, video_id: str, playlist_id: str):
         """Update a specific video row in the TreeView by video ID."""
         try:
-            # 1. Update cache
-            self.main_page.video_playlist_cache[video_id] = playlist_id
+            # 1. Update cache (safe via lock)
+            with self.main_page._lock:
+                self.main_page.video_playlist_cache[video_id] = playlist_id
             
-            # 2. Find row in tree
-            items = self.video_section.video_tree.get_children()
-            for item in items:
-                vals = self.video_section.video_tree.item(item).get('values', [])
-                # We need a way to reliably identify the video from tree values.
-                # Usually we store the video object or index. 
-                # MainPage used to look at current_videos.
-                pass
-                
-            # Efficient update if we know the index
-            for i, v in enumerate(list(self.main_page.current_videos or [])):
-                if v.get('videoId') == video_id:
-                    v['playlistId'] = playlist_id
-                    pi = self.main_page.assign_playlist_index(playlist_id)
-                    v['playlistIndex'] = pi
-                    if i < len(items):
-                        self.main_page._safe_ui(lambda it=items[i], r=self._video_row(v): 
-                            self.video_section.video_tree.item(it, values=r))
+            # Use a local copy of current_videos
+            vids = list(self.main_page.current_videos or [])
+            
+            # Define the update task to be run on the UI thread
+            session_id = self.main_page._search_session
+            def _ui_update():
+                try:
+                    if self.main_page._search_session != session_id:
+                        return
+                    if not self.video_section.video_tree.winfo_exists():
+                        return
+                        
+                    items = self.video_section.video_tree.get_children()
+                    for i, v in enumerate(vids):
+                        if v.get('videoId') == video_id:
+                            # Update the video object's playlist info
+                            v['playlistId'] = playlist_id
+                            pi = self.main_page.assign_playlist_index(playlist_id)
+                            v['playlistIndex'] = pi
+                            
+                            if i < len(items):
+                                iid = items[i]
+                                if self.video_section.video_tree.exists(iid):
+                                    row = self._video_row(v)
+                                    self.video_section.video_tree.item(iid, values=row)
+                except Exception as ex:
+                    logger.error(f"Error in _ui_update for video {video_id}: {ex}")
+
+            # Schedule the UI update
+            self.main_page._safe_ui(_ui_update)
+            
         except Exception as e:
             logger.error(f"Error updating video row by vid: {e}")
 

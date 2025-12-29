@@ -22,8 +22,11 @@ class PlaylistUIHandler:
         try:
             self.playlist_section.playlist_tree.delete(*self.playlist_section.playlist_tree.get_children())
             
+            session_id = self.main_page._search_session
             def _ins_chunk(s):
                 try:
+                    if self.main_page._search_session != session_id:
+                        return
                     ch = 30
                     e = min(s + ch, len(playlists))
                     for i in range(s, e):
@@ -37,13 +40,14 @@ class PlaylistUIHandler:
         except Exception as e:
             logger.error(f"Error rendering playlists: {e}")
 
-    def map_videos_to_playlists(self, videos: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def map_videos_to_playlists(self, videos: List[Dict[str, Any]], skip_render: bool = False) -> List[Dict[str, Any]]:
         """
         Map videos to playlists based on intersection of video IDs.
         Returns a list of collected playlist info.
         """
         collected = []
         try:
+            mp = self.main_page
             # Get current playlist IDs from tree
             children = list(self.playlist_section.playlist_tree.get_children())
             
@@ -51,49 +55,51 @@ class PlaylistUIHandler:
             result_ids = {v.get('videoId') for v in list(videos or []) if v.get('videoId')}
             
             hits_by_playlist = {}
-            for pid in children:
-                ids = set()
-                try:
-                    if self.main_page.media_index:
-                        ids = set(list(self.main_page.media_index.get_playlist_video_ids(pid) or []))
-                    else:
-                        ids = set(list(self.main_page.playlist_video_ids.get(pid, set()) or set()))
-                except Exception:
-                    ids = set(list(self.main_page.playlist_video_ids.get(pid, set()) or set()))
-                
-                inter = ids.intersection(result_ids)
-                if inter:
-                    hits_by_playlist[pid] = inter
-
-            # Update index map
-            index_map = dict(self.main_page.playlist_index_map or {})
-            for pid in hits_by_playlist.keys():
-                if pid not in index_map:
-                    index_map[pid] = len(index_map) + 1
-                
-                try:
-                    info = self.controller.playlist_handler.get_playlist_info(pid)
-                except Exception:
-                    info = {'playlistId': pid, 'title': '', 'channelTitle': '', 'video_count': 'N/A'}
-                collected.append(info)
-
-            # Map video IDs to Playlist IDs for cache
-            vid_to_pid = {}
-            for pid, vids in hits_by_playlist.items():
-                for vid in vids:
-                    vid_to_pid[vid] = pid
-
-            # Update video objects with playlist info
-            for v in list(videos or []):
-                vid = v.get('videoId')
-                pid = vid_to_pid.get(vid)
-                if not pid:
-                    continue
-                v['playlistId'] = pid
-                v['playlistIndex'] = index_map.get(pid)
-                self.main_page.video_playlist_cache[vid] = pid
-
-            self.main_page.playlist_index_map = index_map
+            # Use lock to protect shared data access
+            with mp._lock:
+                for pid in children:
+                    ids = set()
+                    try:
+                        if mp.media_index:
+                            ids = set(list(mp.media_index.get_playlist_video_ids(pid) or []))
+                        else:
+                            ids = set(list(mp.playlist_video_ids.get(pid, set()) or set()))
+                    except Exception:
+                        ids = set(list(mp.playlist_video_ids.get(pid, set()) or set()))
+                    
+                    inter = ids.intersection(result_ids)
+                    if inter:
+                        hits_by_playlist[pid] = inter
+    
+                # Update index map
+                index_map = dict(mp.playlist_index_map or {})
+                for pid in hits_by_playlist.keys():
+                    if pid not in index_map:
+                        index_map[pid] = len(index_map) + 1
+                    
+                    try:
+                        info = self.controller.playlist_handler.get_playlist_info(pid)
+                    except Exception:
+                        info = {'playlistId': pid, 'title': '', 'channelTitle': '', 'video_count': 'N/A'}
+                    collected.append(info)
+    
+                # Map video IDs to Playlist IDs for cache
+                vid_to_pid = {}
+                for pid, vids in hits_by_playlist.items():
+                    for vid in vids:
+                        vid_to_pid[vid] = pid
+    
+                # Update video objects with playlist info
+                for v in list(videos or []):
+                    vid = v.get('videoId')
+                    pid = vid_to_pid.get(vid)
+                    if not pid:
+                        continue
+                    v['playlistId'] = pid
+                    v['playlistIndex'] = index_map.get(pid)
+                    mp.video_playlist_cache[vid] = pid
+    
+                mp.playlist_index_map = index_map
             
             # Update Playlist Tree UI to show only hits
             existing = list(self.playlist_section.playlist_tree.get_children())
@@ -105,10 +111,18 @@ class PlaylistUIHandler:
                         pass
                 else:
                     try:
-                        vals = self.playlist_section.playlist_tree.item(iid).get('values', [])
-                        new_vals = ((index_map.get(iid) or ""),) + tuple(vals[1:]) if vals else ((index_map.get(iid) or ""),)
-                        self.playlist_section.playlist_tree.item(iid, values=new_vals)
-                        self.playlist_section.playlist_tree.set(iid, 'No', str(index_map.get(iid)))
+                        vals = list(self.playlist_section.playlist_tree.item(iid).get('values', []))
+                        if vals:
+                            # Update index (No)
+                            vals[0] = index_map.get(iid) or ""
+                            # Update "Intersecting" count in Status column if hits exist
+                            inter_count = len(hits_by_playlist.get(iid, set()))
+                            if inter_count > 0:
+                                if len(vals) >= 5:
+                                    vals[4] = f"Intersecting: {inter_count}"
+                                    
+                            self.playlist_section.playlist_tree.item(iid, values=tuple(vals))
+                            self.playlist_section.playlist_tree.set(iid, 'No', str(vals[0]))
                     except Exception:
                         pass
             
@@ -119,12 +133,13 @@ class PlaylistUIHandler:
                 except Exception:
                     pass
 
-            # Refresh video table to show new indices
-            self.main_page.video_ui_handler.render_videos(
-                videos, 
-                getattr(self.main_page, 'video_search_ids', set()),
-                getattr(self.main_page, 'video_search_query', '')
-            )
+            # Refresh video table to show new indices if not skipped
+            if not skip_render:
+                self.main_page.video_ui_handler.render_videos(
+                    videos, 
+                    getattr(self.main_page, 'video_search_ids', set()),
+                    getattr(self.main_page, 'video_search_query', '')
+                )
 
             self.main_page.collected_playlists = collected
             
@@ -219,11 +234,13 @@ class PlaylistUIHandler:
     def normalize_playlist_indices(self):
         """Re-assign indices to playlists currently in the tree based on their position."""
         try:
-            children = list(self.playlist_section.playlist_tree.get_children())
-            new_map = {}
-            for i, pid in enumerate(children, start=1):
-                new_map[pid] = i
-            self.main_page.playlist_index_map = new_map
+            mp = self.main_page
+            with mp._lock:
+                children = list(self.playlist_section.playlist_tree.get_children())
+                new_map = {}
+                for i, pid in enumerate(children, start=1):
+                    new_map[pid] = i
+                mp.playlist_index_map = new_map
             
             # Update tree UI
             self.playlist_section.normalize_numbers()
@@ -286,6 +303,11 @@ class PlaylistUIHandler:
         """Handle playlist selection when in videos search mode."""
         try:
             if not playlist_id:
+                return
+
+            # If we are already viewing this specific playlist (populated in main view),
+            # avoid re-triggering "highlight intersection" logic as it is redundant.
+            if getattr(self.main_page, 'viewing_playlist_id', None) == playlist_id:
                 return
                 
             busy = bool(getattr(self.main_page, '_videos_mode_click_busy', False))

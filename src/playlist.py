@@ -1,3 +1,4 @@
+import threading
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from datetime import timedelta
@@ -19,14 +20,29 @@ class Playlist:
     def __init__(self, api_key: str):
         if not api_key:
             raise ValueError("API key is required")
-        self.youtube = build('youtube', 'v3', developerKey=api_key)
+        self._api_key = api_key
+        self._local = threading.local()
         self._contains_cache = {}
+        self._lock = threading.Lock()
+
+    @property
+    def youtube(self):
+        """Thread-safe access to the YouTube API service."""
+        if not hasattr(self._local, 'service'):
+            try:
+                self._local.service = build('youtube', 'v3', developerKey=self._api_key, static_discovery=False)
+            except Exception as e:
+                logger.error(f"Failed to build YouTube service for thread: {e}")
+                # Fallback to standard build
+                self._local.service = build('youtube', 'v3', developerKey=self._api_key)
+        return self._local.service
 
     def search_playlists(self, query: str, max_results: int = 10) -> List[Dict[str, Any]]:
         """Search for playlists matching the query."""
         if not query:
             return []
         try:
+            # Note: Accessing self.youtube will now return a thread-local instance
             request = self.youtube.search().list(
                 part="snippet",
                 maxResults=max_results,
@@ -279,10 +295,10 @@ class Playlist:
             return False
         key = (playlist_id, video_id)
         try:
-            cached = self._contains_cache.get(key)
-            if cached is not None:
-                return cached
-
+            with self._lock:
+                cached = self._contains_cache.get(key)
+                if cached is not None:
+                    return cached
         except Exception:
             pass
         try:
@@ -296,9 +312,10 @@ class Playlist:
         except Exception:
             has = False
         try:
-            if len(self._contains_cache) > 4000:
-                self._contains_cache.clear()
-            self._contains_cache[key] = has
+            with self._lock:
+                if len(self._contains_cache) > 4000:
+                    self._contains_cache.clear()
+                self._contains_cache[key] = has
         except Exception:
             pass
         return has

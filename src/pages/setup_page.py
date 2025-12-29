@@ -24,21 +24,47 @@ class SetupPage(tk.Frame):
         self._create_help_section()
 
     def _create_api_key_section(self):
-        tk.Label(self, text="Enter Your YouTube API Key").pack(pady=10)
+        tk.Label(self, text="Select or Enter Your YouTube API Key").pack(pady=10)
+        
         frame = ttk.Frame(self)
         frame.pack(pady=5)
-        self.api_key_entry = tk.Entry(frame, width=50, show="*")
-        self.api_key_entry.insert(0, self.controller.api_key)
-        self.api_key_entry.pack(side="left", padx=5)
-        self.show_var = tk.BooleanVar(value=False)
-        tk.Checkbutton(frame, text="Show", variable=self.show_var, command=self._toggle_show).pack(side="left")
-        tk.Button(self, text="Validate API Key", command=self.validate_api_key).pack(pady=5)
+        
+        # KEY SELECTION COMBOBOX
+        self.api_key_var = tk.StringVar(value=self.controller.api_key)
+        self.keys = ConfigManager.get_available_api_keys()
+        
+        self.api_key_combo = ttk.Combobox(frame, textvariable=self.api_key_var, values=self.keys, width=47)
+        self.api_key_combo.pack(side="left", padx=5)
+        # Bind select event to auto-check status? Or purely manual?
+        # Let's simple bind changes to reset status or check on button
+        
+        # STATUS INDICATOR (Circle)
+        self.status_canvas = tk.Canvas(frame, width=20, height=20, highlightthickness=0)
+        self.status_canvas.pack(side="left", padx=5)
+        self.status_circle = self.status_canvas.create_oval(2, 2, 18, 18, fill="gray", outline="")
 
-        keys = ConfigManager.get_available_api_keys()
-        if keys:
-            tk.Label(self, text="Available API Keys").pack(pady=5)
-            self.selected_key = tk.StringVar(value=keys[0])
-            ttk.OptionMenu(self, self.selected_key, keys[0], *keys, command=self._apply_selected_key).pack(pady=5)
+        # Action Buttons Frame
+        btn_frame = ttk.Frame(self)
+        btn_frame.pack(pady=5)
+        
+        tk.Button(btn_frame, text="Validate Key", command=self.validate_api_key).pack(side="left", padx=5)
+        tk.Button(btn_frame, text="Add to List", command=self.add_key_to_list).pack(side="left", padx=5)
+        tk.Button(btn_frame, text="Auto Select Valid Key", command=self.auto_select_key).pack(side="left", padx=5)
+
+        ttk.Label(self, text="(New keys are saved to your list automatically when you Save Settings)", 
+                  foreground="gray", font=("Arial", 8)).pack(pady=2)
+
+    def add_key_to_list(self):
+        """Manually add the current key to the .env list."""
+        key = self.api_key_var.get().strip()
+        if not key:
+            messagebox.showerror("Error", "Please enter a key to add.")
+            return
+        
+        ConfigManager.add_to_env_keys(key)
+        self.keys = ConfigManager.get_available_api_keys()
+        self.api_key_combo['values'] = self.keys
+        messagebox.showinfo("Success", "Key added to your available list.")
 
     def _create_folder_section(self):
         """Create the folder selection section."""
@@ -59,7 +85,7 @@ class SetupPage(tk.Frame):
 
     def save_settings(self):
         """Save API key and default download folder."""
-        api_key = self.api_key_entry.get().strip()
+        api_key = self.api_key_var.get().strip()
         default_folder = self.folder_var.get().strip()
         
         if not api_key:
@@ -70,53 +96,100 @@ class SetupPage(tk.Frame):
             messagebox.showerror("Error", "Please select a download folder.")
             return
             
+        # Add to .env if new
+        ConfigManager.add_to_env_keys(api_key)
+        
+        # Validate status for the message
+        status = ConfigManager.validate_api_key(api_key)
+        self._update_status_indicator(status)
+        
+        if status == "INVALID":
+             if not messagebox.askyesno("Warning", "This API key appears INVALID. Save anyway?"):
+                  return
+        elif status == "QUOTA":
+             messagebox.showwarning("Warning", "This API key has exceeded its QUOTA. Saving anyway.")
+             
+        self.controller.update_config(api_key, default_folder)
+        
+        # Success message with status info
+        status_msg = {
+            "VALID": "is VALID and ready.",
+            "QUOTA": "is valid but QUOTA EXCEEDED.",
+            "INVALID": "appears INVALID.",
+            "ERROR": "had a network error during validation."
+        }.get(status, "status is unknown.")
+        
+        messagebox.showinfo("Success", f"Settings saved successfully.\nAPI Key {status_msg}")
+
+        # Navigate back to MainPage
         try:
-            try:
-                Playlist(api_key).search_playlists("test", 1)
-            except HttpError as err:
-                try:
-                    data = json.loads(err.content.decode())
-                    reason = data.get("error", {}).get("errors", [{}])[0].get("reason", "unknown")
-                    messagebox.showwarning("Warning", f"API validation failed ({reason}). Saving anyway.")
-                except Exception:
-                    messagebox.showwarning("Warning", "API validation failed. Saving anyway.")
-            except Exception:
-                messagebox.showwarning("Warning", "Network error during validation. Saving anyway.")
-            ConfigManager.save_env_api_keys([api_key])
-            self.controller.update_config(api_key, default_folder)
-            try:
-                from src.pages.main.main_page import MainPage
-            except ModuleNotFoundError:
-                from pages.main.main_page import MainPage
-            messagebox.showinfo("Success", "Settings saved successfully.")
+            from src.pages.main.main_page import MainPage
             self.controller.show_frame(MainPage)
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to save settings: {str(e)}")
+            try:
+                from pages.main.main_page import MainPage
+                self.controller.show_frame(MainPage)
+            except Exception:
+                # Last resort: just try to find it in the frames dict
+                for page_class in self.controller.frames:
+                    if page_class.__name__ == "MainPage":
+                        self.controller.show_frame(page_class)
+                        break
 
     def validate_api_key(self):
-        api_key = self.api_key_entry.get().strip()
+        api_key = self.api_key_var.get().strip()
         if not api_key:
             messagebox.showerror("Error", "Please enter a YouTube API key.")
+            self._update_status_indicator("INVALID")
             return
-        try:
-            Playlist(api_key).search_playlists("test", 1)
-            messagebox.showinfo("Success", "API key is valid.")
-        except HttpError as err:
-            try:
-                data = json.loads(err.content.decode())
-                reason = data.get("error", {}).get("errors", [{}])[0].get("reason", "unknown")
-                messagebox.showerror("Error", f"API key invalid or quota issue ({reason}).")
-            except Exception:
-                messagebox.showerror("Error", "API key invalid or quota exceeded.")
-        except Exception:
-            messagebox.showerror("Error", "Network error during validation.")
+        
+        status = ConfigManager.validate_api_key(api_key)
+        self._update_status_indicator(status)
+        
+        if status == "VALID":
+            messagebox.showinfo("Success", "API key is VALID and ready.")
+        elif status == "QUOTA":
+            messagebox.showwarning("Warning", "API key is valid but QUOTA EXCEEDED.")
+        elif status == "INVALID":
+            messagebox.showerror("Error", "API key is INVALID.")
+        else:
+            messagebox.showerror("Error", "Network ERROR during validation.")
 
-    def _apply_selected_key(self, value):
-        self.api_key_entry.delete(0, tk.END)
-        self.api_key_entry.insert(0, value)
+    def auto_select_key(self):
+        """Iterates through known keys to find a valid one."""
+        keys = ConfigManager.get_available_api_keys()
+        found_valid = False
+        messagebox.showinfo("Auto Select", "Checking available keys... This might take a moment.")
+        
+        for k in keys:
+            if not k:
+                continue
+            res = ConfigManager.validate_api_key(k)
+            if res == "VALID":
+                self.api_key_var.set(k)
+                self._update_status_indicator("VALID")
+                messagebox.showinfo("Success", f"Found valid key: ...{k[-4:]}")
+                found_valid = True
+                break
+            elif res == "QUOTA":
+                # Keep looking but maybe remember this one?
+                pass
+        
+        if not found_valid:
+            messagebox.showwarning("Result", "No VALID keys found with available quota.")
+            self._update_status_indicator("INVALID")
 
-    def _toggle_show(self):
-        self.api_key_entry.config(show="" if self.show_var.get() else "*")
+    def _update_status_indicator(self, status):
+        color = "gray"
+        if status == "VALID":
+            color = "green"
+        elif status == "QUOTA":
+            color = "orange"
+        elif status == "INVALID":
+            color = "red"
+        elif status == "ERROR":
+            color = "red"
+        self.status_canvas.itemconfig(self.status_circle, fill=color)
 
     def _create_help_section(self):
         box = ttk.Frame(self)

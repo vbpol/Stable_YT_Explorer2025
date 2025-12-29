@@ -21,6 +21,7 @@ from .handlers.search_persistence_handler import SearchPersistenceHandler
 from .handlers.video_ui_handler import VideoUIHandler
 from .handlers.playlist_ui_handler import PlaylistUIHandler
 from .handlers.action_handler import ActionHandler
+from .handlers.build_handler import BuildHandler
 try:
     from src.services.video_playlist_scanner import VideoPlaylistScanner
     from src.services.media_index import MediaIndex
@@ -34,19 +35,25 @@ class MainPage(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
+        self._lock = threading.Lock()
+        self._search_session = 0
         self.current_videos = []
         self.current_playlist_info = {}
         self.current_page_token = None
         self._initialize_components()
 
     def _safe_ui(self, fn):
+        """Schedule a UI update safely from a background thread."""
         try:
-            if not self.winfo_exists():
-                return
-            try:
-                self.after(0, fn)
-            except Exception:
-                pass
+            # Note: winfo_exists() itself is NOT thread-safe in all Tkinter versions.
+            # We defer all checks to the main thread via self.after.
+            def _wrapped():
+                try:
+                    if self.winfo_exists():
+                        fn()
+                except Exception:
+                    pass
+            self.after(0, _wrapped)
         except Exception:
             pass
 
@@ -114,6 +121,7 @@ class MainPage(tk.Frame):
         self._preview_only_hits = False
         self._pl_hits_cache = {}
         self.video_results_ids = set()
+        self.viewing_playlist_id = None
         try:
             self.media_index = MediaIndex()
         except Exception:
@@ -123,6 +131,7 @@ class MainPage(tk.Frame):
         self.video_ui_handler = VideoUIHandler(self)
         self.playlist_ui_handler = PlaylistUIHandler(self)
         self.action_handler = ActionHandler(self)
+        self.build_handler = BuildHandler(self)
         
         try:
             self.video_scanner = VideoPlaylistScanner(self.controller.api_key)
@@ -153,6 +162,7 @@ class MainPage(tk.Frame):
             self._create_mid_controls()
         except Exception:
             pass
+        self._build_in_progress = False
 
     def _save_media_index_snapshot(self):
         self.search_persistence.save_media_index_snapshot()
@@ -284,22 +294,36 @@ class MainPage(tk.Frame):
             pass
 
     def clear_panels(self):
+        """Reset UI and clear internal data state safely."""
         try:
-            self.playlist.playlist_tree.delete(*self.playlist.playlist_tree.get_children())
+            if self.video_scanner:
+                self.video_scanner.stop()
         except Exception:
             pass
-        try:
-            self.video.video_tree.delete(*self.video.video_tree.get_children())
-        except Exception:
-            pass
-        self.current_videos = []
-        self.action_handler.current_playlist_info = None
-        self.prev_page_token = None
-        self.current_page_token = None
-        try:
-            self.media_index = MediaIndex()
-        except Exception:
-            self.media_index = None
+
+        with self._lock:
+            self._search_session += 1
+            try:
+                self.playlist.playlist_tree.delete(*self.playlist.playlist_tree.get_children())
+            except Exception:
+                pass
+            try:
+                self.video.video_tree.delete(*self.video.video_tree.get_children())
+            except Exception:
+                pass
+            
+            self.current_videos = []
+            self.action_handler.current_playlist_info = None
+            self.prev_page_token = None
+            self.current_page_token = None
+            self.viewing_playlist_id = None
+            self.video_results_ids = set()
+            self.playlist_index_map = {}
+            
+            try:
+                self.media_index = MediaIndex()
+            except Exception:
+                self.media_index = None
 
     def set_search_mode(self, mode_display):
         mode = (mode_display or '').strip().lower()
@@ -347,93 +371,8 @@ class MainPage(tk.Frame):
                 pass
 
     def _load_last_search(self, mode_display):
-        mode = (mode_display or '').strip().lower()
-        if mode not in ('playlists', 'videos'):
-            mode = 'playlists'
-        try:
-            if mode == 'playlists':
-                path = ConfigManager.get_last_search_path('playlists')
-                raw = ConfigManager.load_json(path)
-                data_list = []
-                q = ''
-                try:
-                    if isinstance(raw, dict):
-                        data_list = raw.get('playlists', [])
-                        q = raw.get('query', '')
-                    else:
-                        data_list = raw or []
-                except Exception:
-                    data_list = raw or []
-                try:
-                    self.search.search_entry.delete(0, 'end')
-                    if q:
-                        self.search.search_entry.insert(0, q)
-                except Exception:
-                    pass
-                for pl in data_list:
-                    self.playlist.update_playlist(pl)
-                try:
-                    self.video.update_back_button_state(False)
-                except Exception:
-                    pass
-            else:
-                try:
-                    self.video._panel.pagination.set_visible(False)
-                except Exception:
-                    pass
-                path = ConfigManager.get_last_search_path('videos')
-                data = ConfigManager.load_json(path) or {}
-                videos = data.get('videos', [])
-                playlists = data.get('playlists', [])
-                q = data.get('query', '')
-                try:
-                    self.video_prev_page_token = data.get('prevPageToken')
-                    self.video_next_page_token = data.get('nextPageToken')
-                except Exception:
-                    pass
-                try:
-                    ids = data.get('videoIds') or []
-                    self.video_search_ids = set([i for i in ids if i])
-                except Exception:
-                    self.video_search_ids = set()
-                try:
-                    self.search.search_entry.delete(0, 'end')
-                    if q:
-                        self.search.search_entry.insert(0, q)
-                    self.video_search_query = q or self.video_search_query
-                except Exception:
-                    pass
-                
-                # CRITICAL: Rebuild playlist_index_map from saved video data BEFORE rendering
-                # This ensures indices remain stable across app restarts
-                try:
-                    for v in videos:
-                        pi = v.get('playlistIndex')
-                        pid = v.get('playlistId')
-                        if pi and pid and pid not in self.playlist_index_map:
-                            self.playlist_index_map[pid] = pi
-                except Exception:
-                    pass
-                
-                for v in videos:
-                    self.video.video_tree.insert('', 'end', values=self._video_row(v))
-                for pl in playlists:
-                    self.playlist.update_playlist(pl)
-                self.current_videos = videos
-                self.collected_playlists = playlists
-                try:
-                    self.video.update_back_button_state(False)
-                except Exception:
-                    pass
-                try:
-                    self.video.prev_page_btn.configure(command=lambda: self.show_videos_search_page(self.video_prev_page_token))
-                    self.video.next_page_btn.configure(command=lambda: self.show_videos_search_page(self.video_next_page_token))
-                    self.video.prev_page_btn["state"] = "normal" if self.video_prev_page_token else "disabled"
-                    self.video.next_page_btn["state"] = "normal" if self.video_next_page_token else "disabled"
-                except Exception:
-                    pass
-        except Exception:
-            pass
+        """Loads last search results using SearchPersistenceHandler."""
+        self.search_persistence.load_and_restore_search(mode_display)
 
     def execute_search(self, query, mode_display):
         self.action_handler.execute_search(query, mode_display)
@@ -616,285 +555,12 @@ class MainPage(tk.Frame):
         self.action_handler.open_download_folder()
 
     def build_exe_windows(self):
-        try:
-            base_src = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-            root_dir = os.path.dirname(base_src)
-            cand_root = os.path.join(root_dir, "scripts", "build_exe.ps1")
-            cand_src = os.path.join(base_src, "scripts", "build_exe.ps1")
-            script_path = cand_root if os.path.exists(cand_root) else cand_src
-            if not os.path.exists(script_path):
-                messagebox.showerror("Error", f"Build script not found: {script_path}")
-                return
-            project_root = os.path.dirname(os.path.dirname(script_path))
-            dist_dir = os.path.join(project_root, "dist")
-            top = tk.Toplevel(self)
-            top.title("Building EXE")
-            frm = ttk.Frame(top)
-            frm.pack(fill="both", expand=True, padx=10, pady=10)
-            lbl = ttk.Label(frm, text="Building packaged EXE...")
-            lbl.pack(anchor="w")
-            pb = ttk.Progressbar(frm, mode="indeterminate", length=320)
-            pb.pack(fill="x", pady=6)
-            pb.start(10)
-            txt = tk.Text(frm, height=18, width=80)
-            sb = ttk.Scrollbar(frm, orient="vertical", command=txt.yview)
-            txt.configure(yscrollcommand=sb.set)
-            txt.pack(side="left", fill="both", expand=True)
-            sb.pack(side="right", fill="y")
-            btns = ttk.Frame(frm)
-            btns.pack(fill="x", pady=8)
-            run_btn = ttk.Button(btns, text="Run EXE")
-            run_btn.pack(side="left")
-            open_btn = ttk.Button(btns, text="Open EXE Folder")
-            open_btn.pack(side="left", padx=6)
-            close_btn = ttk.Button(btns, text="Close", command=top.destroy)
-            close_btn.pack(side="right")
-            open_btn.configure(state="disabled")
-            run_btn.configure(state="disabled")
-            # Open EXE folder via OS-specific handler; path not needed here
-            def _open_dist():
-                try:
-                    if sys.platform == "win32":
-                        os.startfile(dist_dir)
-                    elif sys.platform == "darwin":
-                        subprocess.run(["open", dist_dir])
-                    else:
-                        subprocess.run(["xdg-open", dist_dir])
-                except Exception:
-                    pass
-            open_btn.configure(command=_open_dist)
-            def _run_exe():
-                try:
-                    exe_path_local = os.path.join(dist_dir, "YouTubePlaylistExplorer.exe")
-                    if sys.platform == "win32":
-                        os.startfile(exe_path_local)
-                    elif sys.platform == "darwin":
-                        subprocess.run(["open", exe_path_local])
-                    else:
-                        subprocess.run([exe_path_local])
-                except Exception:
-                    pass
-            run_btn.configure(command=_run_exe)
-            def _append(s):
-                try:
-                    txt.insert("end", s)
-                    txt.see("end")
-                except Exception:
-                    pass
-            def _done(ok):
-                try:
-                    pb.stop()
-                    lbl.configure(text=("Build completed" if ok else "Build failed"))
-                    if ok:
-                        open_btn.configure(state="normal")
-                        run_btn.configure(state="normal")
-                except Exception:
-                    pass
-            def _worker():
-                ok = False
-                try:
-                    venv_dir = os.path.join(project_root, ".venv")
-                    if not os.path.exists(venv_dir):
-                        subprocess.run([sys.executable, "-m", "venv", venv_dir], cwd=project_root, check=True)
-                    vpy = os.path.join(venv_dir, "Scripts", "python.exe")
-                    if not os.path.exists(vpy):
-                        vpy = os.path.join(venv_dir, "bin", "python")
-                    def runp(args):
-                        p = subprocess.run(args, cwd=project_root, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-                        self.after(0, lambda s=p.stdout: _append(s))
-                        return p.returncode
-                    runp([vpy, "-m", "pip", "install", "--upgrade", "pip"])
-                    runp([vpy, "-m", "pip", "install", "pyinstaller"])
-                    req_path = os.path.join(project_root, "requirements.txt")
-                    if os.path.exists(req_path):
-                        runp([vpy, "-m", "pip", "install", "-r", req_path])
-                    entry = os.path.join(project_root, "src", "main.py")
-                    dist = os.path.join(project_root, "dist")
-                    work = os.path.join(project_root, "build")
-                    os.makedirs(dist, exist_ok=True)
-                    os.makedirs(work, exist_ok=True)
-                    args = [
-                        vpy, "-m", "PyInstaller",
-                        "--onefile", "--windowed",
-                        "--name", "YouTubePlaylistExplorer",
-                        "--distpath", dist, "--workpath", work,
-                        "--hidden-import", "googleapiclient.discovery",
-                        "--hidden-import", "googleapiclient.errors",
-                        "--hidden-import", "isodate",
-                        "--hidden-import", "vlc",
-                        "--hidden-import", "yt_dlp",
-                        entry
-                    ]
-                    r = subprocess.run(args, cwd=project_root, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-                    self.after(0, lambda s=r.stdout: _append(s))
-                    exe = os.path.join(dist, "YouTubePlaylistExplorer.exe")
-                    ok = os.path.exists(exe)
-                    if ok:
-                        try:
-                            run_cmd = os.path.join(dist, "Run-YouTubePlaylistExplorer.cmd")
-                            with open(run_cmd, "w", encoding="ascii") as f:
-                                f.write("@echo off\r\n")
-                                f.write("setlocal\r\n")
-                                for env in ("PYTHONHOME","PYTHONPATH","PYTHONUSERBASE","SSL_CERT_FILE","REQUESTS_CA_BUNDLE"):
-                                    f.write(f"set {env}=\r\n")
-                                f.write("set PYTHONUTF8=1\r\n")
-                                f.write("start \"\" \"%~dp0YouTubePlaylistExplorer.exe\"\r\n")
-                        except Exception:
-                            pass
-                except Exception as e:
-                    err_msg = str(e)
-                    self.after(0, lambda s=err_msg: _append(s + "\n"))
-                    ok = False
-                finally:
-                    self.after(0, lambda: _done(ok))
-            try:
-                threading.Thread(target=_worker, daemon=True).start()
-            except Exception:
-                pass
-        except Exception:
-            pass
+        """Delegated to BuildHandler."""
+        self.build_handler.build_exe_windows()
 
     def build_portable_windows(self):
-        try:
-            base_src = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-            root_dir = os.path.dirname(base_src)
-            cand_root = os.path.join(root_dir, "scripts", "build_exe.ps1")
-            cand_src = os.path.join(base_src, "scripts", "build_exe.ps1")
-            script_path = cand_root if os.path.exists(cand_root) else cand_src
-            if not os.path.exists(script_path):
-                messagebox.showerror("Error", f"Build script not found: {script_path}")
-                return
-            project_root = os.path.dirname(os.path.dirname(script_path))
-            dist_dir = os.path.join(project_root, "dist", "YouTubePlaylistExplorer")
-            top = tk.Toplevel(self)
-            top.title("Building Portable")
-            frm = ttk.Frame(top)
-            frm.pack(fill="both", expand=True, padx=10, pady=10)
-            lbl = ttk.Label(frm, text="Building portable folder...")
-            lbl.pack(anchor="w")
-            pb = ttk.Progressbar(frm, mode="indeterminate", length=320)
-            pb.pack(fill="x", pady=6)
-            pb.start(10)
-            txt = tk.Text(frm, height=18, width=80)
-            sb = ttk.Scrollbar(frm, orient="vertical", command=txt.yview)
-            txt.configure(yscrollcommand=sb.set)
-            txt.pack(side="left", fill="both", expand=True)
-            sb.pack(side="right", fill="y")
-            btns = ttk.Frame(frm)
-            btns.pack(fill="x", pady=8)
-            run_btn = ttk.Button(btns, text="Run EXE")
-            run_btn.pack(side="left")
-            open_btn = ttk.Button(btns, text="Open EXE Folder")
-            open_btn.pack(side="left", padx=6)
-            close_btn = ttk.Button(btns, text="Close", command=top.destroy)
-            close_btn.pack(side="right")
-            open_btn.configure(state="disabled")
-            run_btn.configure(state="disabled")
-            def _open_dist():
-                try:
-                    if sys.platform == "win32":
-                        os.startfile(dist_dir)
-                    elif sys.platform == "darwin":
-                        subprocess.run(["open", dist_dir])
-                    else:
-                        subprocess.run(["xdg-open", dist_dir])
-                except Exception:
-                    pass
-            open_btn.configure(command=_open_dist)
-            def _run_exe():
-                try:
-                    exe_path = os.path.join(dist_dir, "YouTubePlaylistExplorer.exe")
-                    if sys.platform == "win32":
-                        os.startfile(exe_path)
-                    elif sys.platform == "darwin":
-                        subprocess.run(["open", exe_path])
-                    else:
-                        subprocess.run([exe_path])
-                except Exception:
-                    pass
-            run_btn.configure(command=_run_exe)
-            def _append(s):
-                try:
-                    txt.insert("end", s)
-                    txt.see("end")
-                except Exception:
-                    pass
-            def _done(ok):
-                try:
-                    pb.stop()
-                    lbl.configure(text=("Build completed" if ok else "Build failed"))
-                    if ok:
-                        open_btn.configure(state="normal")
-                        run_btn.configure(state="normal")
-                except Exception:
-                    pass
-            def _worker():
-                try:
-                    ok = False
-                    # Python-first build
-                    try:
-                        venv_dir = os.path.join(project_root, ".venv")
-                        if not os.path.exists(venv_dir):
-                            subprocess.run([sys.executable, "-m", "venv", venv_dir], cwd=project_root, check=True)
-                        vpy = os.path.join(venv_dir, "Scripts", "python.exe")
-                        if not os.path.exists(vpy):
-                            vpy = os.path.join(venv_dir, "bin", "python")
-                        def runp(args):
-                            p = subprocess.run(args, cwd=project_root, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-                            self.after(0, lambda s=p.stdout: _append(s))
-                            return p.returncode
-                        runp([vpy, "-m", "pip", "install", "--upgrade", "pip"])
-                        runp([vpy, "-m", "pip", "install", "pyinstaller"])
-                        req_path = os.path.join(project_root, "requirements.txt")
-                        if os.path.exists(req_path):
-                            runp([vpy, "-m", "pip", "install", "-r", req_path])
-                        entry = os.path.join(project_root, "src", "main.py")
-                        dist = os.path.join(project_root, "dist")
-                        work = os.path.join(project_root, "build")
-                        os.makedirs(dist, exist_ok=True)
-                        os.makedirs(work, exist_ok=True)
-                        args = [
-                            vpy, "-m", "PyInstaller",
-                            "--onedir", "--windowed",
-                            "--name", "YouTubePlaylistExplorer",
-                            "--distpath", dist, "--workpath", work,
-                            "--hidden-import", "googleapiclient.discovery",
-                            "--hidden-import", "googleapiclient.errors",
-                            "--hidden-import", "isodate",
-                            "--hidden-import", "vlc",
-                            "--hidden-import", "yt_dlp",
-                            entry
-                        ]
-                        r = subprocess.run(args, cwd=project_root, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-                        self.after(0, lambda s=r.stdout: _append(s))
-                        target_dir = os.path.join(dist, "YouTubePlaylistExplorer")
-                        ok = os.path.isdir(target_dir)
-                        if ok:
-                            try:
-                                run_cmd = os.path.join(target_dir, "Run-App.cmd")
-                                with open(run_cmd, "w", encoding="ascii") as f:
-                                    f.write("@echo off\r\n")
-                                    f.write("setlocal\r\n")
-                                    for env in ("PYTHONHOME","PYTHONPATH","PYTHONUSERBASE","SSL_CERT_FILE","REQUESTS_CA_BUNDLE"):
-                                        f.write(f"set {env}=\r\n")
-                                    f.write("set PYTHONUTF8=1\r\n")
-                                    f.write("start \"\" \"%~dp0YouTubePlaylistExplorer.exe\"\r\n")
-                            except Exception:
-                                pass
-                    except Exception as exc:
-                        err_msg = str(exc)
-                        self.after(0, lambda s=err_msg: _append(s + "\n"))
-                        ok = False
-                    # No PowerShell fallback; Python-only build
-                    self.after(0, lambda: _done(ok))
-                except Exception:
-                    self.after(0, lambda: _done(False))
-            try:
-                threading.Thread(target=_worker, daemon=True).start()
-            except Exception:
-                pass
-        except Exception:
-            pass
+        """Delegated to BuildHandler."""
+        self.build_handler.build_portable_windows()
 
     def view_downloaded_videos(self):
         self.action_handler.view_downloaded_videos()

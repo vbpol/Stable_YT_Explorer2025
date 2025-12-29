@@ -47,37 +47,41 @@ class PlaylistModel:
         )
 
 
+import threading
+
 class MediaIndex:
     def __init__(self):
         self.videos: Dict[str, VideoModel] = {}
         self.playlists: Dict[str, PlaylistModel] = {}
+        self._lock = threading.Lock()
 
     def add_videos(self, videos: List[Dict]) -> None:
-        for v in (videos or []):
-            vid = v.get('videoId')
-            if not vid:
-                continue
-            self.videos[vid] = VideoModel.from_dict(v)
+        with self._lock:
+            for v in (videos or []):
+                vid = v.get('videoId')
+                if not vid:
+                    continue
+                self.videos[vid] = VideoModel.from_dict(v)
 
     def add_playlists(self, playlists: List[Dict]) -> None:
-        for p in (playlists or []):
-            pid = p.get('playlistId') or p.get('id') or p.get('playlist_id')
-            if not pid:
-                continue
-            cur = self.playlists.get(pid)
-            if cur is None:
-                cur = PlaylistModel.from_dict(p)
-                self.playlists[pid] = cur
-            else:
-                cur.title = p.get('title', cur.title)
-                cur.channelTitle = p.get('channelTitle', cur.channelTitle)
-                vc = p.get('video_count')
-                if vc is not None:
-                    cur.video_count = vc
+        with self._lock:
+            for p in (playlists or []):
+                pid = p.get('playlistId') or p.get('id') or p.get('playlist_id')
+                if not pid:
+                    continue
+                cur = self.playlists.get(pid)
+                if cur is None:
+                    cur = PlaylistModel.from_dict(p)
+                    self.playlists[pid] = cur
+                else:
+                    cur.title = p.get('title', cur.title)
+                    cur.channelTitle = p.get('channelTitle', cur.channelTitle)
+                    vc = p.get('video_count')
+                    if vc is not None:
+                        cur.video_count = vc
 
-    def link_video_to_playlist(self, playlist_id: str, video_id: str, index: Optional[int] = None) -> None:
-        if not playlist_id or not video_id:
-            return
+    def _link_no_lock(self, playlist_id: str, video_id: str, index: Optional[int] = None) -> None:
+        """Internal helper for linking without acquiring the lock."""
         pl = self.playlists.setdefault(playlist_id, PlaylistModel(playlistId=playlist_id))
         pl.video_ids.add(video_id)
         v = self.videos.get(video_id)
@@ -86,18 +90,31 @@ class MediaIndex:
             if isinstance(index, int):
                 v.playlistIndex = index
 
+    def link_video_to_playlist(self, playlist_id: str, video_id: str, index: Optional[int] = None) -> None:
+        if not playlist_id or not video_id:
+            return
+        with self._lock:
+            self._link_no_lock(playlist_id, video_id, index)
+
     def bulk_link_playlist_videos(self, playlist_id: str, video_ids: List[str]) -> None:
-        for vid in (video_ids or []):
-            self.link_video_to_playlist(playlist_id, vid)
+        if not playlist_id or not video_ids:
+            return
+        with self._lock:
+            for vid in video_ids:
+                if vid:
+                    self._link_no_lock(playlist_id, vid)
 
     def get_playlist_video_ids(self, playlist_id: str) -> Set[str]:
-        pl = self.playlists.get(playlist_id)
-        return set(pl.video_ids) if pl else set()
+        with self._lock:
+            pl = self.playlists.get(playlist_id)
+            return set(pl.video_ids) if pl else set()
 
     def get_video_playlist(self, video_id: str) -> Optional[str]:
-        v = self.videos.get(video_id)
-        return v.playlistId if v else None
+        with self._lock:
+            v = self.videos.get(video_id)
+            return v.playlistId if v else None
 
     def get_playlist(self, playlist_id: str) -> Optional[PlaylistModel]:
-        return self.playlists.get(playlist_id)
+        with self._lock:
+            return self.playlists.get(playlist_id)
 

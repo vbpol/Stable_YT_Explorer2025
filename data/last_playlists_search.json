@@ -1,29 +1,29 @@
 {
-  "query": "E3D",
+  "query": "E3D PML",
   "playlists": [
     {
-      "playlistId": "PLZYuulzjE1ABnmts7xHU31nuNvEPrIggR",
-      "title": "AVEVA E3D TUTORIAL",
-      "channelTitle": "XYZ DESIGNER ",
-      "video_count": 15
-    },
-    {
-      "playlistId": "PLjChkog_p_LEEwqxvdniWTK7JlEnDXUW_",
-      "title": "AVEVA E3D - Getting Started",
+      "playlistId": "PLjChkog_p_LGhfPnFczX64gLhZsX6rxwx",
+      "title": "AVEVA E3D - PML",
       "channelTitle": "TDS Engr Solutions Pte Ltd",
-      "video_count": 12
+      "video_count": 14
     },
     {
-      "playlistId": "PLLD0AXRDg5kRTxg3aQaUmSRvMDxIIEjyM",
-      "title": "e3d piping modeling",
-      "channelTitle": "Aveva E3D Tutorials",
-      "video_count": 16
+      "playlistId": "PLjChkog_p_LFZWXLBmiWqlwCsGDBK-w3N",
+      "title": "AVEVA E3D Administrations",
+      "channelTitle": "TDS Engr Solutions Pte Ltd",
+      "video_count": 8
     },
     {
-      "playlistId": "PLjV5XTNQA1rz784U2gdMMwN1JAuooMrhT",
-      "title": "Projet Routier avec Civil 3D 2020",
-      "channelTitle": "walker baweni",
-      "video_count": 12
+      "playlistId": "PLjChkog_p_LFBZgYO4OYblIqGbkxq6RFH",
+      "title": "E3D Commands",
+      "channelTitle": "TDS Engr Solutions Pte Ltd",
+      "video_count": 9
+    },
+    {
+      "playlistId": "PLjChkog_p_LEK2vhI3Pl7H-DSU23BnVwP",
+      "title": "AVEVA E3D - \"How To\"",
+      "channelTitle": "TDS Engr Solutions Pte Ltd",
+      "video_count": 57
     },
     {
       "playlistId": "PL1jTYwbsIqVoEeorq9Z-ONkoDQvS6NY4M",
@@ -32,10 +32,10 @@
       "video_count": 20
     },
     {
-      "playlistId": "PL75IZtNZuZ3tnyUCSdefbcD_FKB3KAn5Z",
-      "title": "CURSO AVEVA E3D TUBULAÇÃO INDUSTRIAL",
-      "channelTitle": "Jeverson Evangelista",
-      "video_count": 27
+      "playlistId": "PLjcGR3_rrjB32XlugRJ--NSE-uJjQ7ZAM",
+      "title": "PML-PMLNet",
+      "channelTitle": "Mansyur Usman",
+      "video_count": 84
     },
     {
       "playlistId": "PLjChkog_p_LFWXnasBK39_az2XMxt6XkN",
@@ -44,22 +44,22 @@
       "video_count": 22
     },
     {
-      "playlistId": "PLjChkog_p_LGhfPnFczX64gLhZsX6rxwx",
-      "title": "AVEVA E3D - PML",
+      "playlistId": "PLhpDQvkFDZckjpCvhPbkvAmevBgzoRuJf",
+      "title": "PML 구경",
+      "channelTitle": "권오인",
+      "video_count": 18
+    },
+    {
+      "playlistId": "PLjChkog_p_LGmo6QKFS3WJayhNLtY3si9",
+      "title": "AVEVA E3D for PDMS users",
       "channelTitle": "TDS Engr Solutions Pte Ltd",
-      "video_count": 14
+      "video_count": 16
     },
     {
-      "playlistId": "PLFMJSepvX3NEQEnwnnDd7T1sZ-N7OSRL2",
-      "title": "AVEVA-Everything 3D-Equipment & Piping Basic",
-      "channelTitle": "Nazmul Hossain",
-      "video_count": 8
-    },
-    {
-      "playlistId": "PLeaIM0zUlEqswa6Pskg9uMq15LiWWYP39",
-      "title": "3D Slicer Tutorial",
-      "channelTitle": "Jan Witowski",
-      "video_count": 11
+      "playlistId": "PLAbBWWtgWS0v4Gry7IQQX7LSDLQevM4Ha",
+      "title": "E3D",
+      "channelTitle": "Chatchai Kamthornnoppakun",
+      "video_count": 50
     }
   ]
 }

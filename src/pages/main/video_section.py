@@ -140,6 +140,14 @@ class VideoSection(BaseSection):
         except Exception:
             pass
 
+    def set_pagination_visible(self, visible: bool):
+        """Toggle visibility of the pagination bar."""
+        try:
+            if hasattr(self, "_panel"):
+                self._panel.pagination.set_visible(visible)
+        except Exception:
+            pass
+
     def set_total_videos(self, count: int):
         try:
             self.total_label["text"] = f"Total: {int(count or 0)}"

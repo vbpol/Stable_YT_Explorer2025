@@ -15,27 +15,31 @@ except ImportError:
     import logging
     logger = logging.getLogger("ConfigManager")
 
+try:
+    from googleapiclient.discovery import build
+    from googleapiclient.errors import HttpError
+except ImportError:
+    pass
+
 CONFIG_FILE = "config.json"
 ENV_FILE = ".env"
 
 class ConfigManager:
     @staticmethod
     def load_config() -> Dict[str, Any]:
+        """Load configuration from config.json, with priority over individual env lookups."""
         try:
             data = {}
-            try:
+            if os.path.exists(CONFIG_FILE):
                 with open(CONFIG_FILE, "r") as file:
-                    data = json.load(file)
-            except FileNotFoundError:
-                data = {"api_key": "", "default_folder": "", "ui": {}}
+                    data = json.load(file) or {}
+            
+            # Priority: 1. config.json 2. first key in .env
+            api_key = data.get("api_key", "").strip()
+            if not api_key:
+                keys = ConfigManager.get_available_api_keys()
+                api_key = keys[0] if keys else ""
 
-            keys = ConfigManager.get_available_api_keys()
-            api_key = keys[0] if keys else data.get("api_key", "")
-            return {
-                "api_key": api_key,
-                "default_folder": data.get("default_folder", ""),
-                "ui": data.get("ui", {})
-            }
             return {
                 "api_key": api_key,
                 "default_folder": data.get("default_folder", ""),
@@ -46,27 +50,19 @@ class ConfigManager:
             return {"api_key": "", "default_folder": "", "ui": {}}
 
     @staticmethod
-    @staticmethod
     def save_config(api_key: str, default_folder: str) -> None:
-        """
-        Save configuration values to the config file.
-        Validates inputs before writing.
-        """
-        if not isinstance(api_key, str) or not api_key:
-            raise ValueError("api_key must be a non-empty string")
-        if not isinstance(default_folder, str):
-            raise ValueError("default_folder must be a string")
+        """Save configuration values to the config file."""
+        if not isinstance(api_key, str): api_key = ""
+        if not isinstance(default_folder, str): default_folder = ""
         try:
             data = {}
-            try:
-                with open(CONFIG_FILE, "r") as file:
-                    data = json.load(file) or {}
-            except Exception:
-                data = {}
-            data["api_key"] = api_key
-            data["default_folder"] = default_folder
-            with open(CONFIG_FILE, "w") as file:
-                json.dump(data, file, indent=4)
+            if os.path.exists(CONFIG_FILE):
+                try:
+                    with open(CONFIG_FILE, "r") as file:
+                        data = json.load(file) or {}
+                except Exception: pass
+            data["api_key"] = api_key.strip()
+            data["default_folder"] = default_folder.strip()
             with open(CONFIG_FILE, "w") as file:
                 json.dump(data, file, indent=4)
         except Exception as e:
@@ -74,6 +70,7 @@ class ConfigManager:
 
     @staticmethod
     def get_available_api_keys() -> List[str]:
+        """Retrieve all unique API keys from .env and settings.py."""
         keys: List[str] = []
         try:
             if load_dotenv is not None:
@@ -84,20 +81,16 @@ class ConfigManager:
                 keys.extend([k.strip() for k in env_multi.split(",") if k.strip()])
             if env_single:
                 keys.append(env_single.strip())
-            if env_single:
-                keys.append(env_single.strip())
         except Exception as e:
             logger.error(f"Error loading env keys: {e}")
 
         try:
-            import importlib
+            import importlib.util
             spec = importlib.util.spec_from_file_location("settings", os.path.join(os.getcwd(), "settings.py"))
             if spec and spec.loader:
                 mod = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(mod)
                 val = getattr(mod, "API_KEY", "")
-                if val:
-                    keys.append(str(val).strip())
                 if val:
                     keys.append(str(val).strip())
         except Exception as e:
@@ -106,7 +99,7 @@ class ConfigManager:
         seen = set()
         unique = []
         for k in keys:
-            if k not in seen:
+            if k and k not in seen:
                 unique.append(k)
                 seen.add(k)
         return unique
@@ -262,9 +255,56 @@ class ConfigManager:
         try:
             cfg = ConfigManager.load_config() or {}
             ui = cfg.get("ui", {}) or {}
-            val = ui.get("use_channel_title_fallback")
+            val = ui.get("ui", {}).get("use_channel_title_fallback")
+            # If manually called it might be nested, handle safely
+            if val is None:
+                 val = ui.get("use_channel_title_fallback")
             if val is None:
                 return True
             return bool(val)
         except Exception:
             return True
+
+    @staticmethod
+    def validate_api_key(api_key: str) -> str:
+        """
+        Validates an API key by making a small request.
+        Returns: "VALID", "QUOTA", "INVALID", "ERROR"
+        """
+        if not api_key:
+            return "INVALID"
+        try:
+            # We need to do a lightweight call. Searching for 1 item is usually fine.
+            # If we don't have the lib, we can't strictly validate, but assume VALID/ERROR?
+            # We imported build above.
+            youtube = build("youtube", "v3", developerKey=api_key)
+            # Try a very cheap call, e.g. a search for "test" with 1 result
+            youtube.search().list(part="id", q="test", maxResults=1).execute()
+            return "VALID"
+        except HttpError as e:
+            try:
+                # parse error reason
+                content = e.content.decode() if isinstance(e.content, bytes) else str(e.content)
+                data = json.loads(content)
+                reason = data.get("error", {}).get("errors", [{}])[0].get("reason", "")
+                if reason in ("quotaExceeded", "dailyLimitExceeded"):
+                    return "QUOTA"
+                if reason in ("keyInvalid", "badRequest", "api_key_invalid"):
+                    return "INVALID"
+            except Exception:
+                pass
+            return "INVALID"
+        except Exception as e:
+            logger.error(f"Validation network error: {e}")
+            return "ERROR"
+
+    @staticmethod
+    def add_to_env_keys(new_key: str):
+        """Adds a new key to the .env list if not already present."""
+        if not new_key:
+            return
+        current_keys = ConfigManager.get_available_api_keys()
+        if new_key in current_keys:
+            return
+        current_keys.append(new_key)
+        ConfigManager.save_env_api_keys(current_keys)

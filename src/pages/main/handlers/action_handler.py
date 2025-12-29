@@ -35,11 +35,9 @@ class ActionHandler:
         mp.search_mode = mode
         mp.clear_panels()
         
-        try:
-            mp.playlist_index_map = {}
+        with mp._lock:
             mp.pinned_playlist_id = None
-        except Exception:
-            pass
+            # playlist_index_map is cleared inside clear_panels()
 
         if mode == 'playlists':
             self._execute_playlists_search(query)
@@ -109,6 +107,10 @@ class ActionHandler:
             mp.video_ui_handler.render_videos(videos, mp.video_search_ids)
             mp.video_results_ids = mp.video_search_ids
             
+            # Reset preview state and disable back button for fresh results
+            mp._preview_active = False
+            mp.video.update_back_button_state(False)
+            
             # Background playlist scanning
             threading.Thread(target=self._background_playlist_scan, args=(videos, query), daemon=True).start()
             
@@ -139,13 +141,17 @@ class ActionHandler:
 
     def _background_playlist_scan(self, videos, query):
         mp = self.main_page
-        mp._safe_ui(lambda: mp.set_mid_job_title('Mapping playlists'))
+        session_id = mp._search_session
+        
+        mp._safe_ui(lambda: mp.set_mid_job_title('Videos analyzed'))
         mp._safe_ui(lambda t=len(videos): mp.video.show_scan(t))
         
         collected_local = []
         scanner = mp.video_scanner
         
         def _on_pl(pl):
+            if mp._search_session != session_id:
+                return -1
             pi = mp.assign_playlist_index(pl.get('playlistId'))
             mp._safe_ui(lambda d=pl: mp.playlist.update_playlist(d))
             if mp.media_index:
@@ -155,35 +161,58 @@ class ActionHandler:
 
         def _prefetch(pid):
             try:
+                if mp._search_session != session_id:
+                    return
                 ph = scanner._get_service()
                 resp = ph.get_videos(pid, None, max_results=10)
+                if mp._search_session != session_id:
+                    return
                 mp._cache_playlist_videos(pid, None, resp)
+                vids = [x.get('videoId') for x in (resp.get('videos', []) or []) if x.get('videoId')]
                 if mp.media_index:
-                    vids = [x.get('videoId') for x in (resp.get('videos', []) or []) if x.get('videoId')]
                     mp.media_index.bulk_link_playlist_videos(pid, vids)
+                with mp._lock:
+                    if pid not in mp.playlist_video_ids:
+                        mp.playlist_video_ids[pid] = set()
+                    mp.playlist_video_ids[pid].update(vids)
             except Exception: pass
 
         def _progress(done, total):
-            mp._safe_ui(lambda x=done, t=total: mp.status_bar.configure(text=f"Scanning playlists... {x}/{t}"))
+            if mp._search_session != session_id:
+                return
+            mp._safe_ui(lambda x=done, t=total: mp.status_bar.configure(text=f"Analyzing associations... {x}/{t}"))
             mp._safe_ui(lambda x=done, t=total: mp.video.update_scan_progress(x, t))
 
         def _index(vid, pid, idx):
+            if mp._search_session != session_id:
+                return
             mp._safe_ui(lambda v_id=vid, p_id=pid: mp._update_video_row_by_vid(v_id, p_id))
             if mp.media_index:
                 mp.media_index.link_video_to_playlist(pid, vid, idx)
+            with mp._lock:
+                if pid not in mp.playlist_video_ids:
+                    mp.playlist_video_ids[pid] = set()
+                mp.playlist_video_ids[pid].add(vid)
 
         try:
             scanner.scan(videos, _on_pl, _prefetch, _progress, _index)
             # Final persistence
             try:
+                with mp._lock:
+                    v_ids = list(mp.video_search_ids)
                 ConfigManager.save_json(ConfigManager.get_last_search_path('videos'), {
                     'query': query,
                     'videos': videos,
                     'playlists': collected_local,
                     'nextPageToken': mp.video_next_page_token,
                     'prevPageToken': mp.video_prev_page_token,
-                    'videoIds': list(mp.video_search_ids)
+                    'videoIds': v_ids
                 })
+            except Exception: pass
+            
+            # Save media index snapshot for cross-mode persistence
+            try:
+                mp._save_media_index_snapshot()
             except Exception: pass
         except Exception as e:
             logger.error(f"Error in background scan: {e}")
@@ -192,57 +221,21 @@ class ActionHandler:
         """Restore previous search results from fallback storage."""
         mp = self.main_page
         if mp.search_mode != 'videos':
-            return
-            
-        # Try Loading from persistence
-        data = mp.search_persistence.load_last_videos_result()
-        if not data:
-            data = mp.search_persistence.load_last_search_from_config('videos')
-            
-        if not data:
+            # Not in videos mode? (Maybe user switched mode then clicked back)
+            # Logically inactive but if clicked, we should perhaps force mode switch?
+            # For now, let's just return as it's logically inactive.
             return
 
         mp.clear_panels()
-        mp.playlist_index_map = {}
+        mp.search_persistence.load_and_restore_search('videos')
         
-        videos = data.get('videos', [])
-        playlists = data.get('playlists', [])
+        # Additional UI cleanup for "Back to Results" context
+        with mp._lock:
+            mp._preview_active = False
+            mp._preview_only_hits = False
+            mp.playlist.playlist_tree.configure(selectmode='extended')
         
-        # Restore state
-        mp.current_videos = videos
-        mp.collected_playlists = playlists
-        mp.video_next_page_token = data.get('nextPageToken')
-        mp.video_prev_page_token = data.get('prevPageToken')
-        mp.video_search_query = data.get('query', '')
-        
-        ids = data.get('videoIds') or []
-        mp.video_search_ids = set([i for i in ids if i])
-        
-        # Update Media Index if available
-        if mp.media_index:
-            try:
-                mp.media_index.add_videos(videos)
-                mp.media_index.add_playlists(playlists)
-            except Exception: pass
-
-        # UI Rendering
-        mp.video_ui_handler.render_videos(videos, mp.video_search_ids, mp.video_search_query)
-        mp.playlist_ui_handler.render_playlists(playlists)
-        
-        # Restore mappings
-        mp.playlist_ui_handler.map_videos_to_playlists(videos)
-        
-        # Final UI polish
         mp.video.update_back_button_state(False)
-        mp._preview_active = False
-        mp._preview_only_hits = False
-        mp.playlist.playlist_tree.configure(selectmode='extended')
-        
-        # Update search entry
-        if mp.video_search_query:
-            mp.search.search_entry.delete(0, 'end')
-            mp.search.search_entry.insert(0, mp.video_search_query)
-            
         mp.status_bar.configure(text=f"Restored results for '{mp.video_search_query}'")
 
     def on_video_select(self, event=None):
@@ -465,6 +458,7 @@ class ActionHandler:
         # 4. Update state
         mp.search_mode = 'playlists' # Ensure we know we are in playlist viewing mode
         mp._set_pinned_playlist(playlist_id)
+        mp.viewing_playlist_id = playlist_id
         mp._preview_active = False 
 
         # Set current_playlist_info for other actions
@@ -680,49 +674,50 @@ class ActionHandler:
             logger.error(f"Error enriching video info: {e}")
 
     def cache_playlist_videos(self, playlist_id: str, page_token: Optional[str], response: Dict[str, Any]):
-        """Cache videos for a playlist page to reduce API calls."""
+        """Cache videos for a playlist page to reduce API calls with thread safety."""
         try:
             mp = self.main_page
-            cache = mp.playlist_videos_cache.setdefault(playlist_id, {'pages': {}, 'tokens': {}})
-            key = page_token or '__first__'
-            vids = list(response.get('videos', []))
-            cache['pages'][key] = vids
-            cache['tokens'][key] = (response.get('prevPageToken'), response.get('nextPageToken'))
-            
-            ids = {v.get('videoId') for v in vids if v.get('videoId')}
-            
-            # Update local memory index
-            cur_ids = mp.playlist_video_ids.setdefault(playlist_id, set())
-            for vid in ids:
-                cur_ids.add(vid)
+            with mp._lock:
+                cache = mp.playlist_videos_cache.setdefault(playlist_id, {'pages': {}, 'tokens': {}})
+                key = page_token or '__first__'
+                vids = list(response.get('videos', []))
+                cache['pages'][key] = vids
+                cache['tokens'][key] = (response.get('prevPageToken'), response.get('nextPageToken'))
                 
-            # Update persistent media index
-            if hasattr(mp, 'media_index') and mp.media_index:
-                mp.media_index.bulk_link_playlist_videos(playlist_id, list(ids))
+                ids = {v.get('videoId') for v in vids if v.get('videoId')}
                 
+                # Update local memory index
+                cur_ids = mp.playlist_video_ids.setdefault(playlist_id, set())
+                for vid in ids:
+                    cur_ids.add(vid)
+                    
+                # Update persistent media index
+                if hasattr(mp, 'media_index') and mp.media_index:
+                    mp.media_index.bulk_link_playlist_videos(playlist_id, list(ids))
         except Exception as e:
             logger.error(f"Error caching playlist videos: {e}")
 
     def get_cached_playlist_page(self, playlist_id: str, page_token: Optional[str]) -> Optional[Dict[str, Any]]:
-        """Retrieve a cached page of playlist videos."""
+        """Retrieve a cached page of playlist videos with thread safety."""
         try:
             mp = self.main_page
-            cache = mp.playlist_videos_cache.get(playlist_id)
-            if not cache:
-                return None
+            with mp._lock:
+                cache = mp.playlist_videos_cache.get(playlist_id)
+                if not cache:
+                    return None
+                    
+                key = page_token or '__first__'
+                vids = cache.get('pages', {}).get(key)
+                toks = cache.get('tokens', {}).get(key, (None, None))
                 
-            key = page_token or '__first__'
-            vids = cache.get('pages', {}).get(key)
-            toks = cache.get('tokens', {}).get(key, (None, None))
-            
-            if vids is None:
-                return None
-                
-            return {
-                'videos': vids,
-                'prevPageToken': toks[0],
-                'nextPageToken': toks[1]
-            }
+                if vids is None:
+                    return None
+                    
+                return {
+                    'videos': vids,
+                    'prevPageToken': toks[0],
+                    'nextPageToken': toks[1]
+                }
         except Exception as e:
             logger.error(f"Error getting cached playlist page: {e}")
             return None
@@ -730,12 +725,13 @@ class ActionHandler:
     def assign_playlist_index(self, playlist_id: str) -> int:
         """Assign or retrieve a 1-based index for a playlist (used for display)."""
         mp = self.main_page
-        if playlist_id in mp.playlist_index_map:
-            return mp.playlist_index_map[playlist_id]
-            
-        idx = len(mp.playlist_index_map) + 1
-        mp.playlist_index_map[playlist_id] = idx
-        return idx
+        with mp._lock:
+            if playlist_id in mp.playlist_index_map:
+                return mp.playlist_index_map[playlist_id]
+                
+            idx = len(mp.playlist_index_map) + 1
+            mp.playlist_index_map[playlist_id] = idx
+            return idx
 
     def download_playlist_videos(self):
         """Download videos from the current playlist."""

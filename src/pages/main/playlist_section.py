@@ -95,6 +95,14 @@ class PlaylistSection(BaseSection):
         except Exception:
             pass
 
+    def set_pagination_visible(self, visible: bool):
+        """Toggle visibility of the pagination bar."""
+        try:
+            if hasattr(self, "_panel"):
+                self._panel.pagination.set_visible(visible)
+        except Exception:
+            pass
+
     
 
     def on_playlist_select(self, event):
